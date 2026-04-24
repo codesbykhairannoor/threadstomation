@@ -136,6 +136,16 @@ app.delete('/api/schedules/:id', async (req, res) => {
     res.json({ success: true });
 });
 
+app.get('/api/cron', async (req, res) => {
+    console.log('[Cron API] Triggered via Vercel Cron');
+    try {
+        await runScheduledTask();
+        res.json({ success: true, message: 'Cron job executed' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 async function runScheduledTask() {
     try {
         const content = await generateThreadsContent('threads');
