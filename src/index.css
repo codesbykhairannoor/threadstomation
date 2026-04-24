@@ -141,6 +141,23 @@ body {
   align-items: start;
 }
 
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-container {
+    padding: 1.5rem 1rem;
+  }
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .sidebar {
+    display: none;
+  }
+}
+
 .glass-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -390,4 +407,19 @@ input:focus, textarea:focus {
 .remove-img:hover {
   transform: scale(1.1);
   background: #ef4444;
+}
+
+.history-media {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  margin-top: 0.8rem;
+}
+
+.history-img-preview {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
 }

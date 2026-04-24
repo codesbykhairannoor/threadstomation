@@ -80,9 +80,12 @@ app.post('/api/test-post', async (req, res) => {
     try {
         let imageUrl = null;
         if (image) {
+            console.log('[API] Uploading image to Supabase...');
             imageUrl = await uploadImage(image);
+            console.log('[API] Public URL:', imageUrl || 'FAILED');
         }
         const content = await generateThreadsContent('threads', image);
+        console.log('[API] AI Content:', content.substring(0, 50) + '...');
         const results = await postToPlatforms(content, platforms, imageUrl);
         res.json({ success: true, results });
     } catch (error) {
@@ -95,9 +98,12 @@ app.post('/api/post-now', async (req, res) => {
     try {
         let imageUrl = null;
         if (image) {
+            console.log('[API] Uploading image to Supabase...');
             imageUrl = await uploadImage(image);
+            console.log('[API] Public URL:', imageUrl || 'FAILED');
         }
         const content = await generateThreadsContent('threads', image);
+        console.log('[API] AI Content:', content.substring(0, 50) + '...');
         const results = await postToPlatforms(content, platforms, imageUrl);
         res.json({ success: true, results });
     } catch (error) {

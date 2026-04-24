@@ -76,6 +76,11 @@ const ThreadsDashboard = ({ status, handlePostNow, history, loading, selectedIma
                     <span className={`status-dot ${item.status}`}></span>
                   </div>
                   <p className="content-pill">{item.content}</p>
+                  {item.media_url && (
+                    <div className="history-media mt-1">
+                      <img src={item.media_url} alt="Posted" className="history-img-preview" />
+                    </div>
+                  )}
                 </div>
               )) : (
                 <div className="empty-state">No recent activity on Threads.</div>
