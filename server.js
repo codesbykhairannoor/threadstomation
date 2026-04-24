@@ -164,9 +164,16 @@ async function runScheduledTask() {
 }
 
 cron.schedule('* * * * *', async () => {
-    const d = new Date();
-    const now = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
-    console.log(`[Scheduler] Checking time: ${now}`);
+    // Get time in Asia/Makassar (WITA)
+    const nowInMakassar = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Makassar',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    }).format(new Date());
+    
+    console.log(`[Scheduler] Checking time (WITA): ${nowInMakassar}`);
+    const now = nowInMakassar;
     try {
         const matches = await sql`SELECT * FROM schedules WHERE time = ${now} AND is_active = 1`;
         console.log(`[Scheduler] Found ${matches.length} active schedules for ${now}`);
