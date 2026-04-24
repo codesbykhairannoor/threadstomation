@@ -1,17 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import cron from 'node-cron';
-import axios from 'axios';
-import fs from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import sql, { initDb } from './lib/database.js';
 import { generateThreadsContent } from './lib/gemini.js';
 import { postToPlatforms } from './lib/threads_service.js';
-import { refreshThreadsToken } from './lib/threads.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const COOKIE_PATH = join(__dirname, 'data/cookies.json');
 
 // Initialize DB on startup
 initDb();
@@ -30,23 +26,21 @@ if (process.env.NODE_ENV === 'production') {
     app.use(express.static(join(__dirname, 'dist')));
 }
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.get('/api/status', async (req, res) => {
     try {
         const schedules = await sql`SELECT * FROM schedules ORDER BY time ASC`;
         const lastPost = await sql`SELECT * FROM post_history ORDER BY id DESC LIMIT 1`;
-        const cookieExists = fs.existsSync(COOKIE_PATH);
         const token = await sql`SELECT access_token FROM tokens WHERE id = 1`;
         res.json({ 
             schedules, 
             lastPost: lastPost[0] || null, 
-            threadsSession: cookieExists, 
             threadsToken: !!token[0]?.access_token
         });
     } catch (error) {
         console.error('[Status API Error]:', error.message);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -73,40 +67,14 @@ app.post('/api/settings', async (req, res) => {
     }
 });
 
-app.post('/api/import-session', (req, res) => {
-    try {
-        const cookies = typeof req.body.cookies === 'string' ? JSON.parse(req.body.cookies) : req.body.cookies;
-        fs.writeFileSync(COOKIE_PATH, JSON.stringify(cookies));
-        res.json({ success: true });
-    } catch (e) {
-        res.status(400).json({ error: 'Invalid JSON' });
-    }
-});
-
-app.post('/api/post-now', async (req, res) => {
-    const { platforms } = req.body;
-    try {
-        const results = [];
-        for (const platform of platforms) {
-            if (platform !== 'threads') continue;
-            const content = await generateThreadsContent(platform);
-            const res = await postToPlatforms(content); // Default is threads
-            results.push(...res);
-        }
-        res.json({ success: true, results });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
 app.post('/api/test-post', async (req, res) => {
     const { platforms } = req.body;
     try {
-        const content = `Test post! 🚀 Connected via Socmed Automator.`;
+        const content = await generateThreadsContent();
         const results = await postToPlatforms(content, platforms);
         res.json({ success: true, results });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -114,15 +82,14 @@ app.get('/api/history', async (req, res) => {
     try {
         const platform = req.query.platform;
         let history;
-        if (platform && platform !== 'all') {
+        if (platform) {
             history = await sql`SELECT * FROM post_history WHERE platform = ${platform} ORDER BY created_at DESC LIMIT 15`;
         } else {
             history = await sql`SELECT * FROM post_history ORDER BY created_at DESC LIMIT 15`;
         }
         res.json(history || []);
     } catch (error) {
-        console.error('[History API Error]:', error.message);
-        res.status(500).json({ success: false, error: 'Database error while fetching history' });
+        res.status(500).json({ error: error.message });
     }
 });
 
