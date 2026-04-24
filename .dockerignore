@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+.env
+*.js
+!server.js
+!lib
+!src
+!public
+!index.html
+!vite.config.js
+!package.json
+!package-lock.json
+!Dockerfile
+!.dockerignore
+!*.mjs
