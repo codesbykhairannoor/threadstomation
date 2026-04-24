@@ -84,6 +84,17 @@ app.post('/api/test-post', async (req, res) => {
     }
 });
 
+app.post('/api/post-now', async (req, res) => {
+    const { platforms } = req.body;
+    try {
+        const content = await generateThreadsContent();
+        const results = await postToPlatforms(content, platforms);
+        res.json({ success: true, results });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/api/history', async (req, res) => {
     try {
         const platform = req.query.platform;
