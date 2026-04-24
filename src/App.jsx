@@ -4,7 +4,7 @@ import ThreadsDashboard from './components/ThreadsDashboard';
 import ConfigPanel from './components/ConfigPanel';
 import './App.css';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = ''; // Dynamic origin support
 
 function App() {
   const [activeTab, setActiveTab] = useState('threads');

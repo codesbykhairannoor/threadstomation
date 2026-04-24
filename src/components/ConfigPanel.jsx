@@ -1,7 +1,7 @@
 import React from 'react';
 
 const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchData, loading, newTime, setNewTime }) => {
-  const API_BASE = 'http://localhost:3000';
+  const API_BASE = ''; // Dynamic origin support
 
   const addSchedule = async () => {
     if (!newTime) return;
