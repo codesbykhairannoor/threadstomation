@@ -142,7 +142,7 @@ app.listen(PORT, '0.0.0.0', () => {
 
 // Catch-all route for frontend
 if (fs.existsSync(join(distPath, 'index.html'))) {
-    app.get('/(.*)', (req, res) => {
+    app.get('/:path*', (req, res) => {
         res.sendFile(join(distPath, 'index.html'));
     });
 }
