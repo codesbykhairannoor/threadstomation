@@ -14,6 +14,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [newTime, setNewTime] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
 
   // Fetch all initial data
   const fetchData = async () => {
@@ -68,7 +69,10 @@ function App() {
       const res = await fetch(`${API_BASE}/api/${isTest ? 'test-post' : 'post-now'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platforms: [activeTab] })
+        body: JSON.stringify({ 
+          platforms: [activeTab],
+          image: selectedImage 
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -105,6 +109,8 @@ function App() {
           <ThreadsDashboard 
             {...commonProps} 
             handlePostNow={handlePostNow} 
+            selectedImage={selectedImage}
+            setSelectedImage={setSelectedImage}
           />
         );
       case 'settings':

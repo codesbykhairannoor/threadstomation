@@ -1,6 +1,17 @@
 import React from 'react';
 
-const ThreadsDashboard = ({ status, handlePostNow, history, loading }) => {
+const ThreadsDashboard = ({ status, handlePostNow, history, loading, selectedImage, setSelectedImage }) => {
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="dashboard-content animate-fade-in">
       <header className="content-header">
@@ -15,17 +26,32 @@ const ThreadsDashboard = ({ status, handlePostNow, history, loading }) => {
       <div className="main-grid">
         <div className="left-column">
           <section className="glass-card mt-2">
-            <h3>System Status</h3>
-            <p className="section-desc">Threads API automation is active and running.</p>
-            <div className="status-item">
-              <span>Next Schedule:</span>
-              <strong>{status.schedules && status.schedules.length > 0 ? 'Active' : 'No schedules set'}</strong>
-            </div>
-            <div className="status-item mt-1">
-              <span>Bot Engine:</span>
-              <strong>Disabled (Using API)</strong>
+            <h3>Image Context (Optional)</h3>
+            <p className="section-desc">AI will analyze this image to write your post.</p>
+            <div className="image-upload-zone mt-1">
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange}
+                id="image-upload"
+                hidden
+              />
+              <label htmlFor="image-upload" className="image-label">
+                {selectedImage ? (
+                  <div className="preview-container">
+                    <img src={selectedImage} alt="Preview" className="image-preview" />
+                    <button className="remove-img" onClick={(e) => { e.preventDefault(); setSelectedImage(null); }}>×</button>
+                  </div>
+                ) : (
+                  <div className="upload-placeholder">
+                    <span>📸</span>
+                    <p>Click to add image</p>
+                  </div>
+                )}
+              </label>
             </div>
           </section>
+
           <section className="glass-card mt-2">
             <h3>Quick Actions</h3>
             <div className="flex-col gap-1">

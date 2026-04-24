@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import sql, { initDb } from './lib/database.js';
 import { generateThreadsContent } from './lib/gemini.js';
 import { postToPlatforms } from './lib/threads_service.js';
+import { uploadImage } from './lib/supabase_storage.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -14,7 +15,8 @@ initDb();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use((req, res, next) => {
     console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
@@ -74,10 +76,14 @@ app.post('/api/settings', async (req, res) => {
 });
 
 app.post('/api/test-post', async (req, res) => {
-    const { platforms } = req.body;
+    const { platforms, image } = req.body;
     try {
-        const content = await generateThreadsContent();
-        const results = await postToPlatforms(content, platforms);
+        let imageUrl = null;
+        if (image) {
+            imageUrl = await uploadImage(image);
+        }
+        const content = await generateThreadsContent('threads', image);
+        const results = await postToPlatforms(content, platforms, imageUrl);
         res.json({ success: true, results });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -85,10 +91,14 @@ app.post('/api/test-post', async (req, res) => {
 });
 
 app.post('/api/post-now', async (req, res) => {
-    const { platforms } = req.body;
+    const { platforms, image } = req.body;
     try {
-        const content = await generateThreadsContent();
-        const results = await postToPlatforms(content, platforms);
+        let imageUrl = null;
+        if (image) {
+            imageUrl = await uploadImage(image);
+        }
+        const content = await generateThreadsContent('threads', image);
+        const results = await postToPlatforms(content, platforms, imageUrl);
         res.json({ success: true, results });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -153,7 +163,11 @@ cron.schedule('* * * * *', async () => {
     console.log(`[Scheduler] Checking time: ${now}`);
     try {
         const matches = await sql`SELECT * FROM schedules WHERE time = ${now} AND is_active = 1`;
-        if (matches.length > 0) await runScheduledTask();
+        console.log(`[Scheduler] Found ${matches.length} active schedules for ${now}`);
+        if (matches.length > 0) {
+            console.log(`[Scheduler] Triggering scheduled task...`);
+            await runScheduledTask();
+        }
     } catch (e) {
         console.error('[Scheduler] Cron error:', e.message);
     }
