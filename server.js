@@ -21,9 +21,11 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve frontend in production
-if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(join(__dirname, 'dist')));
+// Serve frontend if dist exists
+const distPath = join(__dirname, 'dist');
+import fs from 'fs';
+if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
 }
 
 const PORT = process.env.PORT || 3000;
@@ -138,9 +140,9 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`[Server] Threads Automation running at http://localhost:${PORT}`);
 });
 
-// Catch-all route for frontend in production
-if (process.env.NODE_ENV === 'production') {
+// Catch-all route for frontend
+if (fs.existsSync(join(distPath, 'index.html'))) {
     app.get('*', (req, res) => {
-        res.sendFile(join(__dirname, 'dist', 'index.html'));
+        res.sendFile(join(distPath, 'index.html'));
     });
 }
