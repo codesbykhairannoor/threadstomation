@@ -22,6 +22,11 @@ app.use((req, res, next) => {
     next();
 });
 
+// Serve frontend in production
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(join(__dirname, 'dist')));
+}
+
 const PORT = 3000;
 
 app.get('/api/status', async (req, res) => {
@@ -146,6 +151,13 @@ cron.schedule('* * * * *', () => {
     if (match) runScheduledTask();
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`[Server] Threads Automation running at http://localhost:${PORT}`);
 });
+
+// Catch-all route for frontend in production
+if (process.env.NODE_ENV === 'production') {
+    app.get('*', (req, res) => {
+        res.sendFile(join(__dirname, 'dist', 'index.html'));
+    });
+}
