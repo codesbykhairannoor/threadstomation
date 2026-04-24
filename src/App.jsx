@@ -14,7 +14,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [newTime, setNewTime] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(localStorage.getItem('threads_pending_image'));
 
   // Fetch all initial data
   const fetchData = async () => {
@@ -41,6 +41,14 @@ function App() {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (selectedImage) {
+      localStorage.setItem('threads_pending_image', selectedImage);
+    } else {
+      localStorage.removeItem('threads_pending_image');
+    }
+  }, [selectedImage]);
 
   const handleSaveSettings = async () => {
     setLoading(true);

@@ -27,7 +27,7 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
       </header>
 
       <div className="main-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '600px', margin: '0 auto' }}>
-          <section className="glass-card">
+          <section className="glass-card mb-2">
             <h3>Automation Schedules</h3>
             <p className="section-desc">Times at which the AI will auto-post to all active platforms.</p>
             <div className="flex-gap mb-1">
@@ -45,6 +45,36 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
                 <div className="empty-state">No active schedules.</div>
               )}
             </div>
+          </section>
+
+          <section className="glass-card">
+            <h3>AI Engine Settings</h3>
+            <p className="section-desc">Configure your Gemini AI credentials and behavior.</p>
+            
+            <div className="input-group">
+              <label>Gemini API Key</label>
+              <input 
+                type="password" 
+                placeholder="Enter your Google AI API Key" 
+                value={settings.gemini_api_key || ''} 
+                onChange={e => setSettings({...settings, gemini_api_key: e.target.value})}
+              />
+            </div>
+
+            <div className="input-group">
+              <label>AI Master Prompt</label>
+              <textarea 
+                rows="4"
+                placeholder="Describe how the AI should write your posts..."
+                value={settings.prompt || ''} 
+                onChange={e => setSettings({...settings, prompt: e.target.value})}
+              />
+              <p className="text-xs opacity-50 mt-1">Tip: Be descriptive. E.g., "Write like a stoic philosopher about modern tech."</p>
+            </div>
+
+            <button className="btn btn-glow w-full" onClick={handleSaveSettings} disabled={loading}>
+              {loading ? 'Saving...' : '💾 Save AI Configuration'}
+            </button>
           </section>
       </div>
     </div>
