@@ -47,10 +47,14 @@ app.get('/api/status', async (req, res) => {
 });
 
 app.get('/api/settings', async (req, res) => {
-    const settings = await sql`SELECT * FROM settings`;
-    const obj = {};
-    settings.forEach(s => obj[s.key] = s.value);
-    res.json(obj);
+    try {
+        const settings = await sql`SELECT * FROM settings`;
+        const obj = {};
+        settings.forEach(s => obj[s.key] = s.value);
+        res.json(obj);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/api/settings', async (req, res) => {
@@ -96,13 +100,21 @@ app.get('/api/history', async (req, res) => {
 });
 
 app.post('/api/schedules', async (req, res) => {
-    await sql`INSERT INTO schedules (time) VALUES (${req.body.time})`;
-    res.json({ success: true });
+    try {
+        await sql`INSERT INTO schedules (time) VALUES (${req.body.time})`;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.delete('/api/schedules/:id', async (req, res) => {
-    await sql`DELETE FROM schedules WHERE id = ${req.params.id}`;
-    res.json({ success: true });
+    try {
+        await sql`DELETE FROM schedules WHERE id = ${req.params.id}`;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.get('/api/cron', async (req, res) => {
