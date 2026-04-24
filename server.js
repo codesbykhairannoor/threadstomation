@@ -5,13 +5,16 @@ import axios from 'axios';
 import fs from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import db from './lib/database.js';
+import sql, { initDb } from './lib/database.js';
 import { generateThreadsContent } from './lib/gemini.js';
 import { postToPlatforms } from './lib/threads_service.js';
 import { refreshThreadsToken } from './lib/threads.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const COOKIE_PATH = join(__dirname, 'data/cookies.json');
+
+// Initialize DB on startup
+initDb();
 
 const app = express();
 app.use(cors());
@@ -31,15 +34,15 @@ const PORT = 3000;
 
 app.get('/api/status', async (req, res) => {
     try {
-        const schedules = db.prepare("SELECT * FROM schedules").all();
-        const lastPost = db.prepare('SELECT * FROM post_history ORDER BY id DESC LIMIT 1').get();
+        const schedules = await sql`SELECT * FROM schedules ORDER BY time ASC`;
+        const lastPost = await sql`SELECT * FROM post_history ORDER BY id DESC LIMIT 1`;
         const cookieExists = fs.existsSync(COOKIE_PATH);
-        const threadsToken = db.prepare('SELECT access_token FROM tokens WHERE id = 1').get();
+        const token = await sql`SELECT access_token FROM tokens WHERE id = 1`;
         res.json({ 
             schedules, 
-            lastPost, 
+            lastPost: lastPost[0] || null, 
             threadsSession: cookieExists, 
-            threadsToken: !!threadsToken
+            threadsToken: !!token[0]?.access_token
         });
     } catch (error) {
         console.error('[Status API Error]:', error.message);
@@ -47,27 +50,28 @@ app.get('/api/status', async (req, res) => {
     }
 });
 
-
-
-app.get('/api/settings', (req, res) => {
-    const settings = db.prepare('SELECT * FROM settings').all();
+app.get('/api/settings', async (req, res) => {
+    const settings = await sql`SELECT * FROM settings`;
     const obj = {};
     settings.forEach(s => obj[s.key] = s.value);
     res.json(obj);
 });
 
-app.post('/api/settings', (req, res) => {
+app.post('/api/settings', async (req, res) => {
     const settings = req.body;
-    const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-    for (const key in settings) {
-        upsert.run(key, settings[key]);
+    try {
+        for (const [key, value] of Object.entries(settings)) {
+            await sql`
+              INSERT INTO settings (key, value) 
+              VALUES (${key}, ${value})
+              ON CONFLICT (key) DO UPDATE SET value = ${value}
+            `;
+        }
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
-    res.json({ success: true });
 });
-
-
-
-
 
 app.post('/api/import-session', (req, res) => {
     try {
@@ -106,16 +110,14 @@ app.post('/api/test-post', async (req, res) => {
     }
 });
 
-app.get('/api/history', (req, res) => {
+app.get('/api/history', async (req, res) => {
     try {
         const platform = req.query.platform;
         let history;
         if (platform && platform !== 'all') {
-            const stmt = db.prepare('SELECT * FROM post_history WHERE platform = ? ORDER BY created_at DESC LIMIT 15');
-            history = stmt.all(platform);
+            history = await sql`SELECT * FROM post_history WHERE platform = ${platform} ORDER BY created_at DESC LIMIT 15`;
         } else {
-            const stmt = db.prepare('SELECT * FROM post_history ORDER BY created_at DESC LIMIT 15');
-            history = stmt.all();
+            history = await sql`SELECT * FROM post_history ORDER BY created_at DESC LIMIT 15`;
         }
         res.json(history || []);
     } catch (error) {
@@ -124,13 +126,13 @@ app.get('/api/history', (req, res) => {
     }
 });
 
-app.post('/api/schedules', (req, res) => {
-    db.prepare('INSERT INTO schedules (time) VALUES (?)').run(req.body.time);
+app.post('/api/schedules', async (req, res) => {
+    await sql`INSERT INTO schedules (time) VALUES (${req.body.time})`;
     res.json({ success: true });
 });
 
-app.delete('/api/schedules/:id', (req, res) => {
-    db.prepare('DELETE FROM schedules WHERE id = ?').run(req.params.id);
+app.delete('/api/schedules/:id', async (req, res) => {
+    await sql`DELETE FROM schedules WHERE id = ${req.params.id}`;
     res.json({ success: true });
 });
 
@@ -143,12 +145,16 @@ async function runScheduledTask() {
     }
 }
 
-cron.schedule('* * * * *', () => {
+cron.schedule('* * * * *', async () => {
     const d = new Date();
     const now = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
     console.log(`[Scheduler] Checking time: ${now}`);
-    const match = db.prepare('SELECT * FROM schedules WHERE time = ? AND is_active = 1').get(now);
-    if (match) runScheduledTask();
+    try {
+        const matches = await sql`SELECT * FROM schedules WHERE time = ${now} AND is_active = 1`;
+        if (matches.length > 0) await runScheduledTask();
+    } catch (e) {
+        console.error('[Scheduler] Cron error:', e.message);
+    }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
