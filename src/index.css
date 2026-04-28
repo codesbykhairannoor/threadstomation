@@ -423,3 +423,69 @@ input:focus, textarea:focus {
   object-fit: cover;
   display: block;
 }
+
+.add-schedule-form {
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.img-preview-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.img-preview-mini img {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid var(--primary);
+}
+
+.img-preview-mini button {
+  background: var(--error);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.schedule-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+}
+
+.schedule-prompt-preview {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.schedule-img-mini {
+  width: 100px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-top: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.align-center {
+  align-items: center;
+}
+

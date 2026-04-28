@@ -127,8 +127,14 @@ app.get('/api/history', async (req, res) => {
 });
 
 app.post('/api/schedules', async (req, res) => {
+    const { time, custom_prompt, image } = req.body;
     try {
-        await sql`INSERT INTO schedules (time) VALUES (${req.body.time})`;
+        let imageUrl = null;
+        if (image) {
+            console.log('[API] Uploading schedule image...');
+            imageUrl = await uploadImage(image);
+        }
+        await sql`INSERT INTO schedules (time, custom_prompt, image_url) VALUES (${time}, ${custom_prompt}, ${imageUrl})`;
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -154,10 +160,16 @@ app.get('/api/cron', async (req, res) => {
     }
 });
 
-async function runScheduledTask() {
+async function runScheduledTask(schedule = null) {
     try {
-        const content = await generateThreadsContent('threads');
-        await postToPlatforms(content, ['threads']);
+        const customPrompt = schedule?.custom_prompt || null;
+        const imageUrl = schedule?.image_url || null;
+        
+        console.log(`[Scheduler] Generating content... ${customPrompt ? '(Custom Prompt)' : '(Default Prompt)'}`);
+        const content = await generateThreadsContent('threads', imageUrl, customPrompt);
+        
+        console.log(`[Scheduler] Posting content... ${imageUrl ? '(With Image)' : '(Text only)'}`);
+        await postToPlatforms(content, ['threads'], imageUrl);
     } catch (error) {
         console.error('[Scheduler] Error:', error.message);
     }
@@ -178,8 +190,10 @@ cron.schedule('* * * * *', async () => {
         const matches = await sql`SELECT * FROM schedules WHERE time = ${now} AND is_active = 1`;
         console.log(`[Scheduler] Found ${matches.length} active schedules for ${now}`);
         if (matches.length > 0) {
-            console.log(`[Scheduler] Triggering scheduled task...`);
-            await runScheduledTask();
+            for (const schedule of matches) {
+                console.log(`[Scheduler] Triggering schedule ID: ${schedule.id} at ${now}`);
+                await runScheduledTask(schedule);
+            }
         }
     } catch (e) {
         console.error('[Scheduler] Cron error:', e.message);
