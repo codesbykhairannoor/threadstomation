@@ -31,6 +31,16 @@ app.get('/api/accounts', async (req, res) => {
     }
 });
 
+// API: Shopee DB Health Check
+app.get('/api/shopee-status', async (req, res) => {
+    try {
+        const product = await getRandomShopeeProduct();
+        res.json({ status: 'online', sample: product.title });
+    } catch (e) {
+        res.status(200).json({ status: 'offline', error: e.message });
+    }
+});
+
 // API: Status for specific account
 app.get('/api/status', async (req, res) => {
     const accountId = req.query.accountId || 1;
