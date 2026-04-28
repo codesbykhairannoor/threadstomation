@@ -4,7 +4,8 @@ import cron from 'node-cron';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import sql, { initDb } from './lib/database.js';
-import { generateThreadsContent } from './lib/gemini.js';
+import { generateThreadsContent, generateShopeeAffiliatePost } from './lib/gemini.js';
+import { getRandomShopeeProduct } from './lib/shopee.js';
 import { postToPlatforms } from './lib/threads_service.js';
 import { uploadImage } from './lib/supabase_storage.js';
 import axios from 'axios';
@@ -174,11 +175,6 @@ app.put('/api/accounts/:id', async (req, res) => {
 });
 
 // --- SCHEDULER LOGIC ---
-
-import { generateThreadsContent, generateShopeeAffiliatePost } from './lib/gemini.js';
-import { getRandomShopeeProduct } from './lib/shopee.js';
-
-// ... (imports remain at top, adding these to ensure they exist)
 
 async function runScheduledTask(schedule) {
     try {
