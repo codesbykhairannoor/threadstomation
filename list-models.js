@@ -1,39 +1,28 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import sql from './lib/database.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 async function listAllModels() {
-  const apiKeyRow = await sql`SELECT value FROM settings WHERE key = 'gemini_api_key'`;
-  const apiKey = apiKeyRow[0]?.value;
-
-  if (!apiKey) {
-    console.error('❌ API KEY TIDAK DITEMUKAN!');
-    process.exit(1);
-  }
-
-  console.log('📡 MEMINTA DAFTAR RESMI MODEL DARI GOOGLE...');
-  const genAI = new GoogleGenerativeAI(apiKey);
-
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   try {
-    // Kita coba fetch daftar model yang beneran ada buat kunci ini
-    // Note: SDK mungkin butuh method yang bener
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
-    const data = await response.json();
+    // Di SDK terbaru kita gak bisa listModels langsung lewat genAI, 
+    // tapi kita bisa coba panggil model 1.5 dengan nama yang bener
+    console.log('🧪 MENGETES NAMA MODEL 1.5...');
+    const testModels = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro-latest'];
     
-    if (data.error) {
-        console.error('❌ Error dari Google:', data.error.message);
-        process.exit(1);
+    for (const m of testModels) {
+        try {
+            const model = genAI.getGenerativeModel({ model: m });
+            await model.generateContent("test");
+            console.log(`✅ ${m}: VALID`);
+        } catch (e) {
+            console.log(`❌ ${m}: INVALID (${e.message.split('\n')[0]})`);
+        }
     }
-
-    console.log('\n✅ DAFTAR MODEL YANG TERSEDIA BUAT LU:');
-    data.models.forEach(m => {
-        console.log(`- ${m.name} (${m.displayName})`);
-        console.log(`  Capabilities: ${m.supportedGenerationMethods.join(', ')}`);
-    });
-
-  } catch (e) {
-    console.error('❌ GAGAL MENGHUBUNGI GOOGLE:', e.message);
+  } catch (error) {
+    console.error('Error:', error.message);
   }
-
   process.exit(0);
 }
 
