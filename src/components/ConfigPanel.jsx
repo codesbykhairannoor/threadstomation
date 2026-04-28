@@ -6,6 +6,7 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
   const [newImage, setNewImage] = React.useState(null);
   const [editingId, setEditingId] = React.useState(null);
   const [editPrompt, setEditPrompt] = React.useState('');
+  const [editTime, setEditTime] = React.useState('');
   const [accPrompt, setAccPrompt] = React.useState('');
 
   React.useEffect(() => {
@@ -62,7 +63,10 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
     await fetch(`${API_BASE}/api/schedules/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ custom_prompt: editPrompt })
+      body: JSON.stringify({ 
+        custom_prompt: editPrompt,
+        time: editTime
+      })
     });
     setEditingId(null);
     fetchData();
@@ -71,6 +75,7 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
   const startEditing = (s) => {
     setEditingId(s.id);
     setEditPrompt(s.custom_prompt || '');
+    setEditTime(s.time || '');
   };
 
   return (
@@ -118,7 +123,16 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
                 <div key={s.id} className="schedule-item glass-card-nested">
                   <div className="schedule-info">
                     <div className="flex-between">
-                      <span className="time-label">{s.time}</span>
+                      {editingId === s.id ? (
+                        <input 
+                          type="time" 
+                          className="edit-time-input" 
+                          value={editTime} 
+                          onChange={e => setEditTime(e.target.value)} 
+                        />
+                      ) : (
+                        <span className="time-label">{s.time}</span>
+                      )}
                       <div className="flex-gap">
                         {editingId === s.id ? (
                            <button className="btn-icon save-btn" onClick={() => updateSchedule(s.id)}>✅</button>
