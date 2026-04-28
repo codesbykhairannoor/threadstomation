@@ -160,13 +160,26 @@ app.get('/api/cron', async (req, res) => {
     }
 });
 
+import axios from 'axios';
+
 async function runScheduledTask(schedule = null) {
     try {
         const customPrompt = schedule?.custom_prompt || null;
         const imageUrl = schedule?.image_url || null;
+        let imageBase64 = null;
+
+        if (imageUrl) {
+            try {
+                console.log(`[Scheduler] Fetching image from: ${imageUrl}`);
+                const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+                imageBase64 = Buffer.from(response.data, 'binary').toString('base64');
+            } catch (fetchErr) {
+                console.error('[Scheduler] Failed to fetch image:', fetchErr.message);
+            }
+        }
         
         console.log(`[Scheduler] Generating content... ${customPrompt ? '(Custom Prompt)' : '(Default Prompt)'}`);
-        const content = await generateThreadsContent('threads', imageUrl, customPrompt);
+        const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt);
         
         console.log(`[Scheduler] Posting content... ${imageUrl ? '(With Image)' : '(Text only)'}`);
         await postToPlatforms(content, ['threads'], imageUrl);
