@@ -8,6 +8,8 @@ const API_BASE = ''; // Dynamic origin support
 
 function App() {
   const [activeTab, setActiveTab] = useState('threads');
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState(1);
   const [status, setStatus] = useState({ schedules: [], threadsSession: false, threadsToken: false, lastPost: null });
   const [settings, setSettings] = useState({});
   const [history, setHistory] = useState([]);
@@ -16,13 +18,29 @@ function App() {
   const [newTime, setNewTime] = useState('');
   const [selectedImage, setSelectedImage] = useState(localStorage.getItem('threads_pending_image'));
 
-  // Fetch all initial data
+  // Fetch Accounts list
+  const fetchAccounts = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/accounts`);
+      if (res.ok) {
+        const data = await res.json();
+        setAccounts(data);
+        if (data.length > 0 && !data.find(a => a.id === selectedAccountId)) {
+            setSelectedAccountId(data[0].id);
+        }
+      }
+    } catch (e) {
+      console.error('Fetch accounts error:', e);
+    }
+  };
+
+  // Fetch data for specific account
   const fetchData = async () => {
     try {
       const [sRes, stRes, hRes] = await Promise.all([
-        fetch(`${API_BASE}/api/status`),
+        fetch(`${API_BASE}/api/status?accountId=${selectedAccountId}`),
         fetch(`${API_BASE}/api/settings`),
-        fetch(`${API_BASE}/api/history?platform=${activeTab}`)
+        fetch(`${API_BASE}/api/history?platform=${activeTab}&accountId=${selectedAccountId}`)
       ]);
       
       if (sRes.ok) setStatus(await sRes.json());
@@ -37,10 +55,14 @@ function App() {
   };
 
   useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [activeTab]);
+  }, [activeTab, selectedAccountId]);
 
   useEffect(() => {
     if (selectedImage) {
@@ -71,7 +93,7 @@ function App() {
   const handlePostNow = async (isTest = false) => {
     setLoading(true);
     const platformLabel = activeTab.toUpperCase();
-    setMessage(isTest ? `🧪 Sending test to ${platformLabel}...` : `🚀 AI Posting to ${platformLabel}...`);
+    setMessage(isTest ? `🧪 Sending test...` : `🚀 AI Posting...`);
     
     try {
       const res = await fetch(`${API_BASE}/api/${isTest ? 'test-post' : 'post-now'}`, {
@@ -79,20 +101,16 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           platforms: [activeTab],
-          image: selectedImage 
+          image: selectedImage,
+          accountId: selectedAccountId
         })
       });
       const data = await res.json();
       if (data.success) {
-        const platformResult = data.results?.find(r => r.platform === activeTab);
-        if (platformResult?.status === 'success') {
-          setMessage(`✅ ${platformLabel} Post Success!`);
-          fetchData();
-        } else {
-          setMessage(`❌ ${platformLabel} Error: ${platformResult?.error || 'Unknown error'}`);
-        }
+        setMessage(`✅ Post Success!`);
+        fetchData();
       } else {
-        setMessage(`❌ Server Error: ${data.error}`);
+        setMessage(`❌ Error: ${data.error}`);
       }
     } catch (e) {
       setMessage('❌ Connection failed.');
@@ -101,17 +119,19 @@ function App() {
     }
   };
 
-
-
-
-
-
-
   const renderContent = () => {
-    const commonProps = { status, settings, setSettings, handleSaveSettings, history, loading, fetchData };
+    const commonProps = { 
+        status, 
+        settings, 
+        setSettings, 
+        handleSaveSettings, 
+        history, 
+        loading, 
+        fetchData, 
+        accountId: selectedAccountId 
+    };
     
     switch (activeTab) {
-
       case 'threads':
         return (
           <ThreadsDashboard 
@@ -130,7 +150,13 @@ function App() {
 
   return (
     <>
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        accounts={accounts}
+        selectedAccountId={selectedAccountId}
+        setSelectedAccountId={setSelectedAccountId}
+      />
       <div className="dashboard-container">
         {message && (
           <div className="global-toast animate-slide-down">

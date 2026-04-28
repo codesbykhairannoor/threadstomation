@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchData, loading, newTime, setNewTime }) => {
+const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchData, loading, newTime, setNewTime, accountId }) => {
   const API_BASE = ''; // Dynamic origin support
   const [newPrompt, setNewPrompt] = React.useState('');
   const [newImage, setNewImage] = React.useState(null);
@@ -24,7 +24,8 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
       body: JSON.stringify({ 
         time: newTime,
         custom_prompt: newPrompt,
-        image: newImage
+        image: newImage,
+        accountId: accountId
       })
     });
     setNewTime('');

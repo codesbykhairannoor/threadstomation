@@ -520,4 +520,32 @@ input:focus, textarea:focus {
   font-weight: bold;
 }
 
+.account-selector-container {
+  padding: 0 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.account-select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.6rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.account-select:hover {
+  border-color: var(--primary);
+}
+
+.account-select option {
+  background: #1a1a1a;
+  color: white;
+}
+
+
 
