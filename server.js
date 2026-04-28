@@ -175,27 +175,45 @@ app.put('/api/accounts/:id', async (req, res) => {
 
 // --- SCHEDULER LOGIC ---
 
+import { generateThreadsContent, generateShopeeAffiliatePost } from './lib/gemini.js';
+import { getRandomShopeeProduct } from './lib/shopee.js';
+
+// ... (imports remain at top, adding these to ensure they exist)
+
 async function runScheduledTask(schedule) {
     try {
         const accountId = schedule.account_id;
-        const customPrompt = schedule.custom_prompt || null;
-        const imageUrl = schedule.image_url || null;
-        let imageBase64 = null;
+        const account = await sql`SELECT account_type FROM accounts WHERE id = ${accountId}`.then(r => r[0]);
 
-        if (imageUrl) {
-            try {
-                const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-                imageBase64 = Buffer.from(response.data, 'binary').toString('base64');
-            } catch (fetchErr) {
-                console.error(`[Scheduler-Acc:${accountId}] Image fetch failed:`, fetchErr.message);
+        if (account?.account_type === 'shopee') {
+            console.log(`[Scheduler-Shopee] Triggering auto-spill for account ${accountId}`);
+            const product = await getRandomShopeeProduct();
+            const caption = await generateShopeeAffiliatePost(product, accountId);
+            
+            await postToPlatforms(caption, ['threads'], product.imageUrl, accountId);
+            await sql`INSERT INTO post_history (account_id, content, status, image_url) VALUES (${accountId}, ${caption}, 'success', ${product.imageUrl})`;
+            console.log(`✅ [Scheduler-Shopee] Auto-spill success!`);
+        } else {
+            const customPrompt = schedule.custom_prompt || null;
+            const imageUrl = schedule.image_url || null;
+            let imageBase64 = null;
+
+            if (imageUrl) {
+                try {
+                    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+                    imageBase64 = Buffer.from(response.data, 'binary').toString('base64');
+                } catch (fetchErr) {
+                    console.error(`[Scheduler-Acc:${accountId}] Image fetch failed:`, fetchErr.message);
+                }
             }
+            
+            console.log(`[Scheduler-Acc:${accountId}] Generating content...`);
+            const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
+            
+            console.log(`[Scheduler-Acc:${accountId}] Posting...`);
+            await postToPlatforms(content, ['threads'], imageUrl, accountId);
+            await sql`INSERT INTO post_history (account_id, content, status, image_url) VALUES (${accountId}, ${content}, 'success', ${imageUrl})`;
         }
-        
-        console.log(`[Scheduler-Acc:${accountId}] Generating content...`);
-        const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
-        
-        console.log(`[Scheduler-Acc:${accountId}] Posting...`);
-        await postToPlatforms(content, ['threads'], imageUrl, accountId);
     } catch (error) {
         console.error(`[Scheduler] Error for account ${schedule.account_id}:`, error.message);
     }
