@@ -4,6 +4,8 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
   const API_BASE = ''; // Dynamic origin support
   const [newPrompt, setNewPrompt] = React.useState('');
   const [newImage, setNewImage] = React.useState(null);
+  const [editingId, setEditingId] = React.useState(null);
+  const [editPrompt, setEditPrompt] = React.useState('');
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -34,6 +36,21 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
   const deleteSchedule = async (id) => {
     await fetch(`${API_BASE}/api/schedules/${id}`, { method: 'DELETE' });
     fetchData();
+  };
+
+  const updateSchedule = async (id) => {
+    await fetch(`${API_BASE}/api/schedules/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ custom_prompt: editPrompt })
+    });
+    setEditingId(null);
+    fetchData();
+  };
+
+  const startEditing = (s) => {
+    setEditingId(s.id);
+    setEditPrompt(s.custom_prompt || '');
   };
 
   return (
@@ -80,11 +97,33 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
               {status.schedules && status.schedules.length > 0 ? status.schedules.map(s => (
                 <div key={s.id} className="schedule-item glass-card-nested">
                   <div className="schedule-info">
-                    <span className="time-label">{s.time}</span>
-                    {s.custom_prompt && <p className="schedule-prompt-preview">{s.custom_prompt}</p>}
-                    {s.image_url && <img src={s.image_url} alt="Schedule Media" className="schedule-img-mini" />}
+                    <div className="flex-between">
+                      <span className="time-label">{s.time}</span>
+                      <div className="flex-gap">
+                        {editingId === s.id ? (
+                           <button className="btn-icon save-btn" onClick={() => updateSchedule(s.id)}>✅</button>
+                        ) : (
+                           <button className="btn-icon edit-btn" onClick={() => startEditing(s)}>✏️</button>
+                        )}
+                        <button className="btn-icon delete-btn" onClick={() => deleteSchedule(s.id)}>🗑️</button>
+                      </div>
+                    </div>
+                    
+                    {editingId === s.id ? (
+                      <textarea 
+                        className="edit-textarea mt-1"
+                        value={editPrompt}
+                        onChange={e => setEditPrompt(e.target.value)}
+                        rows="2"
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        {s.custom_prompt && <p className="schedule-prompt-preview">{s.custom_prompt}</p>}
+                        {s.image_url && <img src={s.image_url} alt="Schedule Media" className="schedule-img-mini" />}
+                      </>
+                    )}
                   </div>
-                  <button className="btn-icon delete-btn" onClick={() => deleteSchedule(s.id)}>🗑️</button>
                 </div>
               )) : (
                 <div className="empty-state">No active schedules.</div>

@@ -489,3 +489,35 @@ input:focus, textarea:focus {
   align-items: center;
 }
 
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  color: white;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+  outline: none;
+}
+
+.edit-btn {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.edit-btn:hover {
+  opacity: 1;
+}
+
+.save-btn {
+  color: var(--success);
+  font-weight: bold;
+}
+
+

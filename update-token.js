@@ -2,25 +2,22 @@ import { exchangeShortLivedToken } from './lib/threads.js';
 import sql from './lib/database.js';
 
 async function updateAndExchange() {
-  const shortToken = 'THAAedHhZAY9O9BYmE5UXQ4UHJ2dzJfUFJGVk1aYmp4SmJEQzM3X2JnUlZADWHF5dU9JOTdvYndsSUR1Y2NFZAENiQ2tOMlJnYlg5VFNWTzRTcl9qcmNYaDRUVTM4clN3Nk1QU2ZA4M3BtS0hqN0V6b0tyZAXJOSEVLLWpyU2NJWVZAud1BERkRCM2lFeGgxQjVuNjFVUTFzZA3VpQURDdVN3T1FaaHRTc3EZD';
+  const shortToken = 'THAAedHhZAY9O9BYmFhWEhmTDZARR01TemtFZADVpY0VQSXRZAdG92YnJWZAjF2N3NjY3N1ZAmRKekFKTUJCcjNKZATZAJUy1JQTRhTWxhQi1jR1J3LWE4WU93MWM3dzRXcmF6VW5zUmJIaXdnUEd3VzNSLUFhWkhaTlF6NkNQUkJKQTNNbm5YVHZAsZAjMzUjJWaG9uSXdXdWdMaE9DZAXg4aVFiX095b0x6WFcZD';
   
   try {
-    console.log('🚀 Menjalankan proses tukar token 2 jam -> 60 hari...');
+    console.log('🚀 Menjalankan proses tukar token (Final Fix)...');
     
-    // First, save it temporarily
+    // First, save it to DB
     await sql`UPDATE tokens SET access_token = ${shortToken}, updated_at = CURRENT_TIMESTAMP WHERE id = 1`;
     
-    // Then exchange it
+    // Exchange for 60-day token
     const longToken = await exchangeShortLivedToken(shortToken);
     
-    console.log('✅ BERHASIL! Token lu sekarang udah jadi Token 60 HARI.');
-    console.log('Karakter Awal Token Baru:', longToken.substring(0, 20) + '...');
+    console.log('✅ BERHASIL! Token lu sekarang udah jadi 60 HARI lagi.');
+    console.log('Masa Berlaku: Hingga Akhir Juni 2026.');
     
   } catch (e) {
     console.error('❌ GAGAL:', e.message);
-    if (e.response?.data) {
-        console.error('Error dari Meta:', JSON.stringify(e.response.data, null, 2));
-    }
   } finally {
     process.exit(0);
   }

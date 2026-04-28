@@ -141,6 +141,27 @@ app.post('/api/schedules', async (req, res) => {
     }
 });
 
+app.put('/api/schedules/:id', async (req, res) => {
+    const { custom_prompt, image } = req.body;
+    const { id } = req.params;
+    try {
+        let imageUrl = null;
+        if (image && image.startsWith('data:')) {
+            console.log('[API] Updating schedule image...');
+            imageUrl = await uploadImage(image);
+        }
+        
+        if (imageUrl) {
+            await sql`UPDATE schedules SET custom_prompt = ${custom_prompt}, image_url = ${imageUrl} WHERE id = ${id}`;
+        } else {
+            await sql`UPDATE schedules SET custom_prompt = ${custom_prompt} WHERE id = ${id}`;
+        }
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.delete('/api/schedules/:id', async (req, res) => {
     try {
         await sql`DELETE FROM schedules WHERE id = ${req.params.id}`;
