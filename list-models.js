@@ -1,45 +1,40 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import sql from './lib/database.js';
-import dotenv from 'dotenv';
-dotenv.config({ override: true });
 
-async function listModels() {
-  try {
-    const apiKeyRow = await sql`SELECT value FROM settings WHERE key = 'gemini_api_key'`;
-    const apiKey = apiKeyRow[0]?.value || process.env.GEMINI_API_KEY;
-    
-    if (!apiKey) {
-      console.error('API Key not found in DB or .env');
-      process.exit(1);
-    }
+async function listAllModels() {
+  const apiKeyRow = await sql`SELECT value FROM settings WHERE key = 'gemini_api_key'`;
+  const apiKey = apiKeyRow[0]?.value;
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // There is no direct listModels in the browser-style SDK easily accessible this way without the discovery API
-    // But we can try the common ones or check the error message.
-    
-    console.log('Testing models one by one...');
-    const tests = [
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-pro',
-      'gemini-2.0-flash-exp',
-      'gemini-2.0-flash',
-      'gemini-pro'
-    ];
-
-    for (const m of tests) {
-      try {
-        const model = genAI.getGenerativeModel({ model: m });
-        await model.generateContent('test');
-        console.log(`✅ ${m} is AVAILABLE`);
-      } catch (e) {
-        console.log(`❌ ${m} is NOT available: ${e.message}`);
-      }
-    }
-  } catch (e) {
-    console.error('Error:', e.message);
-  } finally {
-    process.exit(0);
+  if (!apiKey) {
+    console.error('❌ API KEY TIDAK DITEMUKAN!');
+    process.exit(1);
   }
+
+  console.log('📡 MEMINTA DAFTAR RESMI MODEL DARI GOOGLE...');
+  const genAI = new GoogleGenerativeAI(apiKey);
+
+  try {
+    // Kita coba fetch daftar model yang beneran ada buat kunci ini
+    // Note: SDK mungkin butuh method yang bener
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
+    const data = await response.json();
+    
+    if (data.error) {
+        console.error('❌ Error dari Google:', data.error.message);
+        process.exit(1);
+    }
+
+    console.log('\n✅ DAFTAR MODEL YANG TERSEDIA BUAT LU:');
+    data.models.forEach(m => {
+        console.log(`- ${m.name} (${m.displayName})`);
+        console.log(`  Capabilities: ${m.supportedGenerationMethods.join(', ')}`);
+    });
+
+  } catch (e) {
+    console.error('❌ GAGAL MENGHUBUNGI GOOGLE:', e.message);
+  }
+
+  process.exit(0);
 }
-listModels();
+
+listAllModels();
