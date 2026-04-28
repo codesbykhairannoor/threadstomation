@@ -142,7 +142,7 @@ function App() {
           />
         );
       case 'settings':
-        return <ConfigPanel {...commonProps} newTime={newTime} setNewTime={setNewTime} />;
+        return <ConfigPanel {...commonProps} newTime={newTime} setNewTime={setNewTime} accounts={accounts} />;
       default:
         return <div>Select a tab</div>;
     }

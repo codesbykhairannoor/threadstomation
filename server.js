@@ -155,6 +155,22 @@ app.delete('/api/schedules/:id', async (req, res) => {
     }
 });
 
+// API: Update Account (Master Prompt, etc.)
+app.put('/api/accounts/:id', async (req, res) => {
+    const { id } = req.params;
+    const { master_prompt, name } = req.body;
+    try {
+        await sql`
+            UPDATE accounts 
+            SET master_prompt = ${master_prompt}, name = ${name} 
+            WHERE id = ${id}
+        `;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // --- SCHEDULER LOGIC ---
 
 async function runScheduledTask(schedule) {
@@ -174,7 +190,7 @@ async function runScheduledTask(schedule) {
         }
         
         console.log(`[Scheduler-Acc:${accountId}] Generating content...`);
-        const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt);
+        const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
         
         console.log(`[Scheduler-Acc:${accountId}] Posting...`);
         await postToPlatforms(content, ['threads'], imageUrl, accountId);

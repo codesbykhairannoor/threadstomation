@@ -1,11 +1,30 @@
 import React from 'react';
 
-const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchData, loading, newTime, setNewTime, accountId }) => {
+const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchData, loading, newTime, setNewTime, accountId, accounts }) => {
   const API_BASE = ''; // Dynamic origin support
   const [newPrompt, setNewPrompt] = React.useState('');
   const [newImage, setNewImage] = React.useState(null);
   const [editingId, setEditingId] = React.useState(null);
   const [editPrompt, setEditPrompt] = React.useState('');
+  const [accPrompt, setAccPrompt] = React.useState('');
+
+  React.useEffect(() => {
+    const currentAcc = accounts.find(a => a.id === accountId);
+    if (currentAcc) setAccPrompt(currentAcc.master_prompt || '');
+  }, [accountId, accounts]);
+
+  const handleSaveAccountSettings = async () => {
+    const currentAcc = accounts.find(a => a.id === accountId);
+    await fetch(`${API_BASE}/api/accounts/${accountId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        master_prompt: accPrompt,
+        name: currentAcc?.name 
+      })
+    });
+    alert('✅ Account personality updated!');
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -133,32 +152,33 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
           </section>
 
           <section className="glass-card">
-            <h3>AI Engine Settings</h3>
-            <p className="section-desc">Configure your Gemini AI credentials and behavior.</p>
+            <h3>AI Engine Settings (Per Account)</h3>
+            <p className="section-desc">Configure unique instructions for this specific account.</p>
             
             <div className="input-group">
-              <label>Gemini API Key</label>
+              <label>Gemini API Key (Global)</label>
               <input 
                 type="password" 
                 placeholder="Enter your Google AI API Key" 
                 value={settings.gemini_api_key || ''} 
                 onChange={e => setSettings({...settings, gemini_api_key: e.target.value})}
               />
+              <button className="btn btn-xs mt-1" onClick={handleSaveSettings}>Save Key</button>
             </div>
 
             <div className="input-group">
-              <label>AI Master Prompt</label>
+              <label>AI Master Prompt (For this Account)</label>
               <textarea 
                 rows="4"
-                placeholder="Describe how the AI should write your posts..."
-                value={settings.prompt || ''} 
-                onChange={e => setSettings({...settings, prompt: e.target.value})}
+                placeholder="Describe how the AI should write your posts for this specific account..."
+                value={accPrompt} 
+                onChange={e => setAccPrompt(e.target.value)}
               />
-              <p className="text-xs opacity-50 mt-1">Tip: Be descriptive. E.g., "Write like a stoic philosopher about modern tech."</p>
+              <p className="text-xs opacity-50 mt-1">Tip: Be descriptive. E.g., "Write like a stoic philosopher."</p>
             </div>
 
-            <button className="btn btn-glow w-full" onClick={handleSaveSettings} disabled={loading}>
-              {loading ? 'Saving...' : '💾 Save AI Configuration'}
+            <button className="btn btn-glow w-full" onClick={handleSaveAccountSettings} disabled={loading}>
+              {loading ? 'Saving...' : '💾 Save Account Personality'}
             </button>
           </section>
       </div>
