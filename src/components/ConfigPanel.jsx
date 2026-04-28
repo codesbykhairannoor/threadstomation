@@ -7,6 +7,7 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
   const [editingId, setEditingId] = React.useState(null);
   const [editPrompt, setEditPrompt] = React.useState('');
   const [editTime, setEditTime] = React.useState('');
+  const [editImage, setEditImage] = React.useState(null);
   const [accPrompt, setAccPrompt] = React.useState('');
 
   React.useEffect(() => {
@@ -32,6 +33,15 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => setNewImage(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEditImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setEditImage(reader.result);
       reader.readAsDataURL(file);
     }
   };
@@ -65,7 +75,8 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         custom_prompt: editPrompt,
-        time: editTime
+        time: editTime,
+        image: editImage
       })
     });
     setEditingId(null);
@@ -76,6 +87,7 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
     setEditingId(s.id);
     setEditPrompt(s.custom_prompt || '');
     setEditTime(s.time || '');
+    setEditImage(s.image_url || null);
   };
 
   return (
@@ -144,13 +156,26 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
                     </div>
                     
                     {editingId === s.id ? (
-                      <textarea 
-                        className="edit-textarea mt-1"
-                        value={editPrompt}
-                        onChange={e => setEditPrompt(e.target.value)}
-                        rows="2"
-                        autoFocus
-                      />
+                      <div className="edit-mode-container mt-1">
+                        <textarea 
+                          className="edit-textarea"
+                          value={editPrompt}
+                          onChange={e => setEditPrompt(e.target.value)}
+                          rows="2"
+                          autoFocus
+                          placeholder="Schedule specific prompt..."
+                        />
+                        <div className="edit-image-actions mt-1">
+                          <input type="file" accept="image/*" onChange={handleEditImageChange} id={`edit-img-${s.id}`} hidden />
+                          <label htmlFor={`edit-img-${s.id}`} className="btn btn-outline btn-xs">📸 Change Image</label>
+                          {editImage && (
+                            <div className="img-preview-mini relative inline-block ml-1">
+                              <img src={editImage} alt="Edit Preview" />
+                              <button className="remove-img-btn" onClick={() => setEditImage(null)}>×</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     ) : (
                       <>
                         {s.custom_prompt && <p className="schedule-prompt-preview">{s.custom_prompt}</p>}
