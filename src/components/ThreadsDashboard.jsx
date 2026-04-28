@@ -76,9 +76,9 @@ const ThreadsDashboard = ({ status, handlePostNow, history, loading, selectedIma
                     <span className={`status-dot ${item.status}`}></span>
                   </div>
                   <p className="content-pill">{item.content}</p>
-                  {item.media_url && (
+                  {item.image_url && (
                     <div className="history-media mt-1">
-                      <img src={item.media_url} alt="Posted" className="history-img-preview" />
+                      <img src={item.image_url} alt="Posted" className="history-img-preview" />
                     </div>
                   )}
                 </div>
