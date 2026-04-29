@@ -197,7 +197,6 @@ async function runScheduledTask(schedule) {
             const caption = await generateShopeeAffiliatePost(product, accountId);
             
             await postToPlatforms(caption, ['threads'], product.imageUrl, accountId);
-            await sql`INSERT INTO post_history (account_id, content, status, image_url) VALUES (${accountId}, ${caption}, 'success', ${product.imageUrl})`;
             console.log(`✅ [Scheduler-Shopee] Auto-spill success!`);
         } else {
             const customPrompt = schedule.custom_prompt || null;
@@ -218,7 +217,6 @@ async function runScheduledTask(schedule) {
             
             console.log(`[Scheduler-Acc:${accountId}] Posting...`);
             await postToPlatforms(content, ['threads'], imageUrl, accountId);
-            await sql`INSERT INTO post_history (account_id, content, status, image_url) VALUES (${accountId}, ${content}, 'success', ${imageUrl})`;
         }
     } catch (error) {
         console.error(`[Scheduler] Error for account ${schedule.account_id}:`, error.message);
