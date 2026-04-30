@@ -83,6 +83,11 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
     fetchData();
   };
 
+  const toggleSchedule = async (id) => {
+    await fetch(`${API_BASE}/api/schedules/${id}/toggle`, { method: 'POST' });
+    fetchData();
+  };
+
   const startEditing = (s) => {
     setEditingId(s.id);
     setEditPrompt(s.custom_prompt || '');
@@ -132,7 +137,7 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
             
             <div className="schedule-list custom-scroll">
               {status.schedules && status.schedules.length > 0 ? status.schedules.map(s => (
-                <div key={s.id} className="schedule-item glass-card-nested">
+                <div key={s.id} className={`schedule-item glass-card-nested ${s.is_active === 0 ? 'inactive' : ''}`}>
                   <div className="schedule-info">
                     <div className="flex-between">
                       {editingId === s.id ? (
@@ -143,7 +148,17 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
                           onChange={e => setEditTime(e.target.value)} 
                         />
                       ) : (
-                        <span className="time-label">{s.time}</span>
+                        <div className="flex-gap">
+                          <label className="switch">
+                            <input 
+                              type="checkbox" 
+                              checked={s.is_active === 1} 
+                              onChange={() => toggleSchedule(s.id)}
+                            />
+                            <span className="slider round"></span>
+                          </label>
+                          <span className="time-label">{s.time}</span>
+                        </div>
                       )}
                       <div className="flex-gap">
                         {editingId === s.id ? (

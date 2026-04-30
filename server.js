@@ -154,6 +154,16 @@ app.put('/api/schedules/:id', async (req, res) => {
             WHERE id = ${id}
         `;
         res.json({ success: true });
+// API: Toggle Schedule Status
+app.post('/api/schedules/:id/toggle', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await sql`
+            UPDATE schedules 
+            SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END 
+            WHERE id = ${id}
+        `;
+        res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
