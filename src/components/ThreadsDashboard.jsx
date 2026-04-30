@@ -20,6 +20,17 @@ const ThreadsDashboard = ({ status, handlePostNow, history, loading, selectedIma
           <span className={`badge ${status.threadsToken ? 'badge-success' : 'badge-error'}`}>
             {status.threadsToken ? 'API Linked' : 'API Offline'}
           </span>
+          <button 
+            className={`btn btn-xs ${status.automation_enabled === 'false' ? 'btn-danger' : 'btn-glow'}`}
+            onClick={async () => {
+              const res = await fetch('/api/settings/toggle-automation', { method: 'POST' });
+              const data = await res.json();
+              status.automation_enabled = data.enabled ? 'true' : 'false';
+              window.location.reload(); // Quick refresh to sync state
+            }}
+          >
+            {status.automation_enabled === 'false' ? '🛑 System Paused' : '🟢 System Active'}
+          </button>
         </div>
       </header>
 

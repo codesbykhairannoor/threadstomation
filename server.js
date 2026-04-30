@@ -48,10 +48,12 @@ app.get('/api/status', async (req, res) => {
         const schedules = await sql`SELECT * FROM schedules WHERE account_id = ${accountId} ORDER BY time ASC`;
         const lastPost = await sql`SELECT * FROM post_history WHERE account_id = ${accountId} ORDER BY id DESC LIMIT 1`;
         const token = await sql`SELECT access_token FROM tokens WHERE account_id = ${accountId}`;
+        const autoSetting = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
         res.json({ 
             schedules, 
             lastPost: lastPost[0] || null, 
-            threadsToken: !!token[0]?.access_token
+            threadsToken: !!token[0]?.access_token,
+            automation_enabled: autoSetting[0]?.value || 'true'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -194,10 +196,33 @@ app.put('/api/accounts/:id', async (req, res) => {
     }
 });
 
+// API: Toggle Global Automation
+app.post('/api/settings/toggle-automation', async (req, res) => {
+    try {
+        const current = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
+        const newValue = current[0]?.value === 'false' ? 'true' : 'false';
+        
+        await sql`
+            INSERT INTO settings (key, value) VALUES ('automation_enabled', ${newValue})
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+        `;
+        res.json({ success: true, enabled: newValue === 'true' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // --- SCHEDULER LOGIC ---
 
 async function runScheduledTask(schedule) {
     try {
+        // Double check global switch inside task too
+        const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
+        if (globalStatus[0]?.value === 'false') {
+            console.log('[Scheduler] 🛑 Task cancelled: Global Automation is OFF.');
+            return;
+        }
+        
         const accountId = schedule.account_id;
         const account = await sql`SELECT account_type FROM accounts WHERE id = ${accountId}`.then(r => r[0]);
 
@@ -234,6 +259,10 @@ async function runScheduledTask(schedule) {
 }
 
 cron.schedule('* * * * *', async () => {
+    // 1. Cek Saklar Utama
+    const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
+    if (globalStatus[0]?.value === 'false') return;
+
     const now = new Intl.DateTimeFormat('en-GB', {
         timeZone: 'Asia/Makassar',
         hour: '2-digit',
