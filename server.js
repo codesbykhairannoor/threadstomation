@@ -156,6 +156,11 @@ app.put('/api/schedules/:id', async (req, res) => {
             WHERE id = ${id}
         `;
         res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // API: Toggle Schedule Status
 app.post('/api/schedules/:id/toggle', async (req, res) => {
     const { id } = req.params;
