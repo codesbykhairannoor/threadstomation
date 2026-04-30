@@ -246,9 +246,19 @@ cron.schedule('* * * * *', async () => {
         if (matches.length > 0) {
             console.log(`[Scheduler] Found ${matches.length} schedules to trigger at ${now}`);
             for (const schedule of matches) {
-                // Add a small delay between accounts to prevent rate limiting
-                await new Promise(r => setTimeout(r, 2000));
-                await runScheduledTask(schedule);
+                // Tambahkan "Human Jitter": Delay acak 1-12 menit biar nggak keliatan robot banget
+                const jitterMs = Math.floor(Math.random() * 12 * 60 * 1000); 
+                const waitSec = Math.floor(jitterMs / 1000);
+                
+                console.log(`[Scheduler-Acc:${schedule.account_id}] 🕒 Human Jitter: Waiting ${waitSec}s before posting...`);
+                
+                // Jalankan di background agar tidak menghambat akun lain yang mungkin punya jitter lebih singkat
+                setTimeout(async () => {
+                    await runScheduledTask(schedule);
+                }, jitterMs);
+
+                // Beri jeda antar akun juga biar nggak barengan banget trigger-nya
+                await new Promise(r => setTimeout(r, 10000)); 
             }
         }
     } catch (e) {
