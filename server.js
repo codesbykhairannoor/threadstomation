@@ -92,11 +92,19 @@ app.post('/api/post-now', async (req, res) => {
     const { platforms, image, accountId } = req.body;
     const targetAccountId = accountId || 1;
     try {
-        let imageUrl = null;
-        if (image) {
-            imageUrl = await uploadImage(image);
+        const account = await sql`SELECT account_type FROM accounts WHERE id = ${targetAccountId}`.then(r => r[0]);
+        let content = '';
+        let imageUrl = image;
+
+        if (account?.account_type === 'shopee') {
+            console.log(`[Manual-Shopee] Generating random product post for Acc:${targetAccountId}`);
+            const product = await getRandomShopeeProduct();
+            content = await generateShopeeAffiliatePost(product, targetAccountId);
+            imageUrl = product.imageUrl;
+        } else {
+            content = await generateThreadsContent('threads', image, null, targetAccountId);
         }
-        const content = await generateThreadsContent('threads', image);
+
         const results = await postToPlatforms(content, platforms, imageUrl, targetAccountId);
         res.json({ success: true, results });
     } catch (error) {
