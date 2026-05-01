@@ -108,16 +108,11 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
             <p className="section-desc">Times at which the AI will auto-post with specific settings.</p>
             
             <div className="add-schedule-form glass-card-nested mb-2">
-              <div className="flex-gap mb-1">
-                <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} />
-                <span className="text-xs opacity-50">Set Trigger Time</span>
-              </div>
-              
               <div className="input-group">
                 <label className="text-xs">Custom Prompt (Optional)</label>
                 <textarea 
                   rows="2"
-                  placeholder="Override master prompt for this time..."
+                  placeholder="Override master prompt for this slot..."
                   value={newPrompt}
                   onChange={e => setNewPrompt(e.target.value)}
                 />
@@ -132,75 +127,46 @@ const ConfigPanel = ({ settings, setSettings, handleSaveSettings, status, fetchD
                 </div>
               </div>
 
-              <button className="btn btn-primary w-full mt-1" onClick={addSchedule}>➕ Add Schedule Slot</button>
+              <button className="btn btn-primary w-full mt-1" onClick={() => {
+                // Beri waktu dummy agar backend tidak error, tapi di UI tidak ditampilkan
+                setNewTime(`${Math.floor(Math.random() * 24)}:00`); 
+                setTimeout(addSchedule, 100);
+              }}>➕ Tambah Slot Otomasi Baru</button>
             </div>
             
             <div className="schedule-list custom-scroll">
-              {status.schedules && status.schedules.length > 0 ? status.schedules.map(s => (
+              {status.schedules && status.schedules.length > 0 ? status.schedules.map((s, index) => (
                 <div key={s.id} className={`schedule-item glass-card-nested ${s.is_active === 0 ? 'inactive' : ''}`}>
                   <div className="schedule-info">
                     <div className="flex-between">
-                      {editingId === s.id ? (
-                        <input 
-                          type="time" 
-                          className="edit-time-input" 
-                          value={editTime} 
-                          onChange={e => setEditTime(e.target.value)} 
-                        />
-                      ) : (
-                        <div className="flex-gap">
-                          <label className="switch">
-                            <input 
-                              type="checkbox" 
-                              checked={s.is_active === 1} 
-                              onChange={() => toggleSchedule(s.id)}
-                            />
-                            <span className="slider round"></span>
-                          </label>
-                          <span className="time-label">{s.time}</span>
-                        </div>
-                      )}
                       <div className="flex-gap">
-                        {editingId === s.id ? (
-                           <button className="btn-icon save-btn" onClick={() => updateSchedule(s.id)}>✅</button>
-                        ) : (
-                           <button className="btn-icon edit-btn" onClick={() => startEditing(s)}>✏️</button>
-                        )}
+                        <label className="switch">
+                          <input 
+                            type="checkbox" 
+                            checked={s.is_active === 1} 
+                            onChange={() => toggleSchedule(s.id)}
+                          />
+                          <span className="slider round"></span>
+                        </label>
+                        <span className="time-label">Slot Otomasi #{index + 1}</span>
+                      </div>
+                      <div className="flex-gap">
                         <button className="btn-icon delete-btn" onClick={() => deleteSchedule(s.id)}>🗑️</button>
                       </div>
                     </div>
                     
-                    {editingId === s.id ? (
-                      <div className="edit-mode-container mt-1">
-                        <textarea 
-                          className="edit-textarea"
-                          value={editPrompt}
-                          onChange={e => setEditPrompt(e.target.value)}
-                          rows="2"
-                          autoFocus
-                          placeholder="Schedule specific prompt..."
-                        />
-                        <div className="edit-image-actions mt-1">
-                          <input type="file" accept="image/*" onChange={handleEditImageChange} id={`edit-img-${s.id}`} hidden />
-                          <label htmlFor={`edit-img-${s.id}`} className="btn btn-outline btn-xs">📸 Change Image</label>
-                          {editImage && (
-                            <div className="img-preview-mini relative inline-block ml-1">
-                              <img src={editImage} alt="Edit Preview" />
-                              <button className="remove-img-btn" onClick={() => setEditImage(null)}>×</button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {s.custom_prompt && <p className="schedule-prompt-preview">{s.custom_prompt}</p>}
-                        {s.image_url && <img src={s.image_url} alt="Schedule Media" className="schedule-img-mini" />}
-                      </>
-                    )}
+                    <div className="mt-1">
+                      {s.custom_prompt ? (
+                        <p className="schedule-prompt-preview">{s.custom_prompt}</p>
+                      ) : (
+                        <p className="schedule-prompt-preview opacity-50"><i>(Menggunakan Master Prompt Akun)</i></p>
+                      )}
+                      {s.image_url && <img src={s.image_url} alt="Schedule Media" className="schedule-img-mini" />}
+                    </div>
                   </div>
                 </div>
               )) : (
-                <div className="empty-state">No active schedules.</div>
+                <div className="empty-state">Belum ada slot otomasi yang dibuat.</div>
               )}
             </div>
           </section>
