@@ -269,51 +269,54 @@ cron.schedule('* * * * *', async () => {
     if (globalStatus[0]?.value === 'false') return;
 
     const now = new Date();
-    // Gunakan timezone WITA (Makassar) untuk perhitungan window
+    // Gunakan timezone WITA (Makassar)
     const witaTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Makassar"}));
     const currentHour = witaTime.getHours();
     const currentMinute = witaTime.getMinutes();
     const todayStr = witaTime.toISOString().split('T')[0];
     
+    // Sisa menit hari ini (sampai jam 23:59 WITA)
+    const totalMinutesLeft = (23 - currentHour) * 60 + (60 - currentMinute);
+
     try {
         const accounts = await sql`SELECT id FROM accounts WHERE is_active = 1`;
         
         for (const acc of accounts) {
-            const activeSchedules = await sql`SELECT * FROM schedules WHERE account_id = ${acc.id} AND is_active = 1 ORDER BY id ASC`;
-            const numSchedules = activeSchedules.length;
-            if (numSchedules === 0) continue;
+            // Ambil jadwal yang AKTIF dan BELUM jalan hari ini
+            const pendingSchedules = await sql`
+                SELECT * FROM schedules 
+                WHERE account_id = ${acc.id} 
+                AND is_active = 1 
+                AND (last_run_date IS NULL OR last_run_date != ${todayStr})
+            `;
+            
+            const numPending = pendingSchedules.length;
+            if (numPending === 0) continue;
 
-            // Bagi 24 jam jadi N jendela waktu
-            const windowSizeHours = 24 / numSchedules; 
-            const currentWindowIndex = Math.floor(currentHour / windowSizeHours);
-            const scheduleToRun = activeSchedules[currentWindowIndex];
+            // Logika Peluang: Jumlah sisa jadwal dibagi sisa waktu menit
+            // Ditambah sedikit multiplier agar tidak terlalu mepet di akhir hari
+            const chance = numPending / totalMinutesLeft;
+            const roll = Math.random();
 
-            if (scheduleToRun && scheduleToRun.last_run_date !== todayStr) {
-                // Hitung sisa menit di jendela waktu ini
-                const minutesIntoWindow = (currentHour % windowSizeHours) * 60 + currentMinute;
-                const totalMinutesInWindow = windowSizeHours * 60;
-                const minutesLeftInWindow = Math.max(1, totalMinutesInWindow - minutesIntoWindow);
+            if (roll < chance) {
+                // KOCOK! Pilih satu jadwal secara acak dari sisa yang ada
+                const randomIndex = Math.floor(Math.random() * numPending);
+                const scheduleToRun = pendingSchedules[randomIndex];
+
+                console.log(`[Chaos-Scheduler] 🎲 PURE LUCK! Executing Random Schedule (ID: ${scheduleToRun.id}) for Acc:${acc.id}. Remaining today: ${numPending - 1}`);
                 
-                // Peluang meningkat seiring berakhirnya jendela waktu (Probabilitas Poisson-ish)
-                const roll = Math.random();
-                const chance = 1 / minutesLeftInWindow;
-
-                if (roll < chance) {
-                    console.log(`[Stealth-Scheduler] 🎰 LUCK ROLL SUCCESS! Window ${currentWindowIndex + 1}/${numSchedules} for Acc:${acc.id}`);
-                    
-                    // Update DB duluan biar gak double post kalau ada lag
-                    await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${scheduleToRun.id}`;
-                    
-                    // Jalankan tugas (tetap pake jitter kecil 1-5 menit biar makin natural)
-                    const jitterMs = Math.floor(Math.random() * 5 * 60 * 1000);
-                    setTimeout(async () => {
-                        await runScheduledTask(scheduleToRun);
-                    }, jitterMs);
-                }
+                // Update DB biar nggak kepilih lagi hari ini
+                await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${scheduleToRun.id}`;
+                
+                // Jitter kecil biar gak trigger barengan kalau ada banyak akun
+                const jitterMs = Math.floor(Math.random() * 60000); 
+                setTimeout(async () => {
+                    await runScheduledTask(scheduleToRun);
+                }, jitterMs);
             }
         }
     } catch (e) {
-        console.error('[Stealth-Scheduler] Error:', e.message);
+        console.error('[Chaos-Scheduler] Error:', e.message);
     }
 });
 
