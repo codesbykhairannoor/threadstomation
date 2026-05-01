@@ -268,35 +268,52 @@ cron.schedule('* * * * *', async () => {
     const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
     if (globalStatus[0]?.value === 'false') return;
 
-    const now = new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Asia/Makassar',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    }).format(new Date());
+    const now = new Date();
+    // Gunakan timezone WITA (Makassar) untuk perhitungan window
+    const witaTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Makassar"}));
+    const currentHour = witaTime.getHours();
+    const currentMinute = witaTime.getMinutes();
+    const todayStr = witaTime.toISOString().split('T')[0];
     
     try {
-        const matches = await sql`SELECT * FROM schedules WHERE time = ${now} AND is_active = 1`;
-        if (matches.length > 0) {
-            console.log(`[Scheduler] Found ${matches.length} schedules to trigger at ${now}`);
-            for (const schedule of matches) {
-                // Tambahkan "Human Jitter": Delay acak 1-12 menit biar nggak keliatan robot banget
-                const jitterMs = Math.floor(Math.random() * 12 * 60 * 1000); 
-                const waitSec = Math.floor(jitterMs / 1000);
-                
-                console.log(`[Scheduler-Acc:${schedule.account_id}] 🕒 Human Jitter: Waiting ${waitSec}s before posting...`);
-                
-                // Jalankan di background agar tidak menghambat akun lain yang mungkin punya jitter lebih singkat
-                setTimeout(async () => {
-                    await runScheduledTask(schedule);
-                }, jitterMs);
+        const accounts = await sql`SELECT id FROM accounts WHERE is_active = 1`;
+        
+        for (const acc of accounts) {
+            const activeSchedules = await sql`SELECT * FROM schedules WHERE account_id = ${acc.id} AND is_active = 1 ORDER BY id ASC`;
+            const numSchedules = activeSchedules.length;
+            if (numSchedules === 0) continue;
 
-                // Beri jeda antar akun juga biar nggak barengan banget trigger-nya
-                await new Promise(r => setTimeout(r, 10000)); 
+            // Bagi 24 jam jadi N jendela waktu
+            const windowSizeHours = 24 / numSchedules; 
+            const currentWindowIndex = Math.floor(currentHour / windowSizeHours);
+            const scheduleToRun = activeSchedules[currentWindowIndex];
+
+            if (scheduleToRun && scheduleToRun.last_run_date !== todayStr) {
+                // Hitung sisa menit di jendela waktu ini
+                const minutesIntoWindow = (currentHour % windowSizeHours) * 60 + currentMinute;
+                const totalMinutesInWindow = windowSizeHours * 60;
+                const minutesLeftInWindow = Math.max(1, totalMinutesInWindow - minutesIntoWindow);
+                
+                // Peluang meningkat seiring berakhirnya jendela waktu (Probabilitas Poisson-ish)
+                const roll = Math.random();
+                const chance = 1 / minutesLeftInWindow;
+
+                if (roll < chance) {
+                    console.log(`[Stealth-Scheduler] 🎰 LUCK ROLL SUCCESS! Window ${currentWindowIndex + 1}/${numSchedules} for Acc:${acc.id}`);
+                    
+                    // Update DB duluan biar gak double post kalau ada lag
+                    await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${scheduleToRun.id}`;
+                    
+                    // Jalankan tugas (tetap pake jitter kecil 1-5 menit biar makin natural)
+                    const jitterMs = Math.floor(Math.random() * 5 * 60 * 1000);
+                    setTimeout(async () => {
+                        await runScheduledTask(scheduleToRun);
+                    }, jitterMs);
+                }
             }
         }
     } catch (e) {
-        console.error('[Scheduler] Cron error:', e.message);
+        console.error('[Stealth-Scheduler] Error:', e.message);
     }
 });
 
