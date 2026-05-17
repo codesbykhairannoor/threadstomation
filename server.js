@@ -284,12 +284,26 @@ cron.schedule('* * * * *', async () => {
     const todayStr = witaTime.toISOString().split('T')[0];
     
     // Sisa menit hari ini (sampai jam 23:59 WITA)
-    const totalMinutesLeft = (23 - currentHour) * 60 + (60 - currentMinute);
+    const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - currentMinute));
 
     try {
         const accounts = await sql`SELECT id FROM accounts WHERE is_active = 1`;
         
         for (const acc of accounts) {
+            // Hitung berapa banyak post yang SUDAH jalan hari ini untuk akun ini
+            const ranToday = await sql`
+                SELECT COUNT(*) as count 
+                FROM schedules 
+                WHERE account_id = ${acc.id} 
+                AND last_run_date = ${todayStr}
+            `;
+            const postsToday = parseInt(ranToday[0]?.count || 0, 10);
+
+            // Batasi maksimal 5 postingan sehari per akun
+            if (postsToday >= 5) continue;
+
+            const postsRemaining = 5 - postsToday;
+
             // Ambil jadwal yang AKTIF dan BELUM jalan hari ini
             const pendingSchedules = await sql`
                 SELECT * FROM schedules 
@@ -301,9 +315,11 @@ cron.schedule('* * * * *', async () => {
             const numPending = pendingSchedules.length;
             if (numPending === 0) continue;
 
-            // Logika Peluang: Jumlah sisa jadwal dibagi sisa waktu menit
-            // Ditambah sedikit multiplier agar tidak terlalu mepet di akhir hari
-            const chance = numPending / totalMinutesLeft;
+            // Jumlah target post yang MAU dan BISA kita buat hari ini
+            const numToMake = Math.min(postsRemaining, numPending);
+
+            // Logika Peluang: Jumlah target sisa postingan dibagi sisa waktu menit
+            const chance = numToMake / totalMinutesLeft;
             const roll = Math.random();
 
             if (roll < chance) {
@@ -311,7 +327,7 @@ cron.schedule('* * * * *', async () => {
                 const randomIndex = Math.floor(Math.random() * numPending);
                 const scheduleToRun = pendingSchedules[randomIndex];
 
-                console.log(`[Chaos-Scheduler] 🎲 PURE LUCK! Executing Random Schedule (ID: ${scheduleToRun.id}) for Acc:${acc.id}. Remaining today: ${numPending - 1}`);
+                console.log(`[Chaos-Scheduler] 🎲 PURE LUCK! Executing Random Schedule (ID: ${scheduleToRun.id}) for Acc:${acc.id}. Posts today: ${postsToday + 1}/5`);
                 
                 // Update DB biar nggak kepilih lagi hari ini
                 await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${scheduleToRun.id}`;
