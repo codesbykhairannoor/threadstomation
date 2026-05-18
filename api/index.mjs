@@ -3,11 +3,11 @@ import cors from 'cors';
 import cron from 'node-cron';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import sql, { initDb } from './lib/database.js';
-import { generateThreadsContent, generateShopeeAffiliatePost } from './lib/gemini.js';
-import { getRandomShopeeProduct } from './lib/shopee.js';
-import { postToPlatforms } from './lib/threads_service.js';
-import { uploadImage } from './lib/supabase_storage.js';
+import sql, { initDb } from '../lib/database.js';
+import { generateThreadsContent, generateShopeeAffiliatePost } from '../lib/gemini.js';
+import { getRandomShopeeProduct } from '../lib/shopee.js';
+import { postToPlatforms } from '../lib/threads_service.js';
+import { uploadImage } from '../lib/supabase_storage.js';
 import axios from 'axios';
 import fs from 'fs';
 
@@ -453,7 +453,7 @@ cron.schedule('* * * * *', async () => {
 });
 
 // Serve frontend
-const distPath = join(__dirname, 'dist');
+const distPath = join(__dirname, '../dist');
 if (fs.existsSync(distPath)) {
     app.use(express.static(distPath));
 }
