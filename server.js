@@ -223,6 +223,100 @@ app.post('/api/settings/toggle-automation', async (req, res) => {
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
+// API: Vercel Serverless Webhook Cron Trigger
+app.get('/api/cron', async (req, res) => {
+    // Keamanan: Cek token rahasia agar tidak sembarang orang bisa menembak
+    const authHeader = req.headers.authorization;
+    const secretParam = req.query.secret;
+    const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
+
+    if (process.env.CRON_SECRET) {
+        if (authHeader !== `Bearer ${expectedSecret}` && secretParam !== expectedSecret) {
+            return res.status(401).json({ error: 'Unauthorized: Invalid CRON_SECRET' });
+        }
+    }
+
+    const targetAccountId = req.query.accountId ? parseInt(req.query.accountId, 10) : null;
+    const now = new Date();
+    // Timezone WITA (Makassar)
+    const witaTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Makassar"}));
+    const currentHour = witaTime.getHours();
+    const currentMinute = witaTime.getMinutes();
+    const todayStr = witaTime.toISOString().split('T')[0];
+    
+    const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - currentMinute));
+
+    try {
+        // Cek Saklar Utama
+        const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
+        if (globalStatus[0]?.value === 'false') {
+            return res.json({ success: true, status: 'Automation disabled globally.' });
+        }
+
+        // Ambil list akun aktif (atau filter spesifik targetAccountId)
+        let accounts = [];
+        if (targetAccountId) {
+            accounts = await sql`SELECT id, name FROM accounts WHERE id = ${targetAccountId} AND is_active = 1`;
+        } else {
+            accounts = await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
+        }
+
+        const executed = [];
+
+        for (const acc of accounts) {
+            // Hitung postingan hari ini
+            const ranToday = await sql`
+                SELECT COUNT(*) as count 
+                FROM schedules 
+                WHERE account_id = ${acc.id} 
+                AND last_run_date = ${todayStr}
+            `;
+            const postsToday = parseInt(ranToday[0]?.count || 0, 10);
+
+            if (postsToday >= 5) {
+                console.log(`[Vercel-Cron] Acc:${acc.name} already hit 5 posts limit today.`);
+                continue;
+            }
+
+            const postsRemaining = 5 - postsToday;
+
+            // Ambil jadwal aktif pending
+            const pendingSchedules = await sql`
+                SELECT * FROM schedules 
+                WHERE account_id = ${acc.id} 
+                AND is_active = 1 
+                AND (last_run_date IS NULL OR last_run_date != ${todayStr})
+            `;
+            
+            const numPending = pendingSchedules.length;
+            if (numPending === 0) continue;
+
+            const numToMake = Math.min(postsRemaining, numPending);
+            const chance = numToMake / totalMinutesLeft;
+            const roll = Math.random();
+
+            console.log(`[Vercel-Cron] Checking Acc:${acc.name} (ID:${acc.id}) -> PostsToday: ${postsToday}/5, Pending: ${numPending}, Chance: ${chance.toFixed(5)}, Roll: ${roll.toFixed(5)}`);
+
+            if (roll < chance) {
+                const randomIndex = Math.floor(Math.random() * numPending);
+                const scheduleToRun = pendingSchedules[randomIndex];
+
+                console.log(`[Vercel-Cron] 🎲 CHAOS HIT! Running schedule ID: ${scheduleToRun.id} for Acc:${acc.name}`);
+                
+                // Update DB secara instan biar ga kepilih lagi
+                await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${scheduleToRun.id}`;
+                
+                // Jalankan tugas (Synchronous di serverless)
+                await runScheduledTask(scheduleToRun);
+                executed.push({ account: acc.name, scheduleId: scheduleToRun.id });
+            }
+        }
+
+        res.json({ success: true, executed });
+    } catch (e) {
+        console.error('[Vercel-Cron] Error:', e.message);
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // --- SCHEDULER LOGIC ---
