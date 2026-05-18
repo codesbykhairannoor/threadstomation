@@ -221,7 +221,22 @@ app.post('/api/settings/toggle-automation', async (req, res) => {
         res.json({ success: true, enabled: newValue === 'true' });
     } catch (e) {
         res.status(500).json({ error: e.message });
+// API: Vercel Serverless Diagnostics Route
+app.get('/api/debug', async (req, res) => {
+    try {
+        const test = await sql`SELECT 1 + 1 as result`;
+        res.json({ success: true, db_connection: 'online', result: test[0]?.result });
+    } catch (e) {
+        res.status(500).json({ 
+            success: false, 
+            db_connection: 'offline', 
+            error: e.message, 
+            has_db_url: !!process.env.DATABASE_URL,
+            db_url_length: process.env.DATABASE_URL ? process.env.DATABASE_URL.length : 0
+        });
     }
+});
+
 // API: Vercel Serverless Webhook Cron Trigger
 app.get('/api/cron', async (req, res) => {
     // Keamanan: Cek token rahasia agar tidak sembarang orang bisa menembak
