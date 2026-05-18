@@ -221,6 +221,9 @@ app.post('/api/settings/toggle-automation', async (req, res) => {
         res.json({ success: true, enabled: newValue === 'true' });
     } catch (e) {
         res.status(500).json({ error: e.message });
+    }
+});
+
 // API: Vercel Serverless Diagnostics Route
 app.get('/api/debug', async (req, res) => {
     try {
