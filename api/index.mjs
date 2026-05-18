@@ -227,7 +227,7 @@ app.get('/api/debug', async (req, res) => {
         const test = await sql`SELECT 1 + 1 as result`;
         res.json({ success: true, db_connection: 'online', result: test[0]?.result });
     } catch (e) {
-        res.status(500).json({ 
+        res.status(200).json({ 
             success: false, 
             db_connection: 'offline', 
             error: e.message, 
