@@ -458,13 +458,20 @@ if (fs.existsSync(distPath)) {
     app.use(express.static(distPath));
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[Server] Multi-Account Threads running at port ${PORT}`);
+if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`[Server] Multi-Account Threads running at port ${PORT}`);
+        initDb().catch(e => console.error('[DB] Asynchronous initDb failed:', e.message));
+    });
+} else {
+    // Di Vercel Serverless, kita jalankan initDb sekali saja secara async
     initDb().catch(e => console.error('[DB] Asynchronous initDb failed:', e.message));
-});
+}
 
 if (fs.existsSync(join(distPath, 'index.html'))) {
     app.get(/.*/, (req, res) => {
         res.sendFile(join(distPath, 'index.html'));
     });
 }
+
+export default app;
