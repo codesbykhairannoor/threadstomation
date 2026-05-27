@@ -10,10 +10,12 @@ import { postToPlatforms } from '../lib/threads_service.js';
 import { uploadImage } from '../lib/supabase_storage.js';
 import axios from 'axios';
 import fs from 'fs';
+import tiktokApp from './tiktok.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+app.use(tiktokApp); // Mount TikTok app routes locally
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
