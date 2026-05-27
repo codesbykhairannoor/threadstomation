@@ -6,14 +6,31 @@ const TikTokConfigPanel = ({ status, fetchData, loading, accountId, accounts }) 
   const [newPrompt, setNewPrompt] = useState('');
   const [masterPrompt, setMasterPrompt] = useState('');
   const [savingMaster, setSavingMaster] = useState(false);
+  const [sandboxMode, setSandboxMode] = useState(false);
 
   useEffect(() => {
-    // Load TikTok master prompt from settings
+    // Load TikTok master prompt and sandbox mode from settings
     fetch(`${API}/settings`)
       .then(r => r.json())
-      .then(data => setMasterPrompt(data.tiktok_master_prompt || ''))
+      .then(data => {
+        setMasterPrompt(data.tiktok_master_prompt || '');
+        setSandboxMode(data.tiktok_sandbox_mode === 'true');
+      })
       .catch(() => {});
   }, []);
+
+  const toggleSandboxMode = async (checked) => {
+    setSandboxMode(checked);
+    try {
+      await fetch(`${API}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tiktok_sandbox_mode: checked ? 'true' : 'false' })
+      });
+    } catch (e) {
+      alert('❌ Failed to update Sandbox Mode.');
+    }
+  };
 
   const addSchedule = async () => {
     await fetch(`${API}/schedules`, {
@@ -94,6 +111,35 @@ const TikTokConfigPanel = ({ status, fetchData, loading, accountId, accounts }) 
             <button className="btn btn-glow w-full" onClick={handleConnect}>
               🎵 Connect TikTok Account via OAuth
             </button>
+          )}
+        </section>
+
+        {/* Sandbox Mode */}
+        <section className="glass-card mb-2">
+          <h3>⚙️ Sandbox / Testing Mode</h3>
+          <p className="section-desc">
+            Jika aplikasi developer TikTok Anda masih berstatus Sandbox (belum diaudit/approved oleh TikTok), TikTok membatasi pemrosesan postingan.
+          </p>
+          <div className="glass-card-nested flex-between" style={{ marginBottom: '1rem' }}>
+            <div>
+              <span style={{ fontWeight: 700 }}>Aktifkan Sandbox Mode</span>
+              <p className="time" style={{ marginTop: '4px' }}>Memaksa level privasi postingan menjadi <code>SELF_ONLY</code> (Private/Hanya Saya)</p>
+            </div>
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={sandboxMode}
+                onChange={e => toggleSandboxMode(e.target.checked)}
+              />
+              <span className="slider round" />
+            </label>
+          </div>
+          {sandboxMode && (
+            <div className="glass-card-nested" style={{ background: 'rgba(235, 94, 40, 0.1)', border: '1px solid var(--accent)' }}>
+              <p className="text-xs" style={{ color: 'var(--accent)', fontWeight: 600, margin: 0, lineHeight: 1.4 }}>
+                ⚠️ PENTING: Agar postingan tidak gagal dengan error 403, pastikan akun TikTok Anda di HP (misal: @spillsabi.id) sudah diubah menjadi <strong>Akun Privat (Private Account)</strong> di pengaturan privasi aplikasi TikTok HP Anda!
+              </p>
+            </div>
           )}
         </section>
 
