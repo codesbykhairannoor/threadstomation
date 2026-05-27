@@ -2,11 +2,21 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ThreadsDashboard from './components/ThreadsDashboard';
 import ConfigPanel from './components/ConfigPanel';
+import TermsOfService from './components/TermsOfService';
+import PrivacyPolicy from './components/PrivacyPolicy';
 import './App.css';
 
 const API_BASE = ''; // Dynamic origin support
 
 function App() {
+  const path = window.location.pathname;
+  if (path === '/term-of-service') {
+    return <TermsOfService />;
+  }
+  if (path === '/privacy-policy') {
+    return <PrivacyPolicy />;
+  }
+
   const [activeTab, setActiveTab] = useState('threads');
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState(1);
