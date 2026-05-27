@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Sidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId, setSelectedAccountId }) => {
+const Sidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId, setSelectedAccountId, onBackToPlatform }) => {
   const menuItems = [
     { id: 'threads', label: 'Threads', icon: '🧵' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
@@ -12,6 +12,11 @@ const Sidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId, setSele
         <div className="brand-icon">🚀</div>
         <h2>Socmed AI</h2>
       </div>
+
+      {/* Back to platform selector */}
+      <button className="back-platform-btn" onClick={onBackToPlatform}>
+        ← Switch Platform
+      </button>
 
       <div className="account-selector-container">
         <label className="text-xs opacity-50 ml-1">MANAGE ACCOUNT</label>

@@ -4,12 +4,14 @@ import ThreadsDashboard from './components/ThreadsDashboard';
 import ConfigPanel from './components/ConfigPanel';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import PlatformSelector from './components/PlatformSelector';
 import './App.css';
 
 const API_BASE = ''; // Dynamic origin support
 
 function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
+  const [platform, setPlatform] = useState(() => sessionStorage.getItem('selected_platform') || null);
   const [activeTab, setActiveTab] = useState('threads');
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState(1);
@@ -31,6 +33,23 @@ function App() {
 
   if (pathname === '/term-of-service') return <TermsOfService />;
   if (pathname === '/privacy-policy') return <PrivacyPolicy />;
+
+  // Platform selector: show if no platform chosen yet
+  if (!platform) {
+    return (
+      <PlatformSelector
+        onSelect={(p) => {
+          sessionStorage.setItem('selected_platform', p);
+          setPlatform(p);
+        }}
+      />
+    );
+  }
+
+  const handleBackToPlatform = () => {
+    sessionStorage.removeItem('selected_platform');
+    setPlatform(null);
+  };
 
   // Fetch Accounts list
   const fetchAccounts = async () => {
@@ -126,7 +145,6 @@ function App() {
 
   const handlePostNow = async (isTest = false) => {
     setLoading(true);
-    const platformLabel = activeTab.toUpperCase();
     setMessage(isTest ? `🧪 Sending test...` : `🚀 AI Posting...`);
     
     try {
@@ -190,6 +208,7 @@ function App() {
         accounts={accounts}
         selectedAccountId={selectedAccountId}
         setSelectedAccountId={setSelectedAccountId}
+        onBackToPlatform={handleBackToPlatform}
       />
       <div className="dashboard-container">
         {fetchError && (
