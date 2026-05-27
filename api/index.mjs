@@ -467,8 +467,8 @@ if (!process.env.VERCEL) {
         initDb().catch(e => console.error('[DB] Asynchronous initDb failed:', e.message));
     });
 } else {
-    // Di Vercel Serverless, kita jalankan initDb sekali saja secara async
-    initDb().catch(e => console.error('[DB] Asynchronous initDb failed:', e.message));
+    // Di Vercel Serverless, kita tidak perlu menjalankan initDb saat cold start karena skema DB sudah siap di Supabase.
+    console.log('[DB] Running on Vercel Serverless. Skipping cold start schema checks.');
 }
 
 if (fs.existsSync(join(distPath, 'index.html'))) {
