@@ -29,7 +29,8 @@ app.use('/api/tiktok', async (req, res, next) => {
  * Redirects user to TikTok OAuth authorization page.
  */
 app.get('/api/tiktok/auth', (req, res) => {
-  const redirectUri = `${req.protocol}://${req.get('host')}/api/tiktok/callback`;
+  const protocol = req.get('host').includes('localhost') ? 'http' : 'https';
+  const redirectUri = `${protocol}://${req.get('host')}/api/tiktok/callback`;
   const { url, codeVerifier } = buildOAuthUrl(redirectUri);
 
   // Store verifier keyed by state (using a simple timestamp key)
@@ -60,7 +61,8 @@ app.get('/api/tiktok/callback', async (req, res) => {
 
   const codeVerifier = storedData?.codeVerifier || '';
   const accountName = storedData?.accountName || 'TikTok Account';
-  const redirectUri = `${req.protocol}://${req.get('host')}/api/tiktok/callback`;
+  const protocol = req.get('host').includes('localhost') ? 'http' : 'https';
+  const redirectUri = `${protocol}://${req.get('host')}/api/tiktok/callback`;
 
   try {
     const tokenData = await exchangeCodeForToken(code, codeVerifier, redirectUri);
