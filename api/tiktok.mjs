@@ -229,9 +229,38 @@ app.post('/api/tiktok/settings/toggle-automation', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/tiktok/media?path=tiktok/xxx.jpg
+ * Proxies images from Supabase storage through the Vercel domain to pass TikTok's domain ownership rules.
+ */
+app.get('/api/tiktok/media', async (req, res) => {
+  const { path } = req.query;
+  if (!path) return res.status(400).send('path required');
+
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    if (!supabaseUrl) throw new Error('SUPABASE_URL environment variable is missing');
+
+    const imageUrl = `${supabaseUrl}/storage/v1/object/public/media/${path}`;
+    const response = await fetch(imageUrl);
+
+    if (!response.ok) {
+      return res.status(response.status).send('Failed to fetch media from storage');
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(Buffer.from(arrayBuffer));
+  } catch (e) {
+    console.error('[TikTok-MediaProxy] Error:', e.message);
+    res.status(500).send(e.message);
+  }
+});
+
 // ── CORE: POST CAROUSEL ───────────────────────────────────────────────────────
 
-async function runTikTokCarouselPost(accountId, customPrompt = null) {
+async function runTikTokCarouselPost(accountId, customPrompt = null, baseUrl = '') {
   // Get account master prompt
   const account = await sql`SELECT * FROM tiktok_accounts WHERE id = ${accountId}`;
   if (!account.length) throw new Error(`TikTok account ${accountId} not found`);
@@ -249,17 +278,30 @@ async function runTikTokCarouselPost(accountId, customPrompt = null) {
   const imageUrls = await generateSlideImages(slides);
   console.log(`[TikTok-Post] ${imageUrls.length} images uploaded`);
 
-  // Step 3: Post to TikTok
-  const { publishId, status } = await postTikTokCarousel(imageUrls, caption, hashtags, accountId);
+  // Step 3: Rewrite URLs to go through verified domain proxy if baseUrl is provided
+  let finalUrls = imageUrls;
+  if (baseUrl) {
+    finalUrls = imageUrls.map(url => {
+      const match = url.match(/\/storage\/v1\/object\/public\/media\/(.*)/);
+      if (match && match[1]) {
+        return `${baseUrl}/api/tiktok/media?path=${match[1]}`;
+      }
+      return url;
+    });
+    console.log(`[TikTok-Post] Rewrote image URLs to verified domain proxy:`, finalUrls);
+  }
 
-  // Step 4: Save to history
+  // Step 4: Post to TikTok
+  const { publishId, status } = await postTikTokCarousel(finalUrls, caption, hashtags, accountId);
+
+  // Step 5: Save to history
   await sql`
     INSERT INTO tiktok_history (account_id, caption, slide_count, image_urls, publish_id, status)
     VALUES (
       ${accountId},
       ${caption},
       ${slides.length},
-      ${JSON.stringify(imageUrls)},
+      ${JSON.stringify(finalUrls)},
       ${publishId},
       ${status}
     )
@@ -273,8 +315,11 @@ app.post('/api/tiktok/post-now', async (req, res) => {
   const { accountId, customPrompt } = req.body;
   if (!accountId) return res.status(400).json({ error: 'accountId required' });
 
+  const protocol = req.get('host').includes('localhost') ? 'http' : 'https';
+  const baseUrl = `${protocol}://${req.get('host')}`;
+
   try {
-    const result = await runTikTokCarouselPost(parseInt(accountId), customPrompt);
+    const result = await runTikTokCarouselPost(parseInt(accountId), customPrompt, baseUrl);
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('[TikTok-PostNow] Error:', e.message);
@@ -320,6 +365,9 @@ app.get('/api/tiktok/cron', async (req, res) => {
     const accounts = await sql`SELECT id, name FROM tiktok_accounts WHERE is_active = 1`;
     const executed = [];
 
+    const protocol = req.get('host').includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${req.get('host')}`;
+
     for (const acc of accounts) {
       // How many posts today?
       const ranToday = await sql`
@@ -357,7 +405,7 @@ app.get('/api/tiktok/cron', async (req, res) => {
         await sql`UPDATE tiktok_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
 
         try {
-          const result = await runTikTokCarouselPost(acc.id, chosen.custom_prompt);
+          const result = await runTikTokCarouselPost(acc.id, chosen.custom_prompt, baseUrl);
           executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
           console.log(`[TikTok-Cron] ✅ Posted for ${acc.name}`);
         } catch (postErr) {
