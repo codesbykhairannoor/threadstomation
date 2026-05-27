@@ -20,6 +20,17 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const PORT = process.env.PORT || 3000;
 
+// Middleware: Ensure DB is initialized before every API request (lazy init for serverless)
+app.use('/api', async (req, res, next) => {
+  try {
+    await initDb();
+    next();
+  } catch (e) {
+    console.error('[Middleware] DB init failed:', e.message);
+    next(); // Still proceed, individual routes handle their own errors
+  }
+});
+
 // API: List Accounts
 app.get('/api/accounts', async (req, res) => {
     try {
@@ -467,8 +478,8 @@ if (!process.env.VERCEL) {
         initDb().catch(e => console.error('[DB] Asynchronous initDb failed:', e.message));
     });
 } else {
-    // Di Vercel Serverless, kita tidak perlu menjalankan initDb saat cold start karena skema DB sudah siap di Supabase.
-    console.log('[DB] Running on Vercel Serverless. Skipping cold start schema checks.');
+    // Vercel Serverless: DB is lazily initialized on first request via middleware above.
+    console.log('[DB] Running on Vercel Serverless. DB will initialize on first request.');
 }
 
 if (fs.existsSync(join(distPath, 'index.html'))) {

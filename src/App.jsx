@@ -9,14 +9,7 @@ import './App.css';
 const API_BASE = ''; // Dynamic origin support
 
 function App() {
-  const path = window.location.pathname;
-  if (path === '/term-of-service') {
-    return <TermsOfService />;
-  }
-  if (path === '/privacy-policy') {
-    return <PrivacyPolicy />;
-  }
-
+  const [pathname, setPathname] = useState(window.location.pathname);
   const [activeTab, setActiveTab] = useState('threads');
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState(1);
@@ -25,8 +18,19 @@ function App() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [fetchError, setFetchError] = useState('');
   const [newTime, setNewTime] = useState('');
   const [selectedImage, setSelectedImage] = useState(localStorage.getItem('threads_pending_image'));
+
+  // Listen to browser navigation (back/forward)
+  useEffect(() => {
+    const handlePopState = () => setPathname(window.location.pathname);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  if (pathname === '/term-of-service') return <TermsOfService />;
+  if (pathname === '/privacy-policy') return <PrivacyPolicy />;
 
   // Fetch Accounts list
   const fetchAccounts = async () => {
@@ -38,22 +42,37 @@ function App() {
         if (data.length > 0 && !data.find(a => a.id === selectedAccountId)) {
             setSelectedAccountId(data[0].id);
         }
+        setFetchError('');
+      } else {
+        setFetchError('Failed to fetch accounts list from server.');
       }
     } catch (e) {
       console.error('Fetch accounts error:', e);
+      setFetchError('Server connection failed: ' + e.message);
     }
   };
 
   // Fetch data for specific account
   const fetchData = async () => {
     try {
+      // Auto-fetch accounts if they are empty
+      if (accounts.length === 0) {
+        await fetchAccounts();
+      }
+
       const [sRes, stRes, hRes] = await Promise.all([
         fetch(`${API_BASE}/api/status?accountId=${selectedAccountId}`),
         fetch(`${API_BASE}/api/settings`),
         fetch(`${API_BASE}/api/history?platform=${activeTab}&accountId=${selectedAccountId}`)
       ]);
       
-      if (sRes.ok) setStatus(await sRes.json());
+      if (sRes.ok) {
+        setStatus(await sRes.json());
+        setFetchError('');
+      } else {
+        setFetchError('Failed to retrieve status for the selected account.');
+      }
+
       if (stRes.ok) setSettings(await stRes.json());
       if (hRes.ok) {
         const hData = await hRes.json();
@@ -61,6 +80,7 @@ function App() {
       }
     } catch (e) {
       console.error('Fetch error:', e);
+      setFetchError('Server connection failed: ' + e.message);
     }
   };
 
@@ -69,6 +89,10 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // Clear history and reset token status so UI updates visually on account switch
+    setHistory([]);
+    setStatus(prev => ({ ...prev, threadsToken: false, lastPost: null }));
+    
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
@@ -168,6 +192,11 @@ function App() {
         setSelectedAccountId={setSelectedAccountId}
       />
       <div className="dashboard-container">
+        {fetchError && (
+          <div style={{ background: '#ef4444', color: 'white', padding: '12px 20px', margin: '10px 20px', borderRadius: '8px', fontWeight: 'bold' }}>
+            ⚠️ {fetchError}
+          </div>
+        )}
         {message && (
           <div className="global-toast animate-slide-down">
             {message}
