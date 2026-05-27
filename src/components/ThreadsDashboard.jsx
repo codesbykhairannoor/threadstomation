@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ThreadsDashboard = ({ status, handlePostNow, history, loading, selectedImage, setSelectedImage }) => {
+const ThreadsDashboard = ({ status, handlePostNow, history, loading, selectedImage, setSelectedImage, statusLoading }) => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -17,8 +17,8 @@ const ThreadsDashboard = ({ status, handlePostNow, history, loading, selectedIma
       <header className="content-header">
         <h1>Threads Management 🧵</h1>
         <div className="status-header">
-          <span className={`badge ${status.threadsToken ? 'badge-success' : 'badge-error'}`}>
-            {status.threadsToken ? 'API Linked' : 'API Offline'}
+          <span className={`badge ${statusLoading ? 'badge-neutral' : status.threadsToken ? 'badge-success' : 'badge-error'}`}>
+            {statusLoading ? '⏳ Checking...' : status.threadsToken ? 'API Linked' : 'API Offline'}
           </span>
           <button 
             className={`btn btn-xs ${status.automation_enabled === 'false' ? 'btn-danger' : 'btn-glow'}`}

@@ -10,9 +10,10 @@ import './App.css';
 const API_BASE = '';
 
 function App() {
-  // ── ALL HOOKS MUST BE AT THE TOP — NO EXCEPTIONS ──
+  // URL-based routing — pathname IS the source of truth
   const [pathname, setPathname] = useState(window.location.pathname);
-  const [platform, setPlatform] = useState(() => sessionStorage.getItem('selected_platform') || null);
+
+  // Dashboard state
   const [activeTab, setActiveTab] = useState('threads');
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState(1);
@@ -24,28 +25,37 @@ function App() {
   const [fetchError, setFetchError] = useState('');
   const [newTime, setNewTime] = useState('');
   const [selectedImage, setSelectedImage] = useState(localStorage.getItem('threads_pending_image'));
+  const [statusLoading, setStatusLoading] = useState(false);
 
-  // Listen to browser back/forward
+  // Listen to browser back/forward buttons
   useEffect(() => {
     const handlePopState = () => setPathname(window.location.pathname);
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Fetch accounts on mount
-  useEffect(() => {
-    if (platform) fetchAccounts();
-  }, [platform]);
+  // Navigate helper — updates URL AND React state
+  const navigate = (path) => {
+    window.history.pushState({}, '', path);
+    setPathname(path);
+  };
 
-  // Refetch data when tab or account changes (only when platform is active)
+  // Fetch accounts when entering a platform dashboard
   useEffect(() => {
-    if (!platform) return;
+    if (pathname === '/threads' || pathname === '/tiktok') {
+      fetchAccounts();
+    }
+  }, [pathname]);
+
+  // Refetch data when tab or account changes — but DON'T reset token status
+  // so we don't flash "API Offline" while loading
+  useEffect(() => {
+    if (pathname !== '/threads') return;
     setHistory([]);
-    setStatus(prev => ({ ...prev, threadsToken: false, lastPost: null }));
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [activeTab, selectedAccountId, platform]);
+  }, [activeTab, selectedAccountId, pathname]);
 
   // Sync selected image to localStorage
   useEffect(() => {
@@ -56,7 +66,7 @@ function App() {
     }
   }, [selectedImage]);
 
-  // ── HELPER FUNCTIONS ──
+  // ── API HELPERS ──
   const fetchAccounts = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/accounts`);
@@ -68,7 +78,7 @@ function App() {
         }
         setFetchError('');
       } else {
-        setFetchError('Failed to fetch accounts list from server.');
+        setFetchError('Failed to fetch accounts.');
       }
     } catch (e) {
       setFetchError('Server connection failed: ' + e.message);
@@ -76,14 +86,16 @@ function App() {
   };
 
   const fetchData = async () => {
+    setStatusLoading(true);
     try {
       const [sRes, stRes, hRes] = await Promise.all([
         fetch(`${API_BASE}/api/status?accountId=${selectedAccountId}`),
         fetch(`${API_BASE}/api/settings`),
         fetch(`${API_BASE}/api/history?platform=${activeTab}&accountId=${selectedAccountId}`)
       ]);
+      // Only update status if successful — never reset to offline while loading
       if (sRes.ok) { setStatus(await sRes.json()); setFetchError(''); }
-      else { setFetchError('Failed to retrieve status for the selected account.'); }
+      else { setFetchError('Failed to retrieve account status.'); }
       if (stRes.ok) setSettings(await stRes.json());
       if (hRes.ok) {
         const hData = await hRes.json();
@@ -91,6 +103,8 @@ function App() {
       }
     } catch (e) {
       setFetchError('Server connection failed: ' + e.message);
+    } finally {
+      setStatusLoading(false);
     }
   };
 
@@ -131,31 +145,38 @@ function App() {
     }
   };
 
-  const handleBackToPlatform = () => {
-    sessionStorage.removeItem('selected_platform');
-    setPlatform(null);
-  };
-
-  // ── CONDITIONAL RENDERS (after ALL hooks) ──
+  // ── ROUTING — all hooks are above, safe to branch here ──
   if (pathname === '/term-of-service') return <TermsOfService />;
   if (pathname === '/privacy-policy') return <PrivacyPolicy />;
 
-  if (!platform) {
+  // Home → Platform Selector
+  if (pathname === '/' || pathname === '') {
     return (
       <PlatformSelector
-        onSelect={(p) => {
-          sessionStorage.setItem('selected_platform', p);
-          setPlatform(p);
-        }}
+        onSelect={(p) => navigate(`/${p}`)}
       />
     );
   }
 
+  // TikTok → Coming Soon placeholder (reuse selector with message)
+  if (pathname === '/tiktok') {
+    return (
+      <PlatformSelector
+        onSelect={(p) => navigate(`/${p}`)}
+        comingSoonMode
+      />
+    );
+  }
+
+  // /threads → Main Dashboard
   const renderContent = () => {
-    const commonProps = { status, settings, setSettings, handleSaveSettings, history, loading, fetchData, accountId: selectedAccountId };
+    const commonProps = {
+      status, settings, setSettings, handleSaveSettings,
+      history, loading, fetchData, accountId: selectedAccountId
+    };
     switch (activeTab) {
       case 'threads':
-        return <ThreadsDashboard {...commonProps} handlePostNow={handlePostNow} selectedImage={selectedImage} setSelectedImage={setSelectedImage} />;
+        return <ThreadsDashboard {...commonProps} handlePostNow={handlePostNow} selectedImage={selectedImage} setSelectedImage={setSelectedImage} statusLoading={statusLoading} />;
       case 'settings':
         return <ConfigPanel {...commonProps} newTime={newTime} setNewTime={setNewTime} accounts={accounts} />;
       default:
@@ -171,7 +192,7 @@ function App() {
         accounts={accounts}
         selectedAccountId={selectedAccountId}
         setSelectedAccountId={setSelectedAccountId}
-        onBackToPlatform={handleBackToPlatform}
+        onBackToPlatform={() => navigate('/')}
       />
       <div className="dashboard-container">
         {fetchError && (
