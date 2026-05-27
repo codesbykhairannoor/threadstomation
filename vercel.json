@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/tiktok/(.*)",
+      "destination": "/api/tiktok.mjs"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.mjs"
     },

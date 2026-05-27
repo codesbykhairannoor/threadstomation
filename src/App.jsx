@@ -5,6 +5,7 @@ import ConfigPanel from './components/ConfigPanel';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import PlatformSelector from './components/PlatformSelector';
+import TikTokApp from './components/TikTokApp';
 import './App.css';
 
 const API_BASE = '';
@@ -149,21 +150,16 @@ function App() {
   if (pathname === '/term-of-service') return <TermsOfService />;
   if (pathname === '/privacy-policy') return <PrivacyPolicy />;
 
+  // TikTok Bot — completely self-contained app
+  if (pathname === '/tiktok') {
+    return <TikTokApp onBack={() => navigate('/')} />;
+  }
+
   // Home → Platform Selector
   if (pathname === '/' || pathname === '') {
     return (
       <PlatformSelector
         onSelect={(p) => navigate(`/${p}`)}
-      />
-    );
-  }
-
-  // TikTok → Coming Soon placeholder (reuse selector with message)
-  if (pathname === '/tiktok') {
-    return (
-      <PlatformSelector
-        onSelect={(p) => navigate(`/${p}`)}
-        comingSoonMode
       />
     );
   }

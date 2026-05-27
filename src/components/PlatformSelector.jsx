@@ -18,11 +18,11 @@ const PlatformSelector = ({ onSelect }) => {
       id: 'tiktok',
       icon: '🎵',
       name: 'TikTok Bot',
-      description: 'Coming soon. Automate TikTok content with AI-powered captions and smart posting strategies.',
-      features: ['AI Captions', 'Video Scheduling', 'Trend Analysis', 'Auto Posting'],
+      description: 'Auto-post AI-generated carousels to TikTok. 3–5 slides per post, smart scheduling, 5x per day.',
+      features: ['AI Carousel Generation', 'Auto Scheduling', '5x Daily Posts', 'Smart Slide Design'],
       gradient: 'linear-gradient(135deg, #f7971e 0%, #ff0050 100%)',
       glowColor: 'rgba(255, 0, 80, 0.2)',
-      available: false,
+      available: true,
     },
   ];
 
