@@ -10,7 +10,7 @@ const TermsOfService = () => {
     <div className="legal-page-container">
       <div className="legal-content">
         <div className="legal-header" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <img src="/favicon.svg" alt="threadstomation App Icon" style={{ width: '64px', height: '64px', marginBottom: '1rem' }} />
+          <img src="/logo.png" alt="threadstomation App Icon" style={{ width: '80px', height: '80px', marginBottom: '1rem', borderRadius: '16px' }} />
           <h1 className="legal-title">threadstomation Terms of Service</h1>
           <p className="legal-last-updated">Last Updated: {new Date().toLocaleDateString()}</p>
         </div>
