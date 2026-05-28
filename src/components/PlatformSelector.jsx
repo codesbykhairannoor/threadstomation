@@ -88,7 +88,14 @@ const PlatformSelector = ({ onSelect }) => {
           ))}
         </div>
 
-        <p className="ps-footer-note">@1persenlebihbaik_ · Powered by Gemini AI</p>
+        <div className="ps-footer">
+          <p className="ps-footer-note">@1persenlebihbaik_ · Powered by Gemini AI</p>
+          <div className="ps-legal-links">
+            <a href="/term-of-service" className="ps-legal-link">Terms of Service</a>
+            <span className="ps-legal-separator">•</span>
+            <a href="/privacy-policy" className="ps-legal-link">Privacy Policy</a>
+          </div>
+        </div>
       </div>
     </div>
   );

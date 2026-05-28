@@ -1016,6 +1016,43 @@ input:checked + .slider:before {
   transition: opacity 0.2s;
 }
 
+/* Footer & Legal Links Styles */
+.ps-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.ps-legal-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8rem;
+  animation: fadeIn 0.6s ease-out 0.5s both;
+}
+
+.ps-legal-link {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.ps-legal-link:hover {
+  opacity: 0.9;
+  color: var(--accent);
+}
+
+.ps-legal-separator {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  opacity: 0.3;
+}
+
 
 
 
