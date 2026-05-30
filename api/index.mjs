@@ -280,6 +280,11 @@ app.get('/api/cron', async (req, res) => {
     const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - currentMinute));
 
     try {
+        // Ping Instagram Cron internally (non-blocking)
+        const protocol = req.get('host').includes('localhost') ? 'http' : 'https';
+        const igCronUrl = `${protocol}://${req.get('host')}/api/instagram/cron?secret=${expectedSecret}`;
+        fetch(igCronUrl).catch(e => console.error('[Cron-Ping-IG] Failed to trigger IG Cron:', e.message));
+
         // Cek Saklar Utama
         const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
         if (globalStatus[0]?.value === 'false') {
