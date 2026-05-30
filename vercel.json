@@ -1,8 +1,5 @@
 {
   "functions": {
-    "api/**/*.js": {
-      "includeFiles": "lib/fonts/**"
-    },
     "api/**/*.mjs": {
       "includeFiles": "lib/fonts/**"
     }
