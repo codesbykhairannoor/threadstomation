@@ -1,13 +1,14 @@
-import express from 'express';
-import cors from 'cors';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+process.env.FONTCONFIG_PATH = join(__dirname, '../lib/fonts');
+
+import express from 'express';
+import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts } from '../lib/instagram.js';
 import { generateInstagramContent } from '../lib/gemini_instagram.js';
 import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(cors());

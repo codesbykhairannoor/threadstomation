@@ -1,8 +1,11 @@
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+process.env.FONTCONFIG_PATH = join(__dirname, '../lib/fonts');
+
 import express from 'express';
 import cors from 'cors';
 import cron from 'node-cron';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
 import sql, { initDb } from '../lib/database.js';
 import { generateThreadsContent, generateShopeeAffiliatePost } from '../lib/gemini.js';
 import { getRandomShopeeProduct } from '../lib/shopee.js';
@@ -12,8 +15,6 @@ import axios from 'axios';
 import fs from 'fs';
 import tiktokApp from './tiktok.mjs';
 import instagramApp from './instagram.mjs';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 app.use(tiktokApp); // Mount TikTok app routes locally
