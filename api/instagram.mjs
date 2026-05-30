@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import sql, { initDb } from '../lib/database.js';
 import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts } from '../lib/instagram.js';
 import { generateInstagramContent } from '../lib/gemini_instagram.js';
-import { generateSlideImages } from '../lib/tiktok_carousel.js';
+import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -127,6 +127,37 @@ app.get('/api/instagram/accounts', async (req, res) => {
   try {
     const accounts = await sql`SELECT id, name, instagram_business_id, is_active, created_at FROM instagram_accounts ORDER BY id ASC`;
     res.json(accounts);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/instagram/accounts', async (req, res) => {
+  const { name, instagram_business_id, access_token } = req.body;
+  if (!instagram_business_id || !access_token) {
+    return res.status(400).json({ error: 'instagram_business_id and access_token are required' });
+  }
+  try {
+    const result = await sql`
+      INSERT INTO instagram_accounts (name, instagram_business_id, access_token, expires_at, is_active)
+      VALUES (${name || 'Manual Instagram Account'}, ${instagram_business_id}, ${access_token}, NULL, 1)
+      ON CONFLICT (instagram_business_id)
+      DO UPDATE SET
+        name = ${name || 'Manual Instagram Account'},
+        access_token = ${access_token},
+        is_active = 1
+      RETURNING *
+    `;
+    res.json({ success: true, account: result[0] });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/instagram/accounts/:id', async (req, res) => {
+  try {
+    await sql`DELETE FROM instagram_accounts WHERE id = ${req.params.id}`;
+    res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -267,7 +298,7 @@ async function runInstagramPost(accountId, customPrompt = null) {
   console.log(`[Instagram-Post] ${slides.length} slides generated`);
 
   // Step 2: Render slides via Sharp/SVG & Upload to Supabase Storage
-  const imageUrls = await generateSlideImages(slides);
+  const imageUrls = await generateInstagramSlideImages(slides);
   console.log(`[Instagram-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
 
   // Step 3: Publish to Instagram

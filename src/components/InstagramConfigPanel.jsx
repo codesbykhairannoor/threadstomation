@@ -7,6 +7,13 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
   const [masterPrompt, setMasterPrompt] = useState('');
   const [savingMaster, setSavingMaster] = useState(false);
 
+  // Manual configuration states
+  const [showManual, setShowManual] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualBusinessId, setManualBusinessId] = useState('');
+  const [manualToken, setManualToken] = useState('');
+  const [manualLoading, setManualLoading] = useState(false);
+
   useEffect(() => {
     // Load Instagram master prompt from settings
     fetch(`${API}/settings`)
@@ -56,6 +63,41 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
     window.location.href = `${API}/auth?accountName=Instagram Account`;
   };
 
+  const handleSaveManualAccount = async (e) => {
+    e.preventDefault();
+    if (!manualBusinessId.trim() || !manualToken.trim()) {
+      alert('⚠️ Instagram Business ID and Access Token are required!');
+      return;
+    }
+    setManualLoading(true);
+    try {
+      const res = await fetch(`${API}/accounts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: manualName || 'Manual Instagram Account',
+          instagram_business_id: manualBusinessId.trim(),
+          access_token: manualToken.trim(),
+        }),
+      });
+      if (res.ok) {
+        alert('✅ Instagram account connected/updated successfully!');
+        setManualName('');
+        setManualBusinessId('');
+        setManualToken('');
+        setShowManual(false);
+        window.location.reload();
+      } else {
+        const errData = await res.json();
+        alert(`❌ Failed to save account: ${errData.error}`);
+      }
+    } catch (err) {
+      alert(`❌ Error connecting account: ${err.message}`);
+    } finally {
+      setManualLoading(false);
+    }
+  };
+
   return (
     <div className="dashboard-content animate-fade-in">
       <header className="content-header">
@@ -69,7 +111,7 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
         <section className="glass-card mb-2">
           <h3>🔗 Connect Instagram Account</h3>
           <p className="section-desc">
-            Link your Instagram Business/Creator Account via Facebook Login OAuth. The bot will automatically publish posts to your feed.
+            Link your Instagram Business/Creator Account via Facebook Login OAuth or paste a custom Graph token manually.
           </p>
           {accounts.length > 0 ? (
             <div>
@@ -80,20 +122,89 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
                       <span style={{ fontWeight: 700 }}>{acc.name}</span>
                       <span className="time" style={{ marginLeft: '0.5rem' }}>ID: {acc.instagram_business_id?.slice(0, 12)}...</span>
                     </div>
-                    <span className={`badge ${acc.is_active ? 'badge-success' : 'badge-error'}`}>
-                      {acc.is_active ? 'Active' : 'Inactive'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className={`badge ${acc.is_active ? 'badge-success' : 'badge-error'}`}>
+                        {acc.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                      <button 
+                        className="btn-icon delete-btn" 
+                        title="Disconnect Account"
+                        onClick={async () => {
+                          if (confirm(`Are you sure you want to disconnect ${acc.name}?`)) {
+                            await fetch(`${API}/accounts/${acc.id}`, { method: 'DELETE' });
+                            window.location.reload();
+                          }
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
               <button className="btn btn-outline w-full" onClick={handleConnect}>
-                ➕ Connect Another Account
+                ➕ Connect via Facebook OAuth
               </button>
             </div>
           ) : (
             <button className="btn btn-glow w-full" onClick={handleConnect}>
               📸 Connect Instagram Account via Facebook Login
             </button>
+          )}
+
+          <div style={{ margin: '1rem 0', textAlign: 'center', opacity: 0.5 }}>— OR —</div>
+
+          <button 
+            type="button" 
+            className="btn btn-outline w-full" 
+            onClick={() => setShowManual(!showManual)}
+            style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+          >
+            {showManual ? '🙈 Hide Manual Setup' : '⚙️ Set Up Manually (Custom Token)'}
+          </button>
+
+          {showManual && (
+            <form onSubmit={handleSaveManualAccount} style={{ marginTop: '1rem' }} className="glass-card-nested animate-fade-in">
+              <div className="input-group" style={{ marginBottom: '0.75rem' }}>
+                <label className="text-xs">Account Name / Label</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., adhlil.co" 
+                  value={manualName} 
+                  onChange={e => setManualName(e.target.value)}
+                  style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', color: 'white' }}
+                />
+              </div>
+              <div className="input-group" style={{ marginBottom: '0.75rem' }}>
+                <label className="text-xs">Instagram Business Account ID *</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., 17841473319799282" 
+                  value={manualBusinessId} 
+                  onChange={e => setManualBusinessId(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', color: 'white' }}
+                />
+              </div>
+              <div className="input-group" style={{ marginBottom: '1rem' }}>
+                <label className="text-xs">Instagram Graph Access Token *</label>
+                <textarea 
+                  rows="3"
+                  placeholder="Paste your long-lived access token here..." 
+                  value={manualToken} 
+                  onChange={e => setManualToken(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', color: 'white', fontFamily: 'monospace', fontSize: '12px' }}
+                />
+              </div>
+              <button 
+                type="submit" 
+                className="btn btn-glow w-full" 
+                disabled={manualLoading}
+              >
+                {manualLoading ? 'Saving...' : '💾 Save Account Settings'}
+              </button>
+            </form>
           )}
         </section>
 
