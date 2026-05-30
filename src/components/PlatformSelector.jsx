@@ -24,6 +24,16 @@ const PlatformSelector = ({ onSelect }) => {
       glowColor: 'rgba(255, 0, 80, 0.2)',
       available: true,
     },
+    {
+      id: 'instagram',
+      icon: '📸',
+      name: 'Instagram Bot',
+      description: 'Auto-post AI-generated carousels to Instagram. Smart scheduling, multi-account, 5x daily posts.',
+      features: ['AI Carousel Generation', 'Auto Scheduling', 'Multi-Account', 'Smart Slide Design'],
+      gradient: 'linear-gradient(135deg, #f953c6 0%, #ffd200 100%)',
+      glowColor: 'rgba(249, 83, 198, 0.25)',
+      available: true,
+    },
   ];
 
   return (

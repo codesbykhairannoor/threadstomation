@@ -17,6 +17,10 @@
       "destination": "/api/tiktok.mjs"
     },
     {
+      "source": "/api/instagram/(.*)",
+      "destination": "/api/instagram.mjs"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.mjs"
     },
