@@ -480,6 +480,21 @@ if (!process.env.VERCEL) {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`[Server] Multi-Account Threads running at port ${PORT}`);
         initDb().catch(e => console.error('[DB] Asynchronous initDb failed:', e.message));
+        
+        // Local Cron: trigger TikTok and Instagram automation flows every 5 minutes
+        cron.schedule('*/5 * * * *', async () => {
+            const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
+            try {
+                await axios.get(`http://localhost:${PORT}/api/tiktok/cron?secret=${expectedSecret}`);
+            } catch (e) {
+                console.error('[Local-Cron] TikTok trigger error:', e.message);
+            }
+            try {
+                await axios.get(`http://localhost:${PORT}/api/instagram/cron?secret=${expectedSecret}`);
+            } catch (e) {
+                console.error('[Local-Cron] Instagram trigger error:', e.message);
+            }
+        });
     });
 } else {
     // Vercel Serverless: DB is lazily initialized on first request via middleware above.
