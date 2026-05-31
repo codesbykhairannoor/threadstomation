@@ -403,10 +403,11 @@ app.get('/api/instagram/cron', async (req, res) => {
 
       if (roll < chance) {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
-        await sql`UPDATE instagram_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
-
         try {
           const result = await runInstagramPost(acc.id, chosen.custom_prompt);
+          // Only mark as ran today if it actually succeeded
+          await sql`UPDATE instagram_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
+          
           executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
           console.log(`[Instagram-Cron] ✅ Posted for ${acc.name}`);
         } catch (postErr) {
