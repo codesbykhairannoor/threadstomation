@@ -151,6 +151,46 @@ app.get('/api/tiktok/history', async (req, res) => {
   }
 });
 
+// ── STATUS ────────────────────────────────────────────────────────────────────
+
+app.get('/api/tiktok/status', async (req, res) => {
+  const accountId = req.query.accountId || 1;
+  try {
+    const [schedules, lastPost, tokenRow, autoRow] = await Promise.all([
+      sql`SELECT * FROM tiktok_schedules WHERE account_id = ${accountId} ORDER BY id ASC`,
+      sql`SELECT * FROM tiktok_history WHERE account_id = ${accountId} ORDER BY id DESC LIMIT 1`,
+      sql`SELECT access_token, expires_at FROM tiktok_accounts WHERE id = ${accountId}`,
+      sql`SELECT value FROM tiktok_settings WHERE key = 'automation_enabled'`,
+    ]);
+
+    const token = tokenRow[0];
+    const isTokenValid = !!(token?.access_token && new Date(token.expires_at) > new Date());
+
+    res.json({
+      schedules,
+      lastPost: lastPost[0] || null,
+      tiktokToken: isTokenValid,
+      automation_enabled: autoRow[0]?.value || 'true',
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── HISTORY ───────────────────────────────────────────────────────────────────
+
+app.get('/api/tiktok/history', async (req, res) => {
+  const accountId = req.query.accountId;
+  try {
+    const history = accountId
+      ? await sql`SELECT * FROM tiktok_history WHERE account_id = ${accountId} ORDER BY created_at DESC LIMIT 15`
+      : await sql`SELECT * FROM tiktok_history ORDER BY created_at DESC LIMIT 15`;
+    res.json(history || []);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── SCHEDULES ─────────────────────────────────────────────────────────────────
 
 app.post('/api/tiktok/schedules', async (req, res) => {
