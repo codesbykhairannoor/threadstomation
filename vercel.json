@@ -6,6 +6,10 @@
   },
   "rewrites": [
     {
+      "source": "/supabase-media/(.*)",
+      "destination": "https://ejqpkdwxkkcwiyfoqsfd.supabase.co/storage/v1/object/public/media/$1"
+    },
+    {
       "source": "/privacy-policy",
       "destination": "/privacy-policy.html"
     },
