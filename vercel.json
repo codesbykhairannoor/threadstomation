@@ -7,15 +7,15 @@
   "rewrites": [
     {
       "source": "/privacy-policy",
-      "destination": "/privacy-policy/index.html"
+      "destination": "/privacy-policy.html"
     },
     {
       "source": "/terms-of-service",
-      "destination": "/terms-of-service/index.html"
+      "destination": "/term-of-service.html"
     },
     {
       "source": "/term-of-service",
-      "destination": "/term-of-service/index.html"
+      "destination": "/term-of-service.html"
     },
     {
       "source": "/api/tiktok/(.*)",
