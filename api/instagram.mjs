@@ -7,7 +7,7 @@ import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts } from '../lib/instagram.js';
-import { generateInstagramContent } from '../lib/gemini_instagram.js';
+import { generateInstagramContent } from '../lib/deepseek_instagram.js';
 import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
 
 const app = express();
