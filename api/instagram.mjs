@@ -323,8 +323,9 @@ async function runInstagramPost(accountId, customPrompt = null) {
   const { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt, visualTheme);
   console.log(`[Instagram-Post] ${slides.length} slides generated`);
 
-  // Step 2: Render slides via Sharp/SVG & Upload to Supabase Storage
-  const imageUrls = await generateInstagramSlideImages(slides, colorPalette, preferredLayout);
+  // Step 2: Render slides via Satori/ImgLy & Upload to Supabase Storage
+  const accountName = account[0].name || "@instagram";
+  const imageUrls = await generateInstagramSlideImages(slides, colorPalette, accountName);
   console.log(`[Instagram-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
 
   // Step 3: Publish to Instagram
