@@ -289,17 +289,19 @@ async function runInstagramPost(accountId, customPrompt = null) {
   const account = await sql`SELECT * FROM instagram_accounts WHERE id = ${accountId}`;
   if (!account.length) throw new Error(`Instagram account ${accountId} not found`);
 
-  const masterPromptRow = await sql`SELECT value FROM instagram_settings WHERE key = 'instagram_master_prompt'`;
-  const masterPrompt = masterPromptRow[0]?.value || '';
+  const masterPrompt = account[0].master_prompt || '';
+  const visualTheme = account[0].visual_theme || '';
+  const colorPalette = account[0].color_palette || null;
+  const preferredLayout = account[0].preferred_layout !== null ? account[0].preferred_layout : -1;
 
   console.log(`[Instagram-Post] Generating content for account ${accountId}...`);
 
   // Step 1: Generate slide contents + caption
-  const { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt);
+  const { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt, visualTheme);
   console.log(`[Instagram-Post] ${slides.length} slides generated`);
 
   // Step 2: Render slides via Sharp/SVG & Upload to Supabase Storage
-  const imageUrls = await generateInstagramSlideImages(slides);
+  const imageUrls = await generateInstagramSlideImages(slides, colorPalette, preferredLayout);
   console.log(`[Instagram-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
 
   // Step 3: Publish to Instagram
