@@ -267,12 +267,13 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
           </div>
 
           <div className="input-group" style={{ marginBottom: '1rem' }}>
-            <label className="text-xs">Preferred Layout (0, 1, or 2)</label>
+            <label className="text-xs">Preferred Layout (-1, 0, 1, or 2)</label>
             <select 
               value={preferredLayout} 
               onChange={e => setPreferredLayout(e.target.value)}
               style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', color: 'white' }}
             >
+              <option value="-1">-1 - Randomize Everything</option>
               <option value="0">0 - Default Central Bold</option>
               <option value="1">1 - Left Aligned Editorial</option>
               <option value="2">2 - Startup Educational Bento</option>
