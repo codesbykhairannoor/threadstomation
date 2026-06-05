@@ -126,7 +126,12 @@ app.get('/api/instagram/callback', async (req, res) => {
 
 app.get('/api/instagram/accounts', async (req, res) => {
   try {
-    const accounts = await sql`SELECT id, name, instagram_business_id, is_active, created_at FROM instagram_accounts ORDER BY id ASC`;
+    const accounts = await sql`
+      SELECT id, name, instagram_business_id, is_active, created_at, 
+             master_prompt, visual_theme, color_palette, preferred_layout 
+      FROM instagram_accounts 
+      ORDER BY id ASC
+    `;
     res.json(accounts);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -158,6 +163,24 @@ app.post('/api/instagram/accounts', async (req, res) => {
 app.delete('/api/instagram/accounts/:id', async (req, res) => {
   try {
     await sql`DELETE FROM instagram_accounts WHERE id = ${req.params.id}`;
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.put('/api/instagram/accounts/:id/config', async (req, res) => {
+  const { id } = req.params;
+  const { master_prompt, visual_theme, color_palette, preferred_layout } = req.body;
+  try {
+    await sql`
+      UPDATE instagram_accounts 
+      SET master_prompt = ${master_prompt},
+          visual_theme = ${visual_theme},
+          color_palette = ${color_palette},
+          preferred_layout = ${preferred_layout}
+      WHERE id = ${id}
+    `;
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });

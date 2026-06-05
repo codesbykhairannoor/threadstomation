@@ -54,7 +54,9 @@ const InstagramSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId
 
       <div className="sidebar-footer">
         <p>Instagram Bot</p>
-        <p style={{ marginTop: '4px' }}>@1persenlebihbaik_</p>
+        <p style={{ marginTop: '4px', fontSize: '13px', fontWeight: 'bold' }}>
+          {accounts.find(a => a.id === selectedAccountId)?.name || '@1persenlebihbaik_'}
+        </p>
       </div>
     </div>
   );

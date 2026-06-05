@@ -4,8 +4,13 @@ const API = '/api/instagram';
 
 const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts }) => {
   const [newPrompt, setNewPrompt] = useState('');
+  
+  // Tenant Configuration States
   const [masterPrompt, setMasterPrompt] = useState('');
-  const [savingMaster, setSavingMaster] = useState(false);
+  const [visualTheme, setVisualTheme] = useState('');
+  const [colorPalette, setColorPalette] = useState('');
+  const [preferredLayout, setPreferredLayout] = useState(0);
+  const [savingConfig, setSavingConfig] = useState(false);
 
   // Manual configuration states
   const [showManual, setShowManual] = useState(false);
@@ -14,13 +19,16 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
   const [manualToken, setManualToken] = useState('');
   const [manualLoading, setManualLoading] = useState(false);
 
+  // Load configuration from the selected account
   useEffect(() => {
-    // Load Instagram master prompt from settings
-    fetch(`${API}/settings`)
-      .then(r => r.json())
-      .then(data => setMasterPrompt(data.instagram_master_prompt || ''))
-      .catch(() => {});
-  }, []);
+    const acc = accounts.find(a => a.id === accountId);
+    if (acc) {
+      setMasterPrompt(acc.master_prompt || '');
+      setVisualTheme(acc.visual_theme || '');
+      setColorPalette(acc.color_palette || '');
+      setPreferredLayout(acc.preferred_layout || 0);
+    }
+  }, [accountId, accounts]);
 
   const addSchedule = async () => {
     await fetch(`${API}/schedules`, {
@@ -42,19 +50,30 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
     fetchData();
   };
 
-  const saveMasterPrompt = async () => {
-    setSavingMaster(true);
+  const saveAccountConfig = async () => {
+    setSavingConfig(true);
     try {
-      await fetch(`${API}/settings`, {
-        method: 'POST',
+      const res = await fetch(`${API}/accounts/${accountId}/config`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instagram_master_prompt: masterPrompt })
+        body: JSON.stringify({ 
+          master_prompt: masterPrompt,
+          visual_theme: visualTheme,
+          color_palette: colorPalette,
+          preferred_layout: parseInt(preferredLayout)
+        })
       });
-      alert('✅ Instagram personality saved!');
+      if (res.ok) {
+        alert('✅ Account configuration saved!');
+        window.location.reload(); // Reload to refresh accounts state
+      } else {
+        const err = await res.json();
+        alert(`❌ Failed to save: ${err.error}`);
+      }
     } catch (e) {
       alert('❌ Failed to save.');
     } finally {
-      setSavingMaster(false);
+      setSavingConfig(false);
     }
   };
 
@@ -208,22 +227,60 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
           )}
         </section>
 
-        {/* Master Prompt */}
+        {/* Account Persona & UI Config */}
         <section className="glass-card mb-2">
-          <h3>🤖 AI Personality (Global)</h3>
+          <h3>🤖 AI Persona & Visuals (This Account)</h3>
           <p className="section-desc">
-            Define the content style and caption persona for all Instagram posts.
+            Define the unique personality, visual style, and layout specifically for this account.
           </p>
-          <div className="input-group">
+          
+          <div className="input-group" style={{ marginBottom: '1rem' }}>
+            <label className="text-xs">Master Prompt (Personality)</label>
             <textarea
-              rows="5"
-              placeholder="Example: You are a travel influencer. Your posts showcase beautiful scenery and provide brief historical facts about the location. Tone: enthusiastic, adventurous, and descriptive."
+              rows="4"
+              placeholder="Example: You are a travel influencer. Tone: enthusiastic, adventurous..."
               value={masterPrompt}
               onChange={e => setMasterPrompt(e.target.value)}
             />
           </div>
-          <button className="btn btn-glow w-full" onClick={saveMasterPrompt} disabled={savingMaster}>
-            {savingMaster ? 'Saving...' : '💾 Save AI Personality'}
+
+          <div className="input-group" style={{ marginBottom: '1rem' }}>
+            <label className="text-xs">Visual Theme (Background Image Prompt)</label>
+            <textarea
+              rows="2"
+              placeholder="Example: Cinematic landscape, 4k, hyper-detailed, dramatic lighting..."
+              value={visualTheme}
+              onChange={e => setVisualTheme(e.target.value)}
+            />
+          </div>
+
+          <div className="input-group" style={{ marginBottom: '1rem' }}>
+            <label className="text-xs">Color Palette (JSON Array)</label>
+            <textarea
+              rows="2"
+              placeholder='[{"bg":"#0f172a","text":"white","accent":"#3b82f6"}]'
+              value={colorPalette}
+              onChange={e => setColorPalette(e.target.value)}
+              style={{ fontFamily: 'monospace' }}
+            />
+            <small className="opacity-50">Leave empty to use default randomized palettes.</small>
+          </div>
+
+          <div className="input-group" style={{ marginBottom: '1rem' }}>
+            <label className="text-xs">Preferred Layout (0 or 1)</label>
+            <select 
+              value={preferredLayout} 
+              onChange={e => setPreferredLayout(e.target.value)}
+              style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', color: 'white' }}
+            >
+              <option value="0">0 - Default Central Bold</option>
+              <option value="1">1 - Left Aligned Editorial</option>
+            </select>
+            <small className="opacity-50">Choose how the text is arranged on the slides.</small>
+          </div>
+
+          <button className="btn btn-glow w-full" onClick={saveAccountConfig} disabled={savingConfig}>
+            {savingConfig ? 'Saving...' : '💾 Save Account Configurations'}
           </button>
         </section>
 
