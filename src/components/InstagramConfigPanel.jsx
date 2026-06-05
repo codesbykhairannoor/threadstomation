@@ -267,7 +267,7 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
           </div>
 
           <div className="input-group" style={{ marginBottom: '1rem' }}>
-            <label className="text-xs">Preferred Layout (0 or 1)</label>
+            <label className="text-xs">Preferred Layout (0, 1, or 2)</label>
             <select 
               value={preferredLayout} 
               onChange={e => setPreferredLayout(e.target.value)}
@@ -275,6 +275,7 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
             >
               <option value="0">0 - Default Central Bold</option>
               <option value="1">1 - Left Aligned Editorial</option>
+              <option value="2">2 - Startup Educational Bento</option>
             </select>
             <small className="opacity-50">Choose how the text is arranged on the slides.</small>
           </div>
