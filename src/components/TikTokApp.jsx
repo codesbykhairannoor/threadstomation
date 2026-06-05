@@ -55,9 +55,9 @@ const TikTokSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId, s
       <div className="sidebar-footer">
         <p>TikTok Carousel Bot</p>
         <p style={{ marginTop: '4px' }}>@1persenlebihbaik_</p>
-        <div style={{ marginTop: '10px', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <a href="/term-of-service" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>Terms of Service</a>
-          <a href="/privacy-policy" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>Privacy Policy</a>
+        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '11px' }}>
+          <a href="/term-of-service" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }} target="_blank">Terms of Service</a>
+          <a href="/privacy-policy" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }} target="_blank">Privacy Policy</a>
         </div>
       </div>
     </div>

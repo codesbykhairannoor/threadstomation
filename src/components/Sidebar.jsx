@@ -46,11 +46,12 @@ const Sidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId, setSele
         ))}
       </nav>
       <div className="sidebar-footer">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-          <a href="/term-of-service" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', textDecoration: 'none' }}>Terms of Service</a>
-          <a href="/privacy-policy" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', textDecoration: 'none' }}>Privacy Policy</a>
+        <p>Automation Dashboard</p>
+        <p style={{ marginTop: '4px' }}>@1persenlebihbaik_</p>
+        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '11px' }}>
+          <a href="/term-of-service" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }} target="_blank">Terms of Service</a>
+          <a href="/privacy-policy" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }} target="_blank">Privacy Policy</a>
         </div>
-        <p>@1persenlebihbaik_</p>
       </div>
     </div>
   );
