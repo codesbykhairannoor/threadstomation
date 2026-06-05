@@ -6,7 +6,7 @@ process.env.FONTCONFIG_PATH = join(__dirname, '../lib/fonts');
 import express from 'express';
 import cors from 'cors';
 import cron from 'node-cron';
-import sql, { initDb } from '../lib/database.js';
+import sql, { initDb, cleanupOldHistory } from '../lib/database.js';
 import { generateThreadsContent, generateShopeeAffiliatePost } from '../lib/gemini.js';
 import { getRandomShopeeProduct } from '../lib/shopee.js';
 import { postToPlatforms } from '../lib/threads_service.js';
@@ -350,9 +350,12 @@ app.get('/api/cron', async (req, res) => {
             }
         }
 
+        // --- CLEANUP ---
+        await cleanupOldHistory();
+
         res.json({ success: true, executed });
     } catch (e) {
-        console.error('[Vercel-Cron] Error:', e.message);
+        console.error('[Manual-Cron] Error:', e.message);
         res.status(500).json({ error: e.message });
     }
 });
@@ -471,6 +474,11 @@ cron.schedule('* * * * *', async () => {
                 }, jitterMs);
             }
         }
+
+        // --- CLEANUP ---
+        // Bersihkan DB otomatis yang umurnya > 2 hari
+        await cleanupOldHistory();
+
     } catch (e) {
         console.error('[Chaos-Scheduler] Error:', e.message);
     }
