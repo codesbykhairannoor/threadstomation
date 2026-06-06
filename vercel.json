@@ -1,8 +1,7 @@
 {
   "functions": {
     "api/**/*.mjs": {
-      "includeFiles": "lib/fonts/**",
-      "maxDuration": 60
+      "includeFiles": "lib/fonts/**"
     }
   },
   "rewrites": [
