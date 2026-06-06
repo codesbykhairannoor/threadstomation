@@ -11,6 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@alicloud/imageseg20191230": "^4.0.1",
+    "@alicloud/openapi-client": "^0.4.15",
     "@emnapi/core": "^1.10.0",
     "@emnapi/runtime": "^1.10.0",
     "@google/generative-ai": "^0.24.1",
