@@ -340,11 +340,11 @@ async function runInstagramPost(accountId, customPrompt = null) {
     INSERT INTO instagram_history (account_id, caption, slide_count, image_urls, creation_id, status)
     VALUES (
       ${accountId},
-      ${caption},
-      ${slides.length},
-      ${JSON.stringify(imageUrls)},
-      ${publishId},
-      ${status}
+      ${caption || ''},
+      ${slides ? slides.length : 0},
+      ${JSON.stringify(imageUrls) || '[]'},
+      ${publishId || ''},
+      ${status || 'success'}
     )
   `;
 
@@ -364,7 +364,7 @@ app.post('/api/instagram/post-now', async (req, res) => {
     try {
       await sql`
         INSERT INTO instagram_history (account_id, caption, status, error_message)
-        VALUES (${accountId}, ${customPrompt || 'Manual post'}, 'failed', ${e.message})
+        VALUES (${accountId}, ${customPrompt || 'Manual post'}, 'failed', ${e.message || String(e)})
       `;
     } catch (_) {}
     res.status(500).json({ success: false, error: e.message });
@@ -441,7 +441,7 @@ app.get('/api/instagram/cron', async (req, res) => {
           console.error(`[Instagram-Cron] Post failed for ${acc.name}:`, postErr.message);
           await sql`
             INSERT INTO instagram_history (account_id, caption, status, error_message)
-            VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message})
+            VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
           `;
         }
       }
