@@ -319,12 +319,13 @@ async function runInstagramPost(accountId, customPrompt = null) {
 
   console.log(`[Instagram-Post] Generating content for account ${accountId}...`);
 
+  const accountName = account[0].name || "@instagram";
+
   // Step 1: Generate slide contents + caption
-  const { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt, visualTheme);
+  const { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt, visualTheme, accountName);
   console.log(`[Instagram-Post] ${slides.length} slides generated`);
 
   // Step 2: Render slides via Satori/ImgLy & Upload to Supabase Storage
-  const accountName = account[0].name || "@instagram";
   const imageUrls = await generateInstagramSlideImages(slides, colorPalette, accountName);
   console.log(`[Instagram-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
 
