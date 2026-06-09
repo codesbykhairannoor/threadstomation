@@ -22,12 +22,24 @@
       "destination": "/term-of-service.html"
     },
     {
+      "source": "/api/tiktok",
+      "destination": "/api/tiktok.mjs"
+    },
+    {
       "source": "/api/tiktok/(.*)",
       "destination": "/api/tiktok.mjs"
     },
     {
+      "source": "/api/instagram",
+      "destination": "/api/instagram.mjs"
+    },
+    {
       "source": "/api/instagram/(.*)",
       "destination": "/api/instagram.mjs"
+    },
+    {
+      "source": "/api/facebook",
+      "destination": "/api/facebook.mjs"
     },
     {
       "source": "/api/facebook/(.*)",
