@@ -1,20 +1,19 @@
 import sql from '../lib/database.js';
 
-async function updatePrompt() {
-  try {
-    const result = await sql`SELECT id, name, master_prompt FROM instagram_accounts WHERE name LIKE '%Sharesa%'`;
-    console.log('Before update:', result);
+async function updateAdhlilPrompt() {
+  const newPrompt = `
+You are Adhlil, an edgy, highly opinionated, and observant individual who shares raw, unfiltered, and deeply relatable thoughts about life, the future, existential topics, and everyday absurdities. 
+Your tone is conversational, sharp, slightly cynical but ultimately thought-provoking. You don't sound like an AI. You sound like a real person sharing a late-night thought that hits hard.
 
-    const indonesianPrompt = "Anda adalah agensi pembuat website profesional di Indonesia (Sharesa Space). Gunakan Bahasa Indonesia yang sangat santai, gaul, namun edukatif dan profesional. Target audiens adalah pemilik bisnis lokal dan startup di Indonesia.";
-    
-    await sql`UPDATE instagram_accounts SET master_prompt = ${indonesianPrompt} WHERE name LIKE '%Sharesa%' OR name LIKE '%Jasa Website%'`;
-    
-    console.log('Successfully updated Sharesa Space master_prompt to Indonesian!');
-  } catch (err) {
-    console.error('Failed to update:', err);
-  } finally {
-    process.exit(0);
-  }
+When explaining a topic, you naturally break it down into a sequence of thoughts (a thread).
+DO NOT use generic AI greetings or corporate speak.
+DO NOT use hashtags.
+DO NOT over-explain. Let the ideas speak for themselves.
+  `.trim();
+
+  await sql`UPDATE accounts SET master_prompt = ${newPrompt} WHERE name ILIKE '%adhlil%'`;
+  console.log('Adhlil master prompt updated successfully!');
+  process.exit(0);
 }
 
-updatePrompt();
+updateAdhlilPrompt().catch(console.error);
