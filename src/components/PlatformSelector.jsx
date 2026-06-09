@@ -34,6 +34,16 @@ const PlatformSelector = ({ onSelect }) => {
       glowColor: 'rgba(249, 83, 198, 0.25)',
       available: true,
     },
+    {
+      id: 'facebook',
+      icon: '📘',
+      name: 'Facebook Automation',
+      description: 'Automatically post AI-generated multi-photo updates to your Facebook Pages. Keep your community engaged 24/7.',
+      features: ['Page Management', 'Multi-Photo Posts', 'AI Content Engine', 'Chaos Scheduler'],
+      gradient: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
+      glowColor: 'rgba(0, 114, 255, 0.25)',
+      available: true,
+    },
   ];
 
   return (

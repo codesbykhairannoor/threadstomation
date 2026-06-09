@@ -15,10 +15,12 @@ import axios from 'axios';
 import fs from 'fs';
 import tiktokApp from './tiktok.mjs';
 import instagramApp from './instagram.mjs';
+import facebookApp from './facebook.mjs';
 
 const app = express();
 app.use(tiktokApp); // Mount TikTok app routes locally
 app.use(instagramApp); // Mount Instagram app routes locally
+app.use(facebookApp); // Mount Facebook app routes locally
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -284,10 +286,11 @@ app.get('/api/cron', async (req, res) => {
         const baseUrl = `${protocol}://${req.get('host')}`;
         
         // Ping other crons concurrently and await them to ensure they finish in Vercel
-        console.log('[Cron-Master] Triggering TikTok and Instagram crons...');
+        console.log('[Cron-Master] Triggering TikTok, Instagram and Facebook crons...');
         await Promise.all([
             fetch(`${baseUrl}/api/tiktok/cron?secret=${expectedSecret}`).catch(e => console.error('[Cron-Ping-TikTok] Failed:', e.message)),
-            fetch(`${baseUrl}/api/instagram/cron?secret=${expectedSecret}`).catch(e => console.error('[Cron-Ping-IG] Failed:', e.message))
+            fetch(`${baseUrl}/api/instagram/cron?secret=${expectedSecret}`).catch(e => console.error('[Cron-Ping-IG] Failed:', e.message)),
+            fetch(`${baseUrl}/api/facebook/cron?secret=${expectedSecret}`).catch(e => console.error('[Cron-Ping-FB] Failed:', e.message))
         ]);
 
         // Cek Saklar Utama
@@ -518,6 +521,11 @@ if (!process.env.VERCEL) {
                 await axios.get(`http://localhost:${PORT}/api/instagram/cron?secret=${expectedSecret}`);
             } catch (e) {
                 console.error('[Local-Cron] Instagram trigger error:', e.message);
+            }
+            try {
+                await axios.get(`http://localhost:${PORT}/api/facebook/cron?secret=${expectedSecret}`);
+            } catch (e) {
+                console.error('[Local-Cron] Facebook trigger error:', e.message);
             }
         });
     });

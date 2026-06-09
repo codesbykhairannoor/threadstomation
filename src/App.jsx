@@ -7,6 +7,7 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import PlatformSelector from './components/PlatformSelector';
 import TikTokApp from './components/TikTokApp';
 import InstagramApp from './components/InstagramApp';
+import FacebookApp from './components/FacebookApp';
 import './App.css';
 
 const API_BASE = '';
@@ -159,6 +160,9 @@ function App() {
   // Instagram Bot — completely self-contained app
   if (pathname === '/instagram') {
     return <InstagramApp onBack={() => navigate('/')} />;
+  }
+  if (pathname === '/facebook') {
+    return <FacebookApp onBack={() => navigate('/')} />;
   }
 
   // Home → Platform Selector
