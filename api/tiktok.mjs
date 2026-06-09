@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 const pkceStore = new Map();
 
 // ── DB INIT MIDDLEWARE ────────────────────────────────────────────────────────
-app.use('/api/tiktok', async (req, res, next) => {
+app.use(async (req, res, next) => {
   try { await initDb(); next(); } catch (e) { next(); }
 });
 
@@ -388,14 +388,20 @@ app.get('/api/tiktok/cron', async (req, res) => {
     }
   }
 
+  // Robust WITA (UTC+8) Time Calculation
   const now = new Date();
-  const witaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Makassar' }));
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const witaTime = new Date(utcTime + (3600000 * 8)); 
+  
   const currentHour = witaTime.getHours();
-  const currentMinute = witaTime.getMinutes();
   const todayStr = witaTime.toISOString().split('T')[0];
-  const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - currentMinute));
+  const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));
 
   try {
+    const host = req.headers.host || 'threadstomation.vercel.app';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${host}`;
+    
     // Check global automation switch
     const globalStatus = await sql`SELECT value FROM tiktok_settings WHERE key = 'automation_enabled'`;
     if (globalStatus[0]?.value === 'false') {
@@ -461,7 +467,7 @@ app.get('/api/tiktok/cron', async (req, res) => {
     res.json({ success: true, executed });
   } catch (e) {
     console.error('[TikTok-Cron] Error:', e.message);
-    res.status(500).json({ error: e.message });
+    res.status(200).json({ success: false, error: e.message });
   }
 });
 

@@ -15,6 +15,11 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// ── DB INIT MIDDLEWARE ────────────────────────────────────────────────────────
+app.use(async (req, res, next) => {
+  try { await initDb(); next(); } catch (e) { next(); }
+});
+
 // In-memory state store for OAuth
 const stateStore = new Map();
 
@@ -384,12 +389,14 @@ app.get('/api/instagram/cron', async (req, res) => {
     }
   }
 
+  // Robust WITA (UTC+8) Time Calculation
   const now = new Date();
-  const witaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Makassar' }));
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const witaTime = new Date(utcTime + (3600000 * 8)); 
+  
   const currentHour = witaTime.getHours();
-  const currentMinute = witaTime.getMinutes();
   const todayStr = witaTime.toISOString().split('T')[0];
-  const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - currentMinute));
+  const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));
 
   try {
     const globalStatus = await sql`SELECT value FROM instagram_settings WHERE key = 'instagram_automation_enabled'`;
@@ -450,7 +457,7 @@ app.get('/api/instagram/cron', async (req, res) => {
     res.json({ success: true, executed });
   } catch (e) {
     console.error('[Instagram-Cron] Error:', e.message);
-    res.status(500).json({ error: e.message });
+    res.status(200).json({ success: false, error: e.message });
   }
 });
 
