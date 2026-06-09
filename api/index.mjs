@@ -193,7 +193,7 @@ app.get('/api/cron', async (req, res) => {
 
     try {
         // Stagger execution by a few ms to prevent "thundering herd" on the DB pool
-        await new Promise(r => setTimeout(r, Math.random() * 500)); 
+        await new Promise(r => setTimeout(r, Math.random() * 300)); 
 
         const host = req.headers.host || 'threadstomation.vercel.app';
         const protocol = host.includes('localhost') ? 'http' : 'https';
@@ -201,24 +201,32 @@ app.get('/api/cron', async (req, res) => {
         
         // PING OTHERS: Only on master call
         if (isMasterPing) {
-            console.log(`[Cron-Master] Triggering TikTok, Instagram and Facebook crons via ${baseUrl}...`);
-            const pingOptions = { timeout: 10000 }; 
-            // Fire and forget, but catch errors to prevent crashing
-            axios.get(`${baseUrl}/api/tiktok/cron?secret=${expectedSecret}`, pingOptions).catch(e => console.error('[Cron-Ping-TikTok] Failed:', e.message));
-            axios.get(`${baseUrl}/api/instagram/cron?secret=${expectedSecret}`, pingOptions).catch(e => console.error('[Cron-Ping-IG] Failed:', e.message));
-            axios.get(`${baseUrl}/api/facebook/cron?secret=${expectedSecret}`, pingOptions).catch(e => console.error('[Cron-Ping-FB] Failed:', e.message));
+            console.log(`[Cron-Master] Triggering sub-crons via ${baseUrl}...`);
+            const pingOptions = { timeout: 8000 }; 
+            // FIRE AND FORGET - Absolutely non-blocking
+            setTimeout(() => {
+                axios.get(`${baseUrl}/api/tiktok/cron?secret=${expectedSecret}`, pingOptions).catch(() => {});
+                axios.get(`${baseUrl}/api/instagram/cron?secret=${expectedSecret}`, pingOptions).catch(() => {});
+                axios.get(`${baseUrl}/api/facebook/cron?secret=${expectedSecret}`, pingOptions).catch(() => {});
+            }, 10);
         }
 
         // SAKLAR UTAMA
-        const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
+        const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{value: 'true'}]);
         if (globalStatus[0]?.value === 'false') {
-            return res.json({ success: true, status: 'Automation disabled globally.' });
+            return res.status(200).json({ success: true, status: 'Automation disabled globally.' });
         }
 
         // MAIN LOOP
-        let accounts = targetAccountId 
-            ? await sql`SELECT id, name FROM accounts WHERE id = ${targetAccountId} AND is_active = 1`
-            : await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
+        let accounts = [];
+        try {
+            accounts = targetAccountId 
+                ? await sql`SELECT id, name FROM accounts WHERE id = ${targetAccountId} AND is_active = 1`
+                : await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
+        } catch (dbErr) {
+            console.error('[Cron] DB Account Fetch Failed:', dbErr.message);
+            return res.status(200).json({ success: false, error: 'DB Fetch Failed' });
+        }
 
         const executed = [];
         for (const acc of accounts) {
@@ -242,7 +250,10 @@ app.get('/api/cron', async (req, res) => {
                     const scheduleToRun = pendingSchedules[Math.floor(Math.random() * pendingSchedules.length)];
                     await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${scheduleToRun.id}`;
                     console.log(`[Cron] 🎲 CHAOS HIT! Running ID: ${scheduleToRun.id} for ${acc.name}`);
-                    await runScheduledTask(scheduleToRun);
+                    
+                    // Run task but don't let it crash the whole loop
+                    runScheduledTask(scheduleToRun).catch(e => console.error(`[Task-Async] Error for ${acc.name}:`, e.message));
+                    
                     executed.push({ account: acc.name, scheduleId: scheduleToRun.id });
                 }
             } catch (accErr) {
@@ -250,12 +261,13 @@ app.get('/api/cron', async (req, res) => {
             }
         }
 
-        await cleanupOldHistory();
-        res.json({ success: true, executed });
+        // Cleanup in background
+        cleanupOldHistory().catch(() => {});
+        
+        return res.status(200).json({ success: true, executed, time: witaTime.toISOString() });
     } catch (e) {
-        console.error('[Cron] Critical Error:', e.message);
-        // Return 200 but success: false so cron-job.org doesn't disable us immediately
-        res.status(200).json({ success: false, error: e.message });
+        console.error('[Cron] Final Catch:', e.message);
+        return res.status(200).json({ success: false, error: e.message });
     }
 });
 

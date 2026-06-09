@@ -14,7 +14,7 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
           <button
             className={`btn btn-xs ${status.automation_enabled === 'false' ? 'btn-danger' : 'btn-glow'}`}
             onClick={async () => {
-              await fetch(`${API}/settings/toggle-automation`, { method: 'POST' });
+              await fetch(`${API}/settings/toggle-automation`, { method: 'POST', body: JSON.stringify({ accountId }), headers: {'Content-Type': 'application/json'} });
               window.location.reload();
             }}
           >
@@ -26,7 +26,10 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
       <div className="main-grid">
         <div className="left-column">
           <section className="glass-card mt-2">
-            <h3>Quick Actions</h3>
+            <div className="flex-between mb-1">
+              <h3>Quick Actions</h3>
+              <span className="badge badge-neutral">FB Acc: #{accountId}</span>
+            </div>
             <p className="section-desc">Manually trigger an AI Facebook post right now.</p>
             <div className="flex-col gap-1">
               <button
@@ -47,15 +50,17 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
 
           {status.lastPost && (
             <section className="glass-card mt-2">
-              <h3>Last Post</h3>
+              <h3>Last Activity</h3>
               <div className="last-post-info">
-                <span className={`badge ${status.lastPost.status === 'success' ? 'badge-success' : 'badge-error'}`}>
-                  {status.lastPost.status}
-                </span>
+                <div className="flex-between">
+                   <span className={`badge ${status.lastPost.status === 'success' ? 'badge-success' : 'badge-error'}`}>
+                    {status.lastPost.status}
+                  </span>
+                  <span className="time">{new Date(status.lastPost.created_at).toLocaleString()}</span>
+                </div>
                 <p className="content-pill mt-1">{status.lastPost.caption}</p>
-                <p className="time mt-1">{new Date(status.lastPost.created_at).toLocaleString()}</p>
                 {status.lastPost.slide_count && (
-                  <p className="text-sm opacity-70">🖼️ {status.lastPost.slide_count} photos</p>
+                  <p className="text-sm opacity-70 mt-1">🖼️ {status.lastPost.slide_count} photos published</p>
                 )}
               </div>
             </section>
@@ -64,15 +69,18 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
 
         <div className="right-column">
           <section className="glass-card history-card">
-            <h3>Post History</h3>
-            <div className="history-list">
+            <div className="flex-between mb-1">
+               <h3>Post History</h3>
+               <button className="btn-text text-sm" onClick={() => window.location.reload()}>Refresh</button>
+            </div>
+            <div className="history-list custom-scroll">
               {history.length > 0 ? history.map(item => (
                 <div key={item.id} className="history-item">
                   <div className="history-meta">
                     <span className="time">{new Date(item.created_at).toLocaleString()}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {item.slide_count && (
-                        <span className="badge badge-neutral">Photos ({item.slide_count})</span>
+                        <span className="badge badge-neutral">Gallery ({item.slide_count})</span>
                       )}
                       <span className={`status-dot ${item.status === 'success' ? 'success' : item.status === 'pending' ? '' : 'failed'}`} />
                     </div>
@@ -83,7 +91,8 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
                   )}
                   {item.image_urls && (() => {
                     try {
-                      const urls = item.image_urls.split(',');
+                      // Support both JSON array and comma-separated string for backward compatibility
+                      const urls = item.image_urls.startsWith('[') ? JSON.parse(item.image_urls) : item.image_urls.split(',');
                       return (
                         <div className="tiktok-slide-preview">
                           {urls.slice(0, 3).map((url, i) => (
@@ -98,7 +107,10 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
                   })()}
                 </div>
               )) : (
-                <div className="empty-state">No history found for this account.</div>
+                <div className="empty-state">
+                   <p>No history found for this account.</p>
+                   <p className="text-sm opacity-50">Posts will appear here once the automation triggers.</p>
+                </div>
               )}
             </div>
           </section>
