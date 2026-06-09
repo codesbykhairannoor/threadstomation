@@ -55,7 +55,7 @@ const FacebookSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId,
       <div className="sidebar-footer">
         <p className="opacity-50">Facebook Automation</p>
         <p style={{ marginTop: '4px', fontSize: '13px', fontWeight: 'bold', color: '#00c6ff' }}>
-          {accounts.find(a => a.id === selectedAccountId)?.name || 'Select Page'}
+          {accounts.find(a => a.id === selectedAccountId)?.name || 'No Page Connected'}
         </p>
       </div>
     </div>
@@ -79,6 +79,7 @@ const FacebookApp = ({ onBack }) => {
     if (params.get('auth_success')) {
       setMessage('✅ Facebook Page connected successfully!');
       window.history.replaceState({}, '', '/facebook');
+      fetchAccounts();
       setTimeout(() => setMessage(''), 4000);
     }
     if (params.get('auth_error')) {
@@ -96,6 +97,8 @@ const FacebookApp = ({ onBack }) => {
         if (data.length > 0 && !selectedAccountId) {
           setSelectedAccountId(data[0].id);
         }
+      } else {
+        setFetchError(`Facebook API error: ${res.status}`);
       }
     } catch (e) {
       setFetchError('Facebook API connection failed: ' + e.message);
@@ -103,13 +106,23 @@ const FacebookApp = ({ onBack }) => {
   };
 
   const fetchData = async () => {
+    // We fetch status even if no accountId is selected to check if API is alive
     setStatusLoading(true);
     try {
+      const idParam = selectedAccountId || 'null';
       const [sRes, hRes] = await Promise.all([
-        fetch(`${API}/status?accountId=${selectedAccountId || ''}`),
-        fetch(`${API}/history?accountId=${selectedAccountId || ''}`),
+        fetch(`${API}/status?accountId=${idParam}`),
+        fetch(`${API}/history?accountId=${idParam}`),
       ]);
-      if (sRes.ok) { setStatus(await sRes.json()); setFetchError(''); }
+      
+      if (sRes.ok) { 
+        const sData = await sRes.json();
+        setStatus(sData); 
+        setFetchError(''); 
+      } else {
+        setFetchError(`Status check failed: ${sRes.status}`);
+      }
+      
       if (hRes.ok) {
         const hData = await hRes.json();
         setHistory(Array.isArray(hData) ? hData : []);
@@ -131,6 +144,10 @@ const FacebookApp = ({ onBack }) => {
   }, [activeTab, selectedAccountId]);
 
   const handlePostNow = async (customPrompt = null) => {
+    if (!selectedAccountId) {
+      setMessage('❌ No Facebook account selected.');
+      return;
+    }
     setLoading(true);
     setMessage('📘 Generating Facebook post...');
     try {
@@ -154,7 +171,7 @@ const FacebookApp = ({ onBack }) => {
     }
   };
 
-  const commonProps = { status, fetchData, loading, accountId: selectedAccountId, accounts, statusLoading };
+  const commonProps = { status, fetchData, loading, accountId: selectedAccountId, accounts, statusLoading, fetchAccounts };
 
   return (
     <>
@@ -168,8 +185,9 @@ const FacebookApp = ({ onBack }) => {
       />
       <div className="dashboard-container" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(0, 198, 255, 0.05), transparent)' }}>
         {fetchError && (
-          <div style={{ background: '#ef4444', color: 'white', padding: '12px 20px', margin: '10px 20px', borderRadius: '8px', fontWeight: 'bold' }}>
-            ⚠️ {fetchError}
+          <div style={{ background: '#ef4444', color: 'white', padding: '12px 20px', margin: '10px 20px', borderRadius: '8px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>⚠️ {fetchError}</span>
+            <button className="btn btn-xs btn-outline" onClick={() => { fetchAccounts(); fetchData(); }} style={{ color: 'white', borderColor: 'white' }}>Retry</button>
           </div>
         )}
         {message && (

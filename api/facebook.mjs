@@ -14,11 +14,22 @@ app.use(async (req, res, next) => {
   try { await initDb(); next(); } catch (e) { next(); }
 });
 
-const stateStore = new Map();
+// Helper to strip /api/facebook prefix if express doesn't do it
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api/facebook')) {
+    req.url = req.url.replace('/api/facebook', '');
+    if (req.url === '') req.url = '/';
+  }
+  next();
+});
+
+// ── TEST ──────────────────────────────────────────────────────────────────────
+
+app.get('/', (req, res) => res.json({ status: 'Facebook API Online', version: '1.0.1' }));
 
 // ── OAUTH FLOW ────────────────────────────────────────────────────────────────
 
-app.get('/api/facebook/auth', (req, res) => {
+app.get('/auth', (req, res) => {
   const host = req.get('host');
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const redirectUri = `${protocol}://${host}/api/facebook/callback`;
@@ -26,13 +37,9 @@ app.get('/api/facebook/auth', (req, res) => {
 
   if (!appId) return res.status(500).send('THREADS_APP_ID missing');
 
-  const stateKey = `fb_${Date.now()}`;
-  stateStore.set(stateKey, { accountName: req.query.accountName || 'Facebook Page' });
-
   const params = new URLSearchParams({
     client_id: appId,
     redirect_uri: redirectUri,
-    state: stateKey,
     scope: 'pages_manage_posts,pages_read_engagement,pages_show_list,public_profile',
     response_type: 'code',
   });
@@ -40,8 +47,8 @@ app.get('/api/facebook/auth', (req, res) => {
   res.redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`);
 });
 
-app.get('/api/facebook/callback', async (req, res) => {
-  const { code, state, error } = req.query;
+app.get('/callback', async (req, res) => {
+  const { code, error } = req.query;
   if (error) return res.redirect(`/facebook?auth_error=${encodeURIComponent(error)}`);
 
   const host = req.get('host');
@@ -70,7 +77,7 @@ app.get('/api/facebook/callback', async (req, res) => {
 
     for (const page of pages) {
       // Sync persona from IG if matching name
-      const igPersona = await sql`SELECT master_prompt, visual_theme, color_palette, preferred_layout FROM instagram_accounts WHERE name = ${page.name} OR name LIKE ${'%' + page.name + '%'}`;
+      const igPersona = await sql`SELECT master_prompt, visual_theme, color_palette, preferred_layout FROM instagram_accounts WHERE name ILIKE ${'%' + page.name + '%'}`;
       const persona = igPersona[0] || {};
 
       await sql`
@@ -95,19 +102,19 @@ app.get('/api/facebook/callback', async (req, res) => {
 
 // ── STATUS ────────────────────────────────────────────────────────────────────
 
-app.get('/api/facebook/status', async (req, res) => {
+app.get('/status', async (req, res) => {
   const accountId = req.query.accountId;
   try {
     const autoRow = await sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`.catch(() => [{value:'true'}]);
     
-    if (!accountId) {
+    if (!accountId || accountId === 'null' || accountId === '') {
         return res.json({ facebookToken: false, automation_enabled: autoRow[0]?.value || 'true', schedules: [] });
     }
 
     const [schedules, lastPost, tokenRow] = await Promise.all([
-      sql`SELECT * FROM facebook_schedules WHERE account_id = ${accountId} ORDER BY id ASC`,
-      sql`SELECT * FROM facebook_history WHERE account_id = ${accountId} ORDER BY id DESC LIMIT 1`,
-      sql`SELECT access_token, expires_at FROM facebook_accounts WHERE id = ${accountId}`,
+      sql`SELECT * FROM facebook_schedules WHERE account_id = ${parseInt(accountId)} ORDER BY id ASC`,
+      sql`SELECT * FROM facebook_history WHERE account_id = ${parseInt(accountId)} ORDER BY id DESC LIMIT 1`,
+      sql`SELECT access_token, expires_at FROM facebook_accounts WHERE id = ${parseInt(accountId)}`,
     ]);
 
     const token = tokenRow[0];
@@ -126,7 +133,7 @@ app.get('/api/facebook/status', async (req, res) => {
 
 // ── ACCOUNTS ──────────────────────────────────────────────────────────────────
 
-app.get('/api/facebook/accounts', async (req, res) => {
+app.get('/accounts', async (req, res) => {
   try {
     const rows = await sql`SELECT * FROM facebook_accounts ORDER BY id ASC`;
     res.json(rows);
@@ -135,12 +142,12 @@ app.get('/api/facebook/accounts', async (req, res) => {
   }
 });
 
-app.post('/api/facebook/accounts', async (req, res) => {
+app.post('/accounts', async (req, res) => {
   const { name, pageId, accessToken } = req.body;
   if (!pageId || !accessToken) return res.status(400).json({ error: 'pageId and accessToken required' });
 
   try {
-    const igPersona = await sql`SELECT master_prompt, visual_theme, color_palette, preferred_layout FROM instagram_accounts WHERE name = ${name} OR name LIKE ${'%' + name + '%'}`;
+    const igPersona = await sql`SELECT master_prompt, visual_theme, color_palette, preferred_layout FROM instagram_accounts WHERE name ILIKE ${'%' + (name || '') + '%'}`;
     const persona = igPersona[0] || {};
 
     const result = await sql`
@@ -156,7 +163,7 @@ app.post('/api/facebook/accounts', async (req, res) => {
   }
 });
 
-app.delete('/api/facebook/accounts/:id', async (req, res) => {
+app.delete('/accounts/:id', async (req, res) => {
   try {
     await sql`DELETE FROM facebook_accounts WHERE id = ${req.params.id}`;
     res.json({ success: true });
@@ -165,7 +172,7 @@ app.delete('/api/facebook/accounts/:id', async (req, res) => {
   }
 });
 
-app.put('/api/facebook/accounts/:id/config', async (req, res) => {
+app.put('/accounts/:id/config', async (req, res) => {
   const { id } = req.params;
   const { master_prompt, visual_theme, color_palette, preferred_layout } = req.body;
   try {
@@ -185,7 +192,7 @@ app.put('/api/facebook/accounts/:id/config', async (req, res) => {
 
 // ── SETTINGS ──────────────────────────────────────────────────────────────────
 
-app.post('/api/facebook/settings/toggle-automation', async (req, res) => {
+app.post('/settings/toggle-automation', async (req, res) => {
   try {
     const current = await sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`;
     const newValue = (current[0]?.value === 'false') ? 'true' : 'false';
@@ -201,7 +208,7 @@ app.post('/api/facebook/settings/toggle-automation', async (req, res) => {
 
 // ── SCHEDULES ─────────────────────────────────────────────────────────────────
 
-app.get('/api/facebook/schedules', async (req, res) => {
+app.get('/schedules', async (req, res) => {
   const { accountId } = req.query;
   try {
     const rows = await sql`SELECT * FROM facebook_schedules WHERE account_id = ${accountId} ORDER BY id ASC`;
@@ -211,7 +218,7 @@ app.get('/api/facebook/schedules', async (req, res) => {
   }
 });
 
-app.post('/api/facebook/schedules', async (req, res) => {
+app.post('/schedules', async (req, res) => {
   const { custom_prompt, accountId } = req.body;
   try {
     await sql`
@@ -224,7 +231,7 @@ app.post('/api/facebook/schedules', async (req, res) => {
   }
 });
 
-app.delete('/api/facebook/schedules/:id', async (req, res) => {
+app.delete('/schedules/:id', async (req, res) => {
   try {
     await sql`DELETE FROM facebook_schedules WHERE id = ${req.params.id}`;
     res.json({ success: true });
@@ -235,10 +242,10 @@ app.delete('/api/facebook/schedules/:id', async (req, res) => {
 
 // ── HISTORY ───────────────────────────────────────────────────────────────────
 
-app.get('/api/facebook/history', async (req, res) => {
+app.get('/history', async (req, res) => {
   const { accountId } = req.query;
   try {
-    const history = accountId
+    const history = (accountId && accountId !== 'null')
       ? await sql`SELECT * FROM facebook_history WHERE account_id = ${accountId} ORDER BY created_at DESC LIMIT 15`
       : await sql`SELECT * FROM facebook_history ORDER BY created_at DESC LIMIT 15`;
     res.json(history || []);
@@ -249,7 +256,7 @@ app.get('/api/facebook/history', async (req, res) => {
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 
-app.post('/api/facebook/post-now', async (req, res) => {
+app.post('/post-now', async (req, res) => {
   const { accountId, customPrompt } = req.body;
   if (!accountId) return res.status(400).json({ error: 'accountId required' });
 
@@ -264,7 +271,7 @@ app.post('/api/facebook/post-now', async (req, res) => {
 
 // ── CRON ──────────────────────────────────────────────────────────────────────
 
-app.get('/api/facebook/cron', async (req, res) => {
+app.get('/cron', async (req, res) => {
   const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
   const secretParam = req.query.secret;
 

@@ -8,22 +8,28 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
       <header className="content-header">
         <h1>Facebook Automation Bot 📘</h1>
         <div className="status-header">
-          <span className={`badge ${statusLoading ? 'badge-neutral' : status.facebookToken ? 'badge-success' : 'badge-error'}`}>
-            {statusLoading ? '⏳ Checking...' : status.facebookToken ? '🔗 API Linked' : '🔴 API Offline'}
-          </span>
-          <button
-            className={`btn btn-xs ${status.automation_enabled === 'false' ? 'btn-danger' : 'btn-glow'}`}
-            onClick={async () => {
-              await fetch(`${API}/settings/toggle-automation`, { 
-                method: 'POST', 
-                body: JSON.stringify({ accountId }), 
-                headers: {'Content-Type': 'application/json'} 
-              });
-              window.location.reload();
-            }}
-          >
-            {status.automation_enabled === 'false' ? '🛑 Paused' : '🟢 Active'}
-          </button>
+          {!accountId ? (
+            <span className="badge badge-neutral">⚪ No Account Selected</span>
+          ) : (
+            <>
+              <span className={`badge ${statusLoading ? 'badge-neutral' : status.facebookToken ? 'badge-success' : 'badge-error'}`}>
+                {statusLoading ? '⏳ Checking...' : status.facebookToken ? '🔗 API Linked' : '🔴 API Offline'}
+              </span>
+              <button
+                className={`btn btn-xs ${status.automation_enabled === 'false' ? 'btn-danger' : 'btn-glow'}`}
+                onClick={async () => {
+                  await fetch(`${API}/settings/toggle-automation`, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ accountId }), 
+                    headers: {'Content-Type': 'application/json'} 
+                  });
+                  window.location.reload();
+                }}
+              >
+                {status.automation_enabled === 'false' ? '🛑 Paused' : '🟢 Active'}
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -36,16 +42,21 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
               <button
                 className="btn btn-glow w-full"
                 onClick={() => handlePostNow()}
-                disabled={loading || !status.facebookToken}
+                disabled={loading || !status.facebookToken || !accountId}
                 style={{ background: 'linear-gradient(135deg, #00c6ff, #0072ff)' }}
               >
                 📘 Generate &amp; Post Now
               </button>
             </div>
-            {!status.facebookToken && (
+            {!accountId ? (
               <div className="tiktok-auth-hint">
-                <p>⚠️ No Facebook page linked.</p>
-                <p>Go to <strong>Settings</strong> tab to connect your account.</p>
+                <p>⚠️ No account selected.</p>
+                <p>Please select an account from the sidebar or go to <strong>Settings</strong> to connect a new one.</p>
+              </div>
+            ) : !status.facebookToken && (
+              <div className="tiktok-auth-hint">
+                <p>⚠️ Facebook token invalid or missing.</p>
+                <p>Go to <strong>Settings</strong> tab to re-connect your account.</p>
               </div>
             )}
           </section>
@@ -71,7 +82,9 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
           <section className="glass-card history-card">
             <h3>Post History</h3>
             <div className="history-list">
-              {history.length > 0 ? history.map(item => (
+              {!accountId ? (
+                <div className="empty-state">Select an account to view history.</div>
+              ) : history.length > 0 ? history.map(item => (
                 <div key={item.id} className="history-item">
                   <div className="history-meta">
                     <span className="time">{new Date(item.created_at).toLocaleString()}</span>
