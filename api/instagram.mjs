@@ -322,7 +322,7 @@ async function runInstagramPost(accountId, customPrompt = null) {
   const accountName = account[0].name || "@instagram";
 
   // Step 1: Generate slide contents + caption
-  const { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt, visualTheme, accountName);
+  const { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
   console.log(`[Instagram-Post] ${slides.length} slides generated`);
 
   // Step 2: Render slides via Satori/ImgLy & Upload to Supabase Storage
