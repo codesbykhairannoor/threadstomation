@@ -10,10 +10,7 @@ import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts } from 
 import { generateInstagramContent } from '../lib/gemini_instagram.js';
 import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
 
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+const app = express.Router();
 
 // ── DB INIT MIDDLEWARE ────────────────────────────────────────────────────────
 app.use(async (req, res, next) => {

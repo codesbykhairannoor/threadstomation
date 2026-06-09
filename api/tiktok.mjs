@@ -9,10 +9,7 @@ import { generateSlideImages } from '../lib/tiktok_carousel.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+const app = express.Router();
 
 // In-memory PKCE store (serverless — resets per cold start, but OAuth is one-shot)
 const pkceStore = new Map();
@@ -29,8 +26,9 @@ app.use(async (req, res, next) => {
  * Redirects user to TikTok OAuth authorization page.
  */
 app.get('/api/tiktok/auth', (req, res) => {
-  const protocol = req.get('host').includes('localhost') ? 'http' : 'https';
-  const redirectUri = `${protocol}://${req.get('host')}/api/tiktok/callback`;
+  const host = req.headers.host || 'threadstomation.vercel.app';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const redirectUri = `${protocol}://${host}/api/tiktok/callback`;
   const { url, codeVerifier } = buildOAuthUrl(redirectUri);
 
   // Store verifier keyed by state (using a simple timestamp key)
@@ -61,8 +59,9 @@ app.get('/api/tiktok/callback', async (req, res) => {
 
   const codeVerifier = storedData?.codeVerifier || '';
   const accountName = storedData?.accountName || 'TikTok Account';
-  const protocol = req.get('host').includes('localhost') ? 'http' : 'https';
-  const redirectUri = `${protocol}://${req.get('host')}/api/tiktok/callback`;
+  const host = req.headers.host || 'threadstomation.vercel.app';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const redirectUri = `${protocol}://${host}/api/tiktok/callback`;
 
   try {
     const tokenData = await exchangeCodeForToken(code, codeVerifier, redirectUri);
@@ -410,9 +409,6 @@ app.get('/api/tiktok/cron', async (req, res) => {
 
     const accounts = await sql`SELECT id, name FROM tiktok_accounts WHERE is_active = 1`;
     const executed = [];
-
-    const protocol = req.get('host').includes('localhost') ? 'http' : 'https';
-    const baseUrl = `${protocol}://${req.get('host')}`;
 
     for (const acc of accounts) {
       // How many posts today?

@@ -22,21 +22,17 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Mount Routers
+// Global DB Init
+app.use(async (req, res, next) => {
+  try { await initDb(); next(); } catch (e) { next(); }
+});
+
+// Mount Routers (they are now express.Router())
 app.use(tiktokRouter); 
 app.use(instagramRouter); 
 app.use(facebookRouter); 
 
 const PORT = process.env.PORT || 3000;
-
-app.use('/api', async (req, res, next) => {
-  try {
-    await initDb();
-    next();
-  } catch (e) {
-    next();
-  }
-});
 
 app.get('/api/accounts', async (req, res) => {
     try {
@@ -162,6 +158,12 @@ async function runScheduledTask(schedule) {
 }
 
 app.get('/api', (req, res) => res.json({ status: 'Online', time: new Date() }));
+
+// Global Error Handler - The Last Resort to prevent 500
+app.use((err, req, res, next) => {
+    console.error('[Global-Error]', err);
+    res.status(200).json({ success: false, error: 'Internal system error but we caught it.', detail: err.message });
+});
 
 if (!process.env.VERCEL) {
     app.listen(PORT, '0.0.0.0', () => {
