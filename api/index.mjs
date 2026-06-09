@@ -195,18 +195,18 @@ app.get('/api/cron', async (req, res) => {
         // Stagger execution by a few ms to prevent "thundering herd" on the DB pool
         await new Promise(r => setTimeout(r, Math.random() * 500)); 
 
-        const protocol = req.get('host')?.includes('localhost') ? 'http' : 'https';
-        const baseUrl = `${protocol}://${req.get('host')}`;
+        const host = req.headers.host || 'threadstomation.vercel.app';
+        const protocol = host.includes('localhost') ? 'http' : 'https';
+        const baseUrl = `${protocol}://${host}`;
         
         // PING OTHERS: Only on master call
         if (isMasterPing) {
-            console.log('[Cron-Master] Triggering TikTok, Instagram and Facebook crons (Master Mode)...');
-            const pingOptions = { timeout: 15000 }; 
-            Promise.all([
-                axios.get(`${baseUrl}/api/tiktok/cron?secret=${expectedSecret}`, pingOptions).catch(e => console.error('[Cron-Ping-TikTok] Failed:', e.message)),
-                axios.get(`${baseUrl}/api/instagram/cron?secret=${expectedSecret}`, pingOptions).catch(e => console.error('[Cron-Ping-IG] Failed:', e.message)),
-                axios.get(`${baseUrl}/api/facebook/cron?secret=${expectedSecret}`, pingOptions).catch(e => console.error('[Cron-Ping-FB] Failed:', e.message))
-            ]).then(() => console.log('[Cron-Master] Sub-pings completed.'));
+            console.log(`[Cron-Master] Triggering TikTok, Instagram and Facebook crons via ${baseUrl}...`);
+            const pingOptions = { timeout: 10000 }; 
+            // Fire and forget, but catch errors to prevent crashing
+            axios.get(`${baseUrl}/api/tiktok/cron?secret=${expectedSecret}`, pingOptions).catch(e => console.error('[Cron-Ping-TikTok] Failed:', e.message));
+            axios.get(`${baseUrl}/api/instagram/cron?secret=${expectedSecret}`, pingOptions).catch(e => console.error('[Cron-Ping-IG] Failed:', e.message));
+            axios.get(`${baseUrl}/api/facebook/cron?secret=${expectedSecret}`, pingOptions).catch(e => console.error('[Cron-Ping-FB] Failed:', e.message));
         }
 
         // SAKLAR UTAMA
@@ -222,35 +222,40 @@ app.get('/api/cron', async (req, res) => {
 
         const executed = [];
         for (const acc of accounts) {
-            const ranToday = await sql`SELECT COUNT(*) as count FROM schedules WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}`;
-            const postsToday = parseInt(ranToday[0]?.count || 0, 10);
+            try {
+                const ranToday = await sql`SELECT COUNT(*) as count FROM schedules WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}`;
+                const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
-            if (postsToday >= 5) continue;
+                if (postsToday >= 5) continue;
 
-            const pendingSchedules = await sql`
-                SELECT * FROM schedules 
-                WHERE account_id = ${acc.id} AND is_active = 1 AND (last_run_date IS NULL OR last_run_date != ${todayStr})
-            `;
-            
-            if (pendingSchedules.length === 0) continue;
+                const pendingSchedules = await sql`
+                    SELECT * FROM schedules 
+                    WHERE account_id = ${acc.id} AND is_active = 1 AND (last_run_date IS NULL OR last_run_date != ${todayStr})
+                `;
+                
+                if (pendingSchedules.length === 0) continue;
 
-            const chance = (5 - postsToday) / totalMinutesLeft;
-            const roll = Math.random();
+                const chance = (5 - postsToday) / totalMinutesLeft;
+                const roll = Math.random();
 
-            if (roll < chance) {
-                const scheduleToRun = pendingSchedules[Math.floor(Math.random() * pendingSchedules.length)];
-                await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${scheduleToRun.id}`;
-                console.log(`[Cron] 🎲 CHAOS HIT! Running ID: ${scheduleToRun.id} for ${acc.name}`);
-                await runScheduledTask(scheduleToRun);
-                executed.push({ account: acc.name, scheduleId: scheduleToRun.id });
+                if (roll < chance) {
+                    const scheduleToRun = pendingSchedules[Math.floor(Math.random() * pendingSchedules.length)];
+                    await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${scheduleToRun.id}`;
+                    console.log(`[Cron] 🎲 CHAOS HIT! Running ID: ${scheduleToRun.id} for ${acc.name}`);
+                    await runScheduledTask(scheduleToRun);
+                    executed.push({ account: acc.name, scheduleId: scheduleToRun.id });
+                }
+            } catch (accErr) {
+                console.error(`[Cron] Error processing account ${acc.name}:`, accErr.message);
             }
         }
 
         await cleanupOldHistory();
         res.json({ success: true, executed });
     } catch (e) {
-        console.error('[Cron] Error:', e.message);
-        res.status(500).json({ error: e.message });
+        console.error('[Cron] Critical Error:', e.message);
+        // Return 200 but success: false so cron-job.org doesn't disable us immediately
+        res.status(200).json({ success: false, error: e.message });
     }
 });
 
