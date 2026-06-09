@@ -71,6 +71,7 @@ const FacebookApp = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [fetchError, setFetchError] = useState('');
 
   const fetchAccounts = async () => {
     try {
@@ -83,7 +84,7 @@ const FacebookApp = ({ onBack }) => {
         }
       }
     } catch (e) {
-      console.error('Failed to fetch accounts:', e.message);
+      setFetchError('Facebook API connection failed: ' + e.message);
     }
   };
 
@@ -95,68 +96,57 @@ const FacebookApp = ({ onBack }) => {
         fetch(`${API}/status?accountId=${selectedAccountId}`),
         fetch(`${API}/history?accountId=${selectedAccountId}`),
       ]);
-      
-      if (sRes.ok) {
-        const statusData = await sRes.json();
-        // Fetch schedules separately because /status only gives token/automation
-        const schRes = await fetch(`${API}/schedules?accountId=${selectedAccountId}`);
-        const schedules = await schRes.json();
-        
-        setStatus({ 
-          ...statusData,
-          schedules
-        });
-      }
+      if (sRes.ok) { setStatus(await sRes.json()); setFetchError(''); }
       if (hRes.ok) {
-        const historyData = await hRes.json();
-        setHistory(Array.isArray(historyData) ? historyData : []);
+        const hData = await hRes.json();
+        setHistory(Array.isArray(hData) ? hData : []);
       }
     } catch (e) {
-      console.error('Fetch error:', e.message);
+      setFetchError('Connection failed: ' + e.message);
     } finally {
       setStatusLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
+  useEffect(() => { fetchAccounts(); }, []);
 
   useEffect(() => {
     if (selectedAccountId) {
+      setHistory([]);
       fetchData();
       const interval = setInterval(fetchData, 15000);
       return () => clearInterval(interval);
     }
-  }, [selectedAccountId]);
+  }, [activeTab, selectedAccountId]);
 
-  const handlePostNow = async () => {
-    if (!window.confirm('Trigger generation and post to Facebook now?')) return;
+  const handlePostNow = async (customPrompt = null) => {
     setLoading(true);
-    setMessage('🚀 Generating content and uploading to Facebook...');
+    setMessage('📘 Generating Facebook post...');
     try {
       const res = await fetch(`${API}/post-now`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId: selectedAccountId })
+        body: JSON.stringify({ accountId: selectedAccountId, customPrompt })
       });
       const data = await res.json();
       if (data.success) {
-        setMessage('✅ Posted successfully!');
+        setMessage('✅ Post published on Facebook feed!');
         fetchData();
       } else {
         setMessage(`❌ Error: ${data.error}`);
       }
     } catch (e) {
-      setMessage(`❌ Failed: ${e.message}`);
+      setMessage('❌ Connection failed.');
     } finally {
       setLoading(false);
       setTimeout(() => setMessage(''), 5000);
     }
   };
 
+  const commonProps = { status, fetchData, loading, accountId: selectedAccountId, accounts, statusLoading };
+
   return (
-    <div className="app-container">
+    <>
       <FacebookSidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
@@ -165,36 +155,21 @@ const FacebookApp = ({ onBack }) => {
         setSelectedAccountId={setSelectedAccountId}
         onBack={onBack}
       />
-      
       <div className="dashboard-container" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(0, 198, 255, 0.05), transparent)' }}>
-        <main className="main-content">
-          {message && (
-            <div className={`status-toast ${message.includes('❌') ? 'error' : ''}`}>
-              {message}
-            </div>
-          )}
-
-          {activeTab === 'dashboard' ? (
-            <FacebookDashboard 
-              status={status} 
-              handlePostNow={handlePostNow} 
-              history={history} 
-              loading={loading}
-              statusLoading={statusLoading}
-              accountId={selectedAccountId}
-            />
-          ) : (
-            <FacebookConfigPanel 
-              status={status}
-              fetchData={fetchData}
-              loading={loading}
-              accountId={selectedAccountId}
-              accounts={accounts}
-            />
-          )}
-        </main>
+        {fetchError && (
+          <div style={{ background: '#ef4444', color: 'white', padding: '12px 20px', margin: '10px 20px', borderRadius: '8px', fontWeight: 'bold' }}>
+            ⚠️ {fetchError}
+          </div>
+        )}
+        {message && (
+          <div className="global-toast animate-slide-down">{message}</div>
+        )}
+        {activeTab === 'dashboard'
+          ? <FacebookDashboard {...commonProps} handlePostNow={handlePostNow} history={history} />
+          : <FacebookConfigPanel {...commonProps} />
+        }
       </div>
-    </div>
+    </>
   );
 };
 
