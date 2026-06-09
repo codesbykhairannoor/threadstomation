@@ -15,22 +15,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // ── DB INIT MIDDLEWARE ────────────────────────────────────────────────────────
+// Simplified to match working Instagram pattern
 app.use(async (req, res, next) => {
   try { 
     await initDb(); 
-    // Manual migration safety check for Facebook
-    await sql`ALTER TABLE facebook_accounts ADD COLUMN IF NOT EXISTS master_prompt TEXT`.catch(() => {});
-    await sql`ALTER TABLE facebook_accounts ADD COLUMN IF NOT EXISTS visual_theme TEXT`.catch(() => {});
-    await sql`ALTER TABLE facebook_accounts ADD COLUMN IF NOT EXISTS color_palette TEXT`.catch(() => {});
-    await sql`ALTER TABLE facebook_accounts ADD COLUMN IF NOT EXISTS preferred_layout INTEGER DEFAULT 0`.catch(() => {});
-    
-    await sql`
-      CREATE TABLE IF NOT EXISTS facebook_settings (
-        key TEXT PRIMARY KEY,
-        value TEXT
-      )
-    `.catch(() => {});
-    
     next(); 
   } catch (e) { 
     console.error('[Facebook-Init] DB Error:', e.message);
@@ -40,7 +28,7 @@ app.use(async (req, res, next) => {
 
 // ── TEST ──────────────────────────────────────────────────────────────────────
 
-app.get('/api/facebook', (req, res) => res.json({ status: 'Facebook API Online', version: '1.0.2' }));
+app.get('/api/facebook', (req, res) => res.json({ status: 'Facebook API Online', version: '1.0.4' }));
 
 // ── OAUTH FLOW ────────────────────────────────────────────────────────────────
 

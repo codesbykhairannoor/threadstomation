@@ -4,7 +4,7 @@ import FacebookConfigPanel from './FacebookConfigPanel';
 
 const API = '/api/facebook';
 
-// UI Version: 1.0.3 (Force Refresh)
+// UI Version: 1.0.5 (Optimized Fetching)
 
 const FacebookSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId, setSelectedAccountId, onBack }) => {
   const menuItems = [
@@ -100,7 +100,8 @@ const FacebookApp = ({ onBack }) => {
           setSelectedAccountId(data[0].id);
         }
       } else {
-        setFetchError(`Facebook API error: ${res.status}`);
+        const txt = await res.text();
+        setFetchError(`Accounts fetch failed: ${res.status}. ${txt.substring(0, 30)}`);
       }
     } catch (e) {
       setFetchError('Facebook API connection failed: ' + e.message);
@@ -122,7 +123,7 @@ const FacebookApp = ({ onBack }) => {
         setFetchError(''); 
       } else {
         const errTxt = await sRes.text();
-        setFetchError(`Status check failed: ${sRes.status}. ${errTxt.substring(0, 50)}`);
+        setFetchError(`Server Error (${sRes.status}): ${errTxt.substring(0, 50)}...`);
       }
       
       if (hRes.ok) {
