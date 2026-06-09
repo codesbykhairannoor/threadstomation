@@ -73,6 +73,20 @@ const FacebookApp = ({ onBack }) => {
   const [message, setMessage] = useState('');
   const [fetchError, setFetchError] = useState('');
 
+  // Check for OAuth redirect result
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('auth_success')) {
+      setMessage('✅ Facebook Page connected successfully!');
+      window.history.replaceState({}, '', '/facebook');
+      setTimeout(() => setMessage(''), 4000);
+    }
+    if (params.get('auth_error')) {
+      setMessage(`❌ Auth failed: ${params.get('auth_error')}`);
+      window.history.replaceState({}, '', '/facebook');
+    }
+  }, []);
+
   const fetchAccounts = async () => {
     try {
       const res = await fetch(`${API}/accounts`);
@@ -89,12 +103,11 @@ const FacebookApp = ({ onBack }) => {
   };
 
   const fetchData = async () => {
-    if (!selectedAccountId) return;
     setStatusLoading(true);
     try {
       const [sRes, hRes] = await Promise.all([
-        fetch(`${API}/status?accountId=${selectedAccountId}`),
-        fetch(`${API}/history?accountId=${selectedAccountId}`),
+        fetch(`${API}/status?accountId=${selectedAccountId || ''}`),
+        fetch(`${API}/history?accountId=${selectedAccountId || ''}`),
       ]);
       if (sRes.ok) { setStatus(await sRes.json()); setFetchError(''); }
       if (hRes.ok) {
@@ -111,12 +124,10 @@ const FacebookApp = ({ onBack }) => {
   useEffect(() => { fetchAccounts(); }, []);
 
   useEffect(() => {
-    if (selectedAccountId) {
-      setHistory([]);
-      fetchData();
-      const interval = setInterval(fetchData, 15000);
-      return () => clearInterval(interval);
-    }
+    setHistory([]);
+    fetchData();
+    const interval = setInterval(fetchData, 15000);
+    return () => clearInterval(interval);
   }, [activeTab, selectedAccountId]);
 
   const handlePostNow = async (customPrompt = null) => {

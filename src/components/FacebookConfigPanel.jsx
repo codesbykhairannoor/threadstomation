@@ -72,6 +72,10 @@ const FacebookConfigPanel = ({ status, fetchData, loading, accountId, accounts }
     }
   };
 
+  const handleConnect = () => {
+    window.location.href = `${API}/auth?accountName=Facebook Page`;
+  };
+
   const handleSaveManualAccount = async (e) => {
     e.preventDefault();
     if (!manualPageId.trim() || !manualToken.trim()) {
@@ -116,40 +120,51 @@ const FacebookConfigPanel = ({ status, fetchData, loading, accountId, accounts }
 
       <div className="main-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '700px', margin: '0 auto' }}>
 
-        {/* Account Link */}
+        {/* OAuth Connect */}
         <section className="glass-card mb-2">
           <h3>🔗 Connect Facebook Page</h3>
           <p className="section-desc">
-            Link your Facebook Page using a Page ID and long-lived Page Access Token.
+            Link your Facebook Page via Facebook Login OAuth or paste a custom Page token manually.
           </p>
           {accounts.length > 0 ? (
-            <div style={{ marginBottom: '1rem' }}>
-              {accounts.map(acc => (
-                <div key={acc.id} className="glass-card-nested flex-between" style={{ marginBottom: '0.5rem' }}>
-                  <div>
-                    <span style={{ fontWeight: 700 }}>{acc.name}</span>
-                    <span className="time" style={{ marginLeft: '0.5rem' }}>ID: {acc.facebook_page_id}</span>
+            <div>
+              <div style={{ marginBottom: '1rem' }}>
+                {accounts.map(acc => (
+                  <div key={acc.id} className="glass-card-nested flex-between" style={{ marginBottom: '0.5rem' }}>
+                    <div>
+                      <span style={{ fontWeight: 700 }}>{acc.name}</span>
+                      <span className="time" style={{ marginLeft: '0.5rem' }}>ID: {acc.facebook_page_id}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className={`badge ${acc.is_active ? 'badge-success' : 'badge-error'}`}>
+                        {acc.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                      <button 
+                        className="btn-icon delete-btn" 
+                        onClick={async () => {
+                          if (confirm(`Are you sure you want to disconnect ${acc.name}?`)) {
+                            await fetch(`${API}/accounts/${acc.id}`, { method: 'DELETE' });
+                            window.location.reload();
+                          }
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className={`badge ${acc.is_active ? 'badge-success' : 'badge-error'}`}>
-                      {acc.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                    <button 
-                      className="btn-icon delete-btn" 
-                      onClick={async () => {
-                        if (confirm(`Are you sure you want to disconnect ${acc.name}?`)) {
-                          await fetch(`${API}/accounts/${acc.id}`, { method: 'DELETE' });
-                          window.location.reload();
-                        }
-                      }}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <button className="btn btn-outline w-full" onClick={handleConnect}>
+                ➕ Connect via Facebook OAuth
+              </button>
             </div>
-          ) : null}
+          ) : (
+            <button className="btn btn-glow w-full" onClick={handleConnect} style={{ background: 'linear-gradient(135deg, #00c6ff, #0072ff)' }}>
+              📘 Connect Facebook Page via Login
+            </button>
+          )}
+
+          <div style={{ margin: '1rem 0', textAlign: 'center', opacity: 0.5 }}>— OR —</div>
 
           <button 
             type="button" 
@@ -157,7 +172,7 @@ const FacebookConfigPanel = ({ status, fetchData, loading, accountId, accounts }
             onClick={() => setShowManual(!showManual)}
             style={{ borderColor: 'rgba(255,255,255,0.1)' }}
           >
-            {showManual ? '🙈 Hide Setup Form' : '⚙️ Link New Facebook Page'}
+            {showManual ? '🙈 Hide Manual Setup' : '⚙️ Set Up Manually (Custom Token)'}
           </button>
 
           {showManual && (
@@ -207,110 +222,114 @@ const FacebookConfigPanel = ({ status, fetchData, loading, accountId, accounts }
         </section>
 
         {/* Account Persona & UI Config */}
-        <section className="glass-card mb-2">
-          <h3>🤖 AI Persona & Visuals (This Page)</h3>
-          <p className="section-desc">
-            Define the unique personality, visual style, and layout specifically for this Facebook Page.
-          </p>
-          
-          <div className="input-group" style={{ marginBottom: '1rem' }}>
-            <label className="text-xs">Master Prompt (Personality)</label>
-            <textarea
-              rows="4"
-              placeholder="Example: You are a tech advisor. Tone: professional, informative..."
-              value={masterPrompt}
-              onChange={e => setMasterPrompt(e.target.value)}
-            />
-          </div>
-
-          <div className="input-group" style={{ marginBottom: '1rem' }}>
-            <label className="text-xs">Visual Theme (Background Image Prompt)</label>
-            <textarea
-              rows="2"
-              placeholder="Example: Modern office, clean lines, high-tech background..."
-              value={visualTheme}
-              onChange={e => setVisualTheme(e.target.value)}
-            />
-          </div>
-
-          <div className="input-group" style={{ marginBottom: '1rem' }}>
-            <label className="text-xs">Color Palette (JSON Array)</label>
-            <textarea
-              rows="2"
-              placeholder='[{"bg":"#0f172a","text":"white","accent":"#00c6ff"}]'
-              value={colorPalette}
-              onChange={e => setColorPalette(e.target.value)}
-              style={{ fontFamily: 'monospace' }}
-            />
-          </div>
-
-          <div className="input-group" style={{ marginBottom: '1rem' }}>
-            <label className="text-xs">Preferred Layout (-1, 0, 1, or 2)</label>
-            <select 
-              value={preferredLayout} 
-              onChange={e => setPreferredLayout(e.target.value)}
-              style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', color: 'white' }}
-            >
-              <option value="-1">-1 - Randomize Everything</option>
-              <option value="0">0 - Default Central Bold</option>
-              <option value="1">1 - Left Aligned Editorial</option>
-              <option value="2">2 - Startup Educational Bento</option>
-            </select>
-          </div>
-
-          <button className="btn btn-glow w-full" onClick={saveAccountConfig} disabled={savingConfig} style={{ background: 'linear-gradient(135deg, #00c6ff, #0072ff)' }}>
-            {savingConfig ? 'Saving...' : '💾 Save Account Configurations'}
-          </button>
-        </section>
-
-        {/* Automation Schedules */}
-        <section className="glass-card">
-          <h3>🎯 Posting Slots / Content Directions</h3>
-          <p className="section-desc">
-            Define specific topics. The bot randomly selects one active slot per automated run.
-          </p>
-
-          <div className="add-schedule-form glass-card-nested mb-2">
-            <div className="input-group">
-              <label className="text-xs">Content Prompt</label>
+        {accountId && (
+          <section className="glass-card mb-2">
+            <h3>🤖 AI Persona & Visuals (This Page)</h3>
+            <p className="section-desc">
+              Define the unique personality, visual style, and layout specifically for this Facebook Page.
+            </p>
+            
+            <div className="input-group" style={{ marginBottom: '1rem' }}>
+              <label className="text-xs">Master Prompt (Personality)</label>
               <textarea
-                rows="2"
-                placeholder="E.g., '10 facts about artificial intelligence'"
-                value={newPrompt}
-                onChange={e => setNewPrompt(e.target.value)}
+                rows="4"
+                placeholder="Example: You are a tech advisor. Tone: professional, informative..."
+                value={masterPrompt}
+                onChange={e => setMasterPrompt(e.target.value)}
               />
             </div>
-            <button
-              className="btn btn-primary w-full mt-1"
-              onClick={addSchedule}
-              disabled={!newPrompt.trim()}
-              style={{ background: '#00c6ff' }}
-            >
-              ➕ Add Posting Slot
-            </button>
-          </div>
 
-          <div className="schedule-list custom-scroll">
-            {status.schedules && status.schedules.length > 0 ? status.schedules.map((s, idx) => (
-              <div key={s.id} className="schedule-item glass-card-nested">
-                <div className="schedule-info">
-                  <div className="flex-between">
-                    <span className="time-label">Slot #{idx + 1}</span>
-                    <button className="btn-icon delete-btn" onClick={() => deleteSchedule(s.id)}>🗑️</button>
-                  </div>
-                  <div className="mt-1">
-                    <p className="schedule-prompt-preview">{s.custom_prompt || '(AI Creative Mode)'}</p>
-                    {s.last_run_date && (
-                      <p className="time" style={{ marginTop: '4px' }}>Last run: {s.last_run_date}</p>
-                    )}
+            <div className="input-group" style={{ marginBottom: '1rem' }}>
+              <label className="text-xs">Visual Theme (Background Image Prompt)</label>
+              <textarea
+                rows="2"
+                placeholder="Example: Modern office, clean lines, high-tech background..."
+                value={visualTheme}
+                onChange={e => setVisualTheme(e.target.value)}
+              />
+            </div>
+
+            <div className="input-group" style={{ marginBottom: '1rem' }}>
+              <label className="text-xs">Color Palette (JSON Array)</label>
+              <textarea
+                rows="2"
+                placeholder='[{"bg":"#0f172a","text":"white","accent":"#00c6ff"}]'
+                value={colorPalette}
+                onChange={e => setColorPalette(e.target.value)}
+                style={{ fontFamily: 'monospace' }}
+              />
+            </div>
+
+            <div className="input-group" style={{ marginBottom: '1rem' }}>
+              <label className="text-xs">Preferred Layout (-1, 0, 1, or 2)</label>
+              <select 
+                value={preferredLayout} 
+                onChange={e => setPreferredLayout(e.target.value)}
+                style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', color: 'white' }}
+              >
+                <option value="-1">-1 - Randomize Everything</option>
+                <option value="0">0 - Default Central Bold</option>
+                <option value="1">1 - Left Aligned Editorial</option>
+                <option value="2">2 - Startup Educational Bento</option>
+              </select>
+            </div>
+
+            <button className="btn btn-glow w-full" onClick={saveAccountConfig} disabled={savingConfig} style={{ background: 'linear-gradient(135deg, #00c6ff, #0072ff)' }}>
+              {savingConfig ? 'Saving...' : '💾 Save Account Configurations'}
+            </button>
+          </section>
+        )}
+
+        {/* Automation Schedules */}
+        {accountId && (
+          <section className="glass-card">
+            <h3>🎯 Posting Slots / Content Directions</h3>
+            <p className="section-desc">
+              Define specific topics. The bot randomly selects one active slot per automated run.
+            </p>
+
+            <div className="add-schedule-form glass-card-nested mb-2">
+              <div className="input-group">
+                <label className="text-xs">Content Prompt</label>
+                <textarea
+                  rows="2"
+                  placeholder="E.g., '10 facts about artificial intelligence'"
+                  value={newPrompt}
+                  onChange={e => setNewPrompt(e.target.value)}
+                />
+              </div>
+              <button
+                className="btn btn-primary w-full mt-1"
+                onClick={addSchedule}
+                disabled={!newPrompt.trim()}
+                style={{ background: '#00c6ff' }}
+              >
+                ➕ Add Posting Slot
+              </button>
+            </div>
+
+            <div className="schedule-list custom-scroll">
+              {status.schedules && status.schedules.length > 0 ? status.schedules.map((s, idx) => (
+                <div key={s.id} className="schedule-item glass-card-nested">
+                  <div className="schedule-info">
+                    <div className="flex-between">
+                      <span className="time-label">Slot #{idx + 1}</span>
+                      <button className="btn-icon delete-btn" onClick={() => deleteSchedule(s.id)}>🗑️</button>
+                    </div>
+                    <div className="mt-1">
+                      <p className="schedule-prompt-preview">{s.custom_prompt || '(AI Creative Mode)'}</p>
+                      {s.last_run_date && (
+                        <p className="time" style={{ marginTop: '4px' }}>Last run: {s.last_run_date}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )) : (
-              <div className="empty-state">No Facebook slots yet. Add one above!</div>
-            )}
-          </div>
-        </section>
+              )) : (
+                <div className="empty-state">No Facebook slots yet. Add one above!</div>
+              )}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

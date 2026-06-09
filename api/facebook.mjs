@@ -2,30 +2,116 @@ import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { runFacebookCarouselPost } from '../lib/facebook.js';
+import axios from 'axios';
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // DB INIT MIDDLEWARE
 app.use(async (req, res, next) => {
   try { await initDb(); next(); } catch (e) { next(); }
 });
 
+const stateStore = new Map();
+
+// ── OAUTH FLOW ────────────────────────────────────────────────────────────────
+
+app.get('/api/facebook/auth', (req, res) => {
+  const host = req.get('host');
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const redirectUri = `${protocol}://${host}/api/facebook/callback`;
+  const appId = process.env.THREADS_APP_ID;
+
+  if (!appId) return res.status(500).send('THREADS_APP_ID missing');
+
+  const stateKey = `fb_${Date.now()}`;
+  stateStore.set(stateKey, { accountName: req.query.accountName || 'Facebook Page' });
+
+  const params = new URLSearchParams({
+    client_id: appId,
+    redirect_uri: redirectUri,
+    state: stateKey,
+    scope: 'pages_manage_posts,pages_read_engagement,pages_show_list,public_profile',
+    response_type: 'code',
+  });
+
+  res.redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`);
+});
+
+app.get('/api/facebook/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) return res.redirect(`/facebook?auth_error=${encodeURIComponent(error)}`);
+
+  const host = req.get('host');
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const redirectUri = `${protocol}://${host}/api/facebook/callback`;
+  const appId = process.env.THREADS_APP_ID;
+  const appSecret = process.env.THREADS_APP_SECRET;
+
+  try {
+    const tokenRes = await axios.get(`https://graph.facebook.com/v19.0/oauth/access_token`, {
+      params: { client_id: appId, client_secret: appSecret, redirect_uri: redirectUri, code }
+    });
+    const { access_token: userToken } = tokenRes.data;
+
+    // Exchange for long-lived user token
+    const longUserRes = await axios.get(`https://graph.facebook.com/v19.0/oauth/access_token`, {
+      params: { grant_type: 'fb_exchange_token', client_id: appId, client_secret: appSecret, fb_exchange_token: userToken }
+    });
+    const longUserToken = longUserRes.data.access_token;
+
+    // Get Pages
+    const pagesRes = await axios.get(`https://graph.facebook.com/v19.0/me/accounts`, {
+      params: { access_token: longUserToken, fields: 'id,name,access_token' }
+    });
+    const pages = pagesRes.data.data || [];
+
+    for (const page of pages) {
+      // Sync persona from IG if matching name
+      const igPersona = await sql`SELECT master_prompt, visual_theme, color_palette, preferred_layout FROM instagram_accounts WHERE name = ${page.name} OR name LIKE ${'%' + page.name + '%'}`;
+      const persona = igPersona[0] || {};
+
+      await sql`
+        INSERT INTO facebook_accounts (name, facebook_page_id, access_token, master_prompt, visual_theme, color_palette, preferred_layout)
+        VALUES (${page.name}, ${page.id}, ${page.access_token}, ${persona.master_prompt || null}, ${persona.visual_theme || null}, ${persona.color_palette || null}, ${persona.preferred_layout || 0})
+        ON CONFLICT (facebook_page_id) DO UPDATE SET 
+          access_token = EXCLUDED.access_token,
+          name = EXCLUDED.name,
+          master_prompt = COALESCE(EXCLUDED.master_prompt, facebook_accounts.master_prompt),
+          visual_theme = COALESCE(EXCLUDED.visual_theme, facebook_accounts.visual_theme),
+          color_palette = COALESCE(EXCLUDED.color_palette, facebook_accounts.color_palette),
+          preferred_layout = COALESCE(EXCLUDED.preferred_layout, facebook_accounts.preferred_layout)
+      `;
+    }
+
+    res.redirect(`/facebook?auth_success=true`);
+  } catch (e) {
+    console.error('[Facebook-OAuth] Error:', e.message);
+    res.redirect(`/facebook?auth_error=${encodeURIComponent(e.message)}`);
+  }
+});
+
 // ── STATUS ────────────────────────────────────────────────────────────────────
 
 app.get('/api/facebook/status', async (req, res) => {
-  const accountId = req.query.accountId || 1;
+  const accountId = req.query.accountId;
   try {
-    const [schedules, lastPost, tokenRow, autoRow] = await Promise.all([
+    const autoRow = await sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`.catch(() => [{value:'true'}]);
+    
+    if (!accountId) {
+        return res.json({ facebookToken: false, automation_enabled: autoRow[0]?.value || 'true', schedules: [] });
+    }
+
+    const [schedules, lastPost, tokenRow] = await Promise.all([
       sql`SELECT * FROM facebook_schedules WHERE account_id = ${accountId} ORDER BY id ASC`,
       sql`SELECT * FROM facebook_history WHERE account_id = ${accountId} ORDER BY id DESC LIMIT 1`,
       sql`SELECT access_token, expires_at FROM facebook_accounts WHERE id = ${accountId}`,
-      sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`,
     ]);
 
     const token = tokenRow[0];
-    const isTokenValid = !!(token?.access_token && (!token.expires_at || new Date(token.expires_at) > new Date()));
+    const isTokenValid = !!(token?.access_token);
 
     res.json({
       schedules,
@@ -54,9 +140,12 @@ app.post('/api/facebook/accounts', async (req, res) => {
   if (!pageId || !accessToken) return res.status(400).json({ error: 'pageId and accessToken required' });
 
   try {
+    const igPersona = await sql`SELECT master_prompt, visual_theme, color_palette, preferred_layout FROM instagram_accounts WHERE name = ${name} OR name LIKE ${'%' + name + '%'}`;
+    const persona = igPersona[0] || {};
+
     const result = await sql`
-      INSERT INTO facebook_accounts (name, facebook_page_id, access_token)
-      VALUES (${name || 'Unnamed Page'}, ${pageId}, ${accessToken})
+      INSERT INTO facebook_accounts (name, facebook_page_id, access_token, master_prompt, visual_theme, color_palette, preferred_layout)
+      VALUES (${name || 'Unnamed Page'}, ${pageId}, ${accessToken}, ${persona.master_prompt || null}, ${persona.visual_theme || null}, ${persona.color_palette || null}, ${persona.preferred_layout || 0})
       ON CONFLICT (facebook_page_id) DO UPDATE 
       SET access_token = EXCLUDED.access_token, name = EXCLUDED.name
       RETURNING *
