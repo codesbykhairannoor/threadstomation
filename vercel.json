@@ -30,6 +30,10 @@
       "destination": "/api/instagram.mjs"
     },
     {
+      "source": "/api/facebook/(.*)",
+      "destination": "/api/facebook.mjs"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.mjs"
     },

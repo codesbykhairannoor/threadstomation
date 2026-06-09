@@ -14,7 +14,7 @@ const FacebookSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId,
     <div className="sidebar">
       <div className="sidebar-brand">
         <div className="brand-icon">📘</div>
-        <h2 style={{ background: 'linear-gradient(to right, #00c6ff, #0072ff)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+        <h2 style={{ background: 'linear-gradient(to right, #00c6ff, #0072ff)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: '800' }}>
           Facebook AI
         </h2>
       </div>
@@ -28,7 +28,7 @@ const FacebookSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId,
           <label className="text-xs opacity-50 ml-1">FACEBOOK PAGE</label>
           <select
             className="account-select"
-            value={selectedAccountId}
+            value={selectedAccountId || ''}
             onChange={e => setSelectedAccountId(parseInt(e.target.value))}
           >
             {accounts.map(acc => (
@@ -43,7 +43,7 @@ const FacebookSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId,
           <button
             key={item.id}
             className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-            style={activeTab === item.id ? { background: 'linear-gradient(135deg, #00c6ff, #0072ff)', color: '#fff' } : {}}
+            style={activeTab === item.id ? { background: 'linear-gradient(135deg, #00c6ff, #0072ff)', color: '#fff', boxShadow: '0 4px 15px rgba(0, 114, 255, 0.3)' } : {}}
             onClick={() => setActiveTab(item.id)}
           >
             <span className="nav-icon">{item.icon}</span>
@@ -53,9 +53,9 @@ const FacebookSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId,
       </nav>
 
       <div className="sidebar-footer">
-        <p>Facebook Bot</p>
-        <p style={{ marginTop: '4px', fontSize: '13px', fontWeight: 'bold' }}>
-          {accounts.find(a => a.id === selectedAccountId)?.name || 'Managing Pages'}
+        <p className="opacity-50">Facebook Automation</p>
+        <p style={{ marginTop: '4px', fontSize: '13px', fontWeight: 'bold', color: '#00c6ff' }}>
+          {accounts.find(a => a.id === selectedAccountId)?.name || 'Select Page'}
         </p>
       </div>
     </div>
@@ -91,31 +91,25 @@ const FacebookApp = ({ onBack }) => {
     if (!selectedAccountId) return;
     setStatusLoading(true);
     try {
-      const [sRes, hRes, setRes] = await Promise.all([
-        fetch(`${API}/schedules?accountId=${selectedAccountId}`),
+      const [sRes, hRes] = await Promise.all([
+        fetch(`${API}/status?accountId=${selectedAccountId}`),
         fetch(`${API}/history?accountId=${selectedAccountId}`),
-        fetch(`${API}/settings`) // We should probably add this or fetch from a general endpoint
       ]);
       
       if (sRes.ok) {
-        const schedules = await sRes.json();
-        setStatus(prev => ({ 
-          ...prev, 
-          schedules, 
-          facebookToken: true 
-        }));
-      }
-      if (setRes && setRes.ok) {
-        const settings = await setRes.json();
-        const autoEnabled = settings.find(s => s.key === 'automation_enabled')?.value || 'true';
-        setStatus(prev => ({ ...prev, automation_enabled: autoEnabled }));
+        const statusData = await sRes.json();
+        // Fetch schedules separately because /status only gives token/automation
+        const schRes = await fetch(`${API}/schedules?accountId=${selectedAccountId}`);
+        const schedules = await schRes.json();
+        
+        setStatus({ 
+          ...statusData,
+          schedules
+        });
       }
       if (hRes.ok) {
         const historyData = await hRes.json();
-        setHistory(historyData);
-        if (historyData.length > 0) {
-          setStatus(prev => ({ ...prev, lastPost: historyData[0] }));
-        }
+        setHistory(Array.isArray(historyData) ? historyData : []);
       }
     } catch (e) {
       console.error('Fetch error:', e.message);
@@ -172,32 +166,34 @@ const FacebookApp = ({ onBack }) => {
         onBack={onBack}
       />
       
-      <main className="main-content">
-        {message && (
-          <div className={`status-toast ${message.includes('❌') ? 'error' : ''}`}>
-            {message}
-          </div>
-        )}
+      <div className="dashboard-container" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(0, 198, 255, 0.05), transparent)' }}>
+        <main className="main-content">
+          {message && (
+            <div className={`status-toast ${message.includes('❌') ? 'error' : ''}`}>
+              {message}
+            </div>
+          )}
 
-        {activeTab === 'dashboard' ? (
-          <FacebookDashboard 
-            status={status} 
-            handlePostNow={handlePostNow} 
-            history={history} 
-            loading={loading}
-            statusLoading={statusLoading}
-            accountId={selectedAccountId}
-          />
-        ) : (
-          <FacebookConfigPanel 
-            status={status}
-            fetchData={fetchData}
-            loading={loading}
-            accountId={selectedAccountId}
-            accounts={accounts}
-          />
-        )}
-      </main>
+          {activeTab === 'dashboard' ? (
+            <FacebookDashboard 
+              status={status} 
+              handlePostNow={handlePostNow} 
+              history={history} 
+              loading={loading}
+              statusLoading={statusLoading}
+              accountId={selectedAccountId}
+            />
+          ) : (
+            <FacebookConfigPanel 
+              status={status}
+              fetchData={fetchData}
+              loading={loading}
+              accountId={selectedAccountId}
+              accounts={accounts}
+            />
+          )}
+        </main>
+      </div>
     </div>
   );
 };

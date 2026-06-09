@@ -1,8 +1,30 @@
 import express from 'express';
-import sql from '../lib/database.js';
+import cors from 'cors';
+import sql, { initDb } from '../lib/database.js';
 import { runFacebookCarouselPost } from '../lib/facebook.js';
 
-const app = express.Router();
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// DB INIT MIDDLEWARE
+app.use(async (req, res, next) => {
+  try { await initDb(); next(); } catch (e) { next(); }
+});
+
+app.get('/api/facebook/status', async (req, res) => {
+  const { accountId } = req.query;
+  try {
+    const automationStatus = await sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`;
+    const tokens = await sql`SELECT access_token FROM facebook_accounts WHERE id = ${accountId}`;
+    res.json({
+      automation_enabled: automationStatus[0]?.value || 'true',
+      facebookToken: tokens.length > 0 && !!tokens[0].access_token
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // GET /api/facebook/accounts
 app.get('/api/facebook/accounts', async (req, res) => {
