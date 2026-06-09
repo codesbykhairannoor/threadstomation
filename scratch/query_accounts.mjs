@@ -1,14 +1,13 @@
 import sql from '../lib/database.js';
 
-async function run() {
-  try {
-    const accs = await sql`SELECT * FROM instagram_accounts`;
-    console.log('Instagram Accounts:', accs);
-  } catch (err) {
-    console.error('Error:', err);
-  } finally {
-    process.exit(0);
-  }
+async function check() {
+  console.log('--- INSTAGRAM ACCOUNTS ---');
+  const ig = await sql`SELECT * FROM instagram_accounts`;
+  console.log(JSON.stringify(ig, null, 2));
+
+  console.log('--- THREADS ACCOUNTS ---');
+  const th = await sql`SELECT * FROM accounts`;
+  console.log(JSON.stringify(th, null, 2));
 }
 
-run();
+check().then(() => process.exit(0));
