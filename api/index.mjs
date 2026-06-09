@@ -12,20 +12,19 @@ import { postToPlatforms } from '../lib/threads_service.js';
 import axios from 'axios';
 import fs from 'fs';
 
-// axios, fs already imported
-
-
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Global DB Init
+// Global DB Init Middleware
 app.use(async (req, res, next) => {
   try { await initDb(); next(); } catch (e) { next(); }
 });
 
 const PORT = process.env.PORT || 3000;
+
+// ── THREADS API ROUTES ────────────────────────────────────────────────────────
 
 app.get('/api/accounts', async (req, res) => {
     try {
@@ -36,18 +35,98 @@ app.get('/api/accounts', async (req, res) => {
     }
 });
 
+app.get('/api/status', async (req, res) => {
+    try {
+        const accountId = req.query.accountId ? parseInt(req.query.accountId, 10) : 1;
+        const schedules = await sql`SELECT * FROM schedules WHERE account_id = ${accountId} ORDER BY id ASC`;
+        const tokens = await sql`SELECT access_token FROM tokens WHERE account_id = ${accountId}`;
+        const lastPost = await sql`SELECT * FROM post_history WHERE account_id = ${accountId} ORDER BY created_at DESC LIMIT 1`;
+        const automationStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
+
+        res.json({
+            schedules,
+            threadsToken: tokens.length > 0 && !!tokens[0].access_token,
+            lastPost: lastPost[0] || null,
+            automation_enabled: automationStatus[0]?.value || 'true'
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/history', async (req, res) => {
+    try {
+        const accountId = req.query.accountId ? parseInt(req.query.accountId, 10) : 1;
+        const history = await sql`SELECT * FROM post_history WHERE account_id = ${accountId} ORDER BY created_at DESC LIMIT 50`;
+        res.json(history);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/settings', async (req, res) => {
+    try {
+        const rows = await sql`SELECT * FROM settings`;
+        const settings = {};
+        rows.forEach(r => settings[r.key] = r.value);
+        res.json(settings);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/settings/toggle-automation', async (req, res) => {
+    try {
+        const current = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
+        const newValue = (current[0]?.value === 'false') ? 'true' : 'false';
+        await sql`INSERT INTO settings (key, value) VALUES ('automation_enabled', ${newValue}) ON CONFLICT (key) DO UPDATE SET value = ${newValue}`;
+        res.json({ success: true, enabled: newValue === 'true' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/post-now', async (req, res) => {
+    const { isManual, accountId, imageUrl, customPrompt } = req.body;
+    try {
+        let content;
+        if (isManual) {
+            content = ["Ini adalah postingan uji coba manual dari dashboard."];
+        } else {
+            let imageBase64 = null;
+            if (imageUrl) {
+                try {
+                    const response = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 8000 });
+                    imageBase64 = Buffer.from(response.data, 'binary').toString('base64');
+                } catch (e) { console.warn('Image fetch failed:', e.message); }
+            }
+            content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
+        }
+
+        if (content) {
+            const result = await postToPlatforms(content, ['threads'], imageUrl, accountId);
+            res.json({ success: true, result });
+        } else {
+            res.status(500).json({ error: 'Failed to generate content' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ── CRON SYSTEM ────────────────────────────────────────────────────────────────
+
 app.get('/api/cron', async (req, res) => {
     const secretParam = req.query.secret;
     const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
 
-    if (process.env.CRON_SECRET && secretParam !== expectedSecret) {
+    if (secretParam !== expectedSecret) {
         return res.status(200).json({ success: false, error: 'Unauthorized' });
     }
 
     const targetAccountId = req.query.accountId ? parseInt(req.query.accountId, 10) : null;
     const isMasterPing = req.query.master === 'true' || !targetAccountId;
 
-    // Robust WITA (UTC+8) Time Calculation
     const now = new Date();
     const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
     const witaTime = new Date(utcTime + (3600000 * 8)); 
@@ -61,9 +140,8 @@ app.get('/api/cron', async (req, res) => {
         const protocol = host.includes('localhost') ? 'http' : 'https';
         const baseUrl = `${protocol}://${host}`;
         
-        // PING OTHERS (NON-BLOCKING)
         if (isMasterPing) {
-            const pingOptions = { timeout: 5000 }; 
+            const pingOptions = { timeout: 8000 }; 
             setTimeout(() => {
                 axios.get(`${baseUrl}/api/tiktok/cron?secret=${expectedSecret}`, pingOptions).catch(() => {});
                 axios.get(`${baseUrl}/api/instagram/cron?secret=${expectedSecret}`, pingOptions).catch(() => {});
@@ -71,54 +149,40 @@ app.get('/api/cron', async (req, res) => {
             }, 5);
         }
 
-        // Check global switch
         const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{value: 'true'}]);
         if (globalStatus[0]?.value === 'false') {
             return res.status(200).json({ success: true, status: 'Automation disabled globally.' });
         }
 
-        // BATCH FETCH ACCOUNTS & SCHEDULES
         const accounts = targetAccountId 
             ? await sql`SELECT id, name FROM accounts WHERE id = ${targetAccountId} AND is_active = 1`
             : await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
 
-        if (accounts.length === 0) return res.json({ success: true, status: 'No active accounts' });
-
         const executed = [];
         for (const acc of accounts) {
             try {
-                // Check daily limit
                 const [ranToday] = await sql`SELECT COUNT(*) as count FROM schedules WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}`;
-                const postsToday = parseInt(ranToday?.count || 0, 10);
-                if (postsToday >= 5) continue;
+                if (parseInt(ranToday?.count || 0) >= 5) continue;
 
-                // Check pending
                 const pending = await sql`
                     SELECT * FROM schedules 
                     WHERE account_id = ${acc.id} AND is_active = 1 AND (last_run_date IS NULL OR last_run_date != ${todayStr})
-                    LIMIT 1
                 `;
-                
-                if (pending.length === 0) continue;
+                if (!pending.length) continue;
 
-                const chance = (5 - postsToday) / totalMinutesLeft;
+                const chance = (5 - parseInt(ranToday?.count || 0)) / totalMinutesLeft;
                 if (Math.random() < chance) {
-                    const sch = pending[0];
+                    const sch = pending[Math.floor(Math.random() * pending.length)];
                     await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${sch.id}`;
-                    
-                    // Trigger async task
-                    runScheduledTask(sch).catch(e => console.error(`[Cron-Task] Failed for ${acc.name}:`, e.message));
+                    runScheduledTask(sch).catch(e => console.error(`[Cron-Task] ${acc.name} Error:`, e.message));
                     executed.push({ account: acc.name, scheduleId: sch.id });
                 }
-            } catch (accErr) {
-                console.error(`[Cron-Acc] ${acc.name} Error:`, accErr.message);
-            }
+            } catch (accErr) { console.error(`[Cron-Acc] ${acc.name}:`, accErr.message); }
         }
 
         cleanupOldHistory().catch(() => {});
         res.status(200).json({ success: true, executed });
     } catch (e) {
-        console.error('[Cron-Master] Error:', e.message);
         res.status(200).json({ success: false, error: e.message });
     }
 });
@@ -144,24 +208,20 @@ async function runScheduledTask(schedule) {
         }
         
         const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
-        if (content) {
-            await postToPlatforms(content, ['threads'], imageUrl, accountId);
-        }
+        if (content) await postToPlatforms(content, ['threads'], imageUrl, accountId);
     }
 }
 
 app.get('/api', (req, res) => res.json({ status: 'Online', time: new Date() }));
 
-// Global Error Handler - The Last Resort to prevent 500
+// Global Error Handler
 app.use((err, req, res, next) => {
     console.error('[Global-Error]', err);
-    res.status(200).json({ success: false, error: 'Internal system error but we caught it.', detail: err.message });
+    res.status(200).json({ success: false, error: 'Internal system error', detail: err.message });
 });
 
 if (!process.env.VERCEL) {
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`[Local] Server at ${PORT}`);
-    });
+    app.listen(PORT, '0.0.0.0', () => console.log(`[Local] Server at ${PORT}`));
 }
 
 export default app;
