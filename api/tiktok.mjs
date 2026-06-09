@@ -9,7 +9,10 @@ import { generateSlideImages } from '../lib/tiktok_carousel.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const app = express.Router();
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // In-memory PKCE store (serverless — resets per cold start, but OAuth is one-shot)
 const pkceStore = new Map();

@@ -12,10 +12,8 @@ import { postToPlatforms } from '../lib/threads_service.js';
 import axios from 'axios';
 import fs from 'fs';
 
-// Import Routers
-import tiktokRouter from './tiktok.mjs';
-import instagramRouter from './instagram.mjs';
-import facebookRouter from './facebook.mjs';
+// axios, fs already imported
+
 
 const app = express();
 app.use(cors());
@@ -26,11 +24,6 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(async (req, res, next) => {
   try { await initDb(); next(); } catch (e) { next(); }
 });
-
-// Mount Routers (they are now express.Router())
-app.use(tiktokRouter); 
-app.use(instagramRouter); 
-app.use(facebookRouter); 
 
 const PORT = process.env.PORT || 3000;
 
