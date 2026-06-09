@@ -280,10 +280,15 @@ app.get('/api/cron', async (req, res) => {
     const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - currentMinute));
 
     try {
-        // Ping Instagram Cron internally (non-blocking)
         const protocol = req.get('host').includes('localhost') ? 'http' : 'https';
-        const igCronUrl = `${protocol}://${req.get('host')}/api/instagram/cron?secret=${expectedSecret}`;
-        fetch(igCronUrl).catch(e => console.error('[Cron-Ping-IG] Failed to trigger IG Cron:', e.message));
+        const baseUrl = `${protocol}://${req.get('host')}`;
+        
+        // Ping other crons concurrently and await them to ensure they finish in Vercel
+        console.log('[Cron-Master] Triggering TikTok and Instagram crons...');
+        await Promise.all([
+            fetch(`${baseUrl}/api/tiktok/cron?secret=${expectedSecret}`).catch(e => console.error('[Cron-Ping-TikTok] Failed:', e.message)),
+            fetch(`${baseUrl}/api/instagram/cron?secret=${expectedSecret}`).catch(e => console.error('[Cron-Ping-IG] Failed:', e.message))
+        ]);
 
         // Cek Saklar Utama
         const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`;
@@ -388,21 +393,27 @@ async function runScheduledTask(schedule) {
 
             if (imageUrl) {
                 try {
-                    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+                    const response = await axios.get(imageUrl, { 
+                        responseType: 'arraybuffer',
+                        timeout: 10000 // 10 second timeout
+                    });
                     imageBase64 = Buffer.from(response.data, 'binary').toString('base64');
                 } catch (fetchErr) {
-                    console.error(`[Scheduler-Acc:${accountId}] Image fetch failed:`, fetchErr.message);
+                    console.error(`[Scheduler-Acc:${accountId}] Image fetch failed for ${imageUrl}:`, fetchErr.message);
                 }
             }
             
             console.log(`[Scheduler-Acc:${accountId}] Generating content...`);
             const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
+            if (!content) throw new Error('Content generation returned empty');
             
             console.log(`[Scheduler-Acc:${accountId}] Posting...`);
-            await postToPlatforms(content, ['threads'], imageUrl, accountId);
+            const postResults = await postToPlatforms(content, ['threads'], imageUrl, accountId);
+            console.log(`[Scheduler-Acc:${accountId}] Post results:`, JSON.stringify(postResults));
         }
     } catch (error) {
-        console.error(`[Scheduler] Error for account ${schedule.account_id}:`, error.message);
+        console.error(`[Scheduler] Critical Error for account ${schedule.account_id}:`, error.message);
+        // We don't rethrow here to prevent crashing the entire cron loop
     }
 }
 
