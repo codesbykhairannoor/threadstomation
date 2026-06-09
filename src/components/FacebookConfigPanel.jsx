@@ -73,7 +73,7 @@ const FacebookConfigPanel = ({ status, fetchData, loading, accountId, accounts }
   };
 
   const handleConnect = () => {
-    window.location.href = `${API}/auth?accountName=Facebook Page`;
+    window.location.href = `${API}/auth`;
   };
 
   const handleSaveManualAccount = async (e) => {
@@ -124,55 +124,50 @@ const FacebookConfigPanel = ({ status, fetchData, loading, accountId, accounts }
         <section className="glass-card mb-2">
           <h3>🔗 Connect Facebook Page</h3>
           <p className="section-desc">
-            Link your Facebook Page via Facebook Login OAuth or paste a custom Page token manually.
+            Link your Facebook Page via Facebook Login OAuth (Recommended) or set up manually.
           </p>
-          {accounts.length > 0 ? (
-            <div>
-              <div style={{ marginBottom: '1rem' }}>
-                {accounts.map(acc => (
-                  <div key={acc.id} className="glass-card-nested flex-between" style={{ marginBottom: '0.5rem' }}>
-                    <div>
-                      <span style={{ fontWeight: 700 }}>{acc.name}</span>
-                      <span className="time" style={{ marginLeft: '0.5rem' }}>ID: {acc.facebook_page_id}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className={`badge ${acc.is_active ? 'badge-success' : 'badge-error'}`}>
-                        {acc.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                      <button 
-                        className="btn-icon delete-btn" 
-                        onClick={async () => {
-                          if (confirm(`Are you sure you want to disconnect ${acc.name}?`)) {
-                            await fetch(`${API}/accounts/${acc.id}`, { method: 'DELETE' });
-                            window.location.reload();
-                          }
-                        }}
-                      >
-                        🗑️
-                      </button>
-                    </div>
+          {accounts.length > 0 && (
+            <div style={{ marginBottom: '1rem' }}>
+              {accounts.map(acc => (
+                <div key={acc.id} className="glass-card-nested flex-between" style={{ marginBottom: '0.5rem' }}>
+                  <div>
+                    <span style={{ fontWeight: 700 }}>{acc.name}</span>
+                    <span className="time" style={{ marginLeft: '0.5rem' }}>ID: {acc.facebook_page_id}</span>
                   </div>
-                ))}
-              </div>
-              <button className="btn btn-outline w-full" onClick={handleConnect}>
-                ➕ Connect via Facebook OAuth
-              </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className={`badge ${acc.is_active ? 'badge-success' : 'badge-error'}`}>
+                      {acc.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                    <button 
+                      className="btn-icon delete-btn" 
+                      onClick={async () => {
+                        if (confirm(`Are you sure you want to disconnect ${acc.name}?`)) {
+                          await fetch(`${API}/accounts/${acc.id}`, { method: 'DELETE' });
+                          window.location.reload();
+                        }
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : (
-            <button className="btn btn-glow w-full" onClick={handleConnect} style={{ background: 'linear-gradient(135deg, #00c6ff, #0072ff)' }}>
-              📘 Connect Facebook Page via Login
-            </button>
           )}
 
-          <div style={{ margin: '1rem 0', textAlign: 'center', opacity: 0.5 }}>— OR —</div>
+          <button className="btn btn-glow w-full" onClick={handleConnect} style={{ background: 'linear-gradient(135deg, #00c6ff, #0072ff)', padding: '12px', fontSize: '15px' }}>
+            📘 Connect via Facebook Login (Auto-Link)
+          </button>
+
+          <div style={{ margin: '1.5rem 0 1rem', textAlign: 'center', opacity: 0.3, fontSize: '12px' }}>— ADVANCED SETUP —</div>
 
           <button 
             type="button" 
             className="btn btn-outline w-full" 
             onClick={() => setShowManual(!showManual)}
-            style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+            style={{ borderColor: 'rgba(255,255,255,0.05)', fontSize: '13px', opacity: 0.7 }}
           >
-            {showManual ? '🙈 Hide Manual Setup' : '⚙️ Set Up Manually (Custom Token)'}
+            {showManual ? '🙈 Hide Manual Setup' : '⚙️ Setup Manually (Custom Token)'}
           </button>
 
           {showManual && (

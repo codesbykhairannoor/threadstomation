@@ -12,8 +12,8 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
             <span className="badge badge-neutral">⚪ No Account Selected</span>
           ) : (
             <>
-              <span className={`badge ${statusLoading ? 'badge-neutral' : status.facebookToken ? 'badge-success' : 'badge-error'}`}>
-                {statusLoading ? '⏳ Checking...' : status.facebookToken ? '🔗 API Linked' : '🔴 API Offline'}
+              <span className={`badge ${statusLoading ? 'badge-neutral animate-pulse' : status.facebookToken ? 'badge-success' : 'badge-error'}`}>
+                {statusLoading ? '⏳ Checking API Status...' : status.facebookToken ? '🔗 API Linked' : '🔴 API Offline'}
               </span>
               <button
                 className={`btn btn-xs ${status.automation_enabled === 'false' ? 'btn-danger' : 'btn-glow'}`}
@@ -42,10 +42,10 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
               <button
                 className="btn btn-glow w-full"
                 onClick={() => handlePostNow()}
-                disabled={loading || !status.facebookToken || !accountId}
+                disabled={loading || !status.facebookToken || !accountId || statusLoading}
                 style={{ background: 'linear-gradient(135deg, #00c6ff, #0072ff)' }}
               >
-                📘 Generate &amp; Post Now
+                {statusLoading ? 'Checking...' : '📘 Generate & Post Now'}
               </button>
             </div>
             {!accountId ? (
@@ -53,7 +53,7 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
                 <p>⚠️ No account selected.</p>
                 <p>Please select an account from the sidebar or go to <strong>Settings</strong> to connect a new one.</p>
               </div>
-            ) : !status.facebookToken && (
+            ) : !status.facebookToken && !statusLoading && (
               <div className="tiktok-auth-hint">
                 <p>⚠️ Facebook token invalid or missing.</p>
                 <p>Go to <strong>Settings</strong> tab to re-connect your account.</p>
@@ -82,7 +82,9 @@ const FacebookDashboard = ({ status, handlePostNow, history, loading, statusLoad
           <section className="glass-card history-card">
             <h3>Post History</h3>
             <div className="history-list">
-              {!accountId ? (
+              {statusLoading ? (
+                <div className="empty-state animate-pulse">Loading history...</div>
+              ) : !accountId ? (
                 <div className="empty-state">Select an account to view history.</div>
               ) : history.length > 0 ? history.map(item => (
                 <div key={item.id} className="history-item">

@@ -4,6 +4,8 @@ import FacebookConfigPanel from './FacebookConfigPanel';
 
 const API = '/api/facebook';
 
+// UI Version: 1.0.3 (Force Refresh)
+
 const FacebookSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId, setSelectedAccountId, onBack }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📘' },
@@ -106,7 +108,6 @@ const FacebookApp = ({ onBack }) => {
   };
 
   const fetchData = async () => {
-    // We fetch status even if no accountId is selected to check if API is alive
     setStatusLoading(true);
     try {
       const idParam = selectedAccountId || 'null';
@@ -120,7 +121,8 @@ const FacebookApp = ({ onBack }) => {
         setStatus(sData); 
         setFetchError(''); 
       } else {
-        setFetchError(`Status check failed: ${sRes.status}`);
+        const errTxt = await sRes.text();
+        setFetchError(`Status check failed: ${sRes.status}. ${errTxt.substring(0, 50)}`);
       }
       
       if (hRes.ok) {

@@ -1,3 +1,8 @@
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+process.env.FONTCONFIG_PATH = join(__dirname, '../lib/fonts');
+
 import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
@@ -9,27 +14,37 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// DB INIT MIDDLEWARE
+// ── DB INIT MIDDLEWARE ────────────────────────────────────────────────────────
 app.use(async (req, res, next) => {
-  try { await initDb(); next(); } catch (e) { next(); }
-});
-
-// Helper to strip /api/facebook prefix if express doesn't do it
-app.use((req, res, next) => {
-  if (req.url.startsWith('/api/facebook')) {
-    req.url = req.url.replace('/api/facebook', '');
-    if (req.url === '') req.url = '/';
+  try { 
+    await initDb(); 
+    // Manual migration safety check for Facebook
+    await sql`ALTER TABLE facebook_accounts ADD COLUMN IF NOT EXISTS master_prompt TEXT`.catch(() => {});
+    await sql`ALTER TABLE facebook_accounts ADD COLUMN IF NOT EXISTS visual_theme TEXT`.catch(() => {});
+    await sql`ALTER TABLE facebook_accounts ADD COLUMN IF NOT EXISTS color_palette TEXT`.catch(() => {});
+    await sql`ALTER TABLE facebook_accounts ADD COLUMN IF NOT EXISTS preferred_layout INTEGER DEFAULT 0`.catch(() => {});
+    
+    await sql`
+      CREATE TABLE IF NOT EXISTS facebook_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )
+    `.catch(() => {});
+    
+    next(); 
+  } catch (e) { 
+    console.error('[Facebook-Init] DB Error:', e.message);
+    next(); 
   }
-  next();
 });
 
 // ── TEST ──────────────────────────────────────────────────────────────────────
 
-app.get('/', (req, res) => res.json({ status: 'Facebook API Online', version: '1.0.1' }));
+app.get('/api/facebook', (req, res) => res.json({ status: 'Facebook API Online', version: '1.0.2' }));
 
 // ── OAUTH FLOW ────────────────────────────────────────────────────────────────
 
-app.get('/auth', (req, res) => {
+app.get('/api/facebook/auth', (req, res) => {
   const host = req.get('host');
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const redirectUri = `${protocol}://${host}/api/facebook/callback`;
@@ -47,7 +62,7 @@ app.get('/auth', (req, res) => {
   res.redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`);
 });
 
-app.get('/callback', async (req, res) => {
+app.get('/api/facebook/callback', async (req, res) => {
   const { code, error } = req.query;
   if (error) return res.redirect(`/facebook?auth_error=${encodeURIComponent(error)}`);
 
@@ -102,12 +117,12 @@ app.get('/callback', async (req, res) => {
 
 // ── STATUS ────────────────────────────────────────────────────────────────────
 
-app.get('/status', async (req, res) => {
+app.get('/api/facebook/status', async (req, res) => {
   const accountId = req.query.accountId;
   try {
     const autoRow = await sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`.catch(() => [{value:'true'}]);
     
-    if (!accountId || accountId === 'null' || accountId === '') {
+    if (!accountId || accountId === 'null' || accountId === '' || isNaN(parseInt(accountId))) {
         return res.json({ facebookToken: false, automation_enabled: autoRow[0]?.value || 'true', schedules: [] });
     }
 
@@ -133,7 +148,7 @@ app.get('/status', async (req, res) => {
 
 // ── ACCOUNTS ──────────────────────────────────────────────────────────────────
 
-app.get('/accounts', async (req, res) => {
+app.get('/api/facebook/accounts', async (req, res) => {
   try {
     const rows = await sql`SELECT * FROM facebook_accounts ORDER BY id ASC`;
     res.json(rows);
@@ -142,7 +157,7 @@ app.get('/accounts', async (req, res) => {
   }
 });
 
-app.post('/accounts', async (req, res) => {
+app.post('/api/facebook/accounts', async (req, res) => {
   const { name, pageId, accessToken } = req.body;
   if (!pageId || !accessToken) return res.status(400).json({ error: 'pageId and accessToken required' });
 
@@ -163,7 +178,7 @@ app.post('/accounts', async (req, res) => {
   }
 });
 
-app.delete('/accounts/:id', async (req, res) => {
+app.delete('/api/facebook/accounts/:id', async (req, res) => {
   try {
     await sql`DELETE FROM facebook_accounts WHERE id = ${req.params.id}`;
     res.json({ success: true });
@@ -172,7 +187,7 @@ app.delete('/accounts/:id', async (req, res) => {
   }
 });
 
-app.put('/accounts/:id/config', async (req, res) => {
+app.put('/api/facebook/accounts/:id/config', async (req, res) => {
   const { id } = req.params;
   const { master_prompt, visual_theme, color_palette, preferred_layout } = req.body;
   try {
@@ -192,7 +207,7 @@ app.put('/accounts/:id/config', async (req, res) => {
 
 // ── SETTINGS ──────────────────────────────────────────────────────────────────
 
-app.post('/settings/toggle-automation', async (req, res) => {
+app.post('/api/facebook/settings/toggle-automation', async (req, res) => {
   try {
     const current = await sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`;
     const newValue = (current[0]?.value === 'false') ? 'true' : 'false';
@@ -208,7 +223,7 @@ app.post('/settings/toggle-automation', async (req, res) => {
 
 // ── SCHEDULES ─────────────────────────────────────────────────────────────────
 
-app.get('/schedules', async (req, res) => {
+app.get('/api/facebook/schedules', async (req, res) => {
   const { accountId } = req.query;
   try {
     const rows = await sql`SELECT * FROM facebook_schedules WHERE account_id = ${accountId} ORDER BY id ASC`;
@@ -218,7 +233,7 @@ app.get('/schedules', async (req, res) => {
   }
 });
 
-app.post('/schedules', async (req, res) => {
+app.post('/api/facebook/schedules', async (req, res) => {
   const { custom_prompt, accountId } = req.body;
   try {
     await sql`
@@ -231,7 +246,7 @@ app.post('/schedules', async (req, res) => {
   }
 });
 
-app.delete('/schedules/:id', async (req, res) => {
+app.delete('/api/facebook/schedules/:id', async (req, res) => {
   try {
     await sql`DELETE FROM facebook_schedules WHERE id = ${req.params.id}`;
     res.json({ success: true });
@@ -242,7 +257,7 @@ app.delete('/schedules/:id', async (req, res) => {
 
 // ── HISTORY ───────────────────────────────────────────────────────────────────
 
-app.get('/history', async (req, res) => {
+app.get('/api/facebook/history', async (req, res) => {
   const { accountId } = req.query;
   try {
     const history = (accountId && accountId !== 'null')
@@ -256,7 +271,7 @@ app.get('/history', async (req, res) => {
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 
-app.post('/post-now', async (req, res) => {
+app.post('/api/facebook/post-now', async (req, res) => {
   const { accountId, customPrompt } = req.body;
   if (!accountId) return res.status(400).json({ error: 'accountId required' });
 
@@ -271,7 +286,7 @@ app.post('/post-now', async (req, res) => {
 
 // ── CRON ──────────────────────────────────────────────────────────────────────
 
-app.get('/cron', async (req, res) => {
+app.get('/api/facebook/cron', async (req, res) => {
   const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
   const secretParam = req.query.secret;
 
