@@ -6,7 +6,7 @@ process.env.FONTCONFIG_PATH = join(__dirname, '../lib/fonts');
 import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
-import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts } from '../lib/instagram.js';
+import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts, postToFacebook } from '../lib/instagram.js';
 import { generateInstagramContent } from '../lib/gemini_instagram.js';
 import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
 
@@ -107,11 +107,12 @@ app.get('/api/instagram/callback', async (req, res) => {
     // 4. Save accounts to DB
     for (const acc of accounts) {
       await sql`
-        INSERT INTO instagram_accounts (name, instagram_business_id, access_token, expires_at, is_active)
-        VALUES (${acc.name} + ' (' + ${acc.username} + ')', ${acc.instagram_business_id}, ${acc.page_access_token}, ${expiresAt}, 1)
+        INSERT INTO instagram_accounts (name, instagram_business_id, facebook_page_id, access_token, expires_at, is_active)
+        VALUES (${acc.name} + ' (' + ${acc.username} + ')', ${acc.instagram_business_id}, ${acc.facebook_page_id}, ${acc.page_access_token}, ${expiresAt}, 1)
         ON CONFLICT (instagram_business_id)
         DO UPDATE SET
           access_token = ${acc.page_access_token},
+          facebook_page_id = ${acc.facebook_page_id},
           expires_at = ${expiresAt},
           name = ${acc.name} + ' (' + ${acc.username} + ')',
           is_active = 1
@@ -339,6 +340,13 @@ async function runInstagramPost(accountId, customPrompt = null) {
   const finalCaption = `${caption}\n\n${hashtagStr}`;
   
   const { publishId, status } = await postToInstagram(imageUrls, finalCaption, accountId);
+
+  // Step 3.5: Publish to Facebook (if enabled)
+  console.log(`[Instagram-Post] Attempting Facebook crosspost for account ${accountId}...`);
+  const fbResult = await postToFacebook(imageUrls, finalCaption, accountId);
+  if (fbResult.publishId) {
+    console.log(`[Facebook-Post] Successfully crossposted to FB with ID: ${fbResult.publishId}`);
+  }
 
   // Step 4: Save success to history
   await sql`
