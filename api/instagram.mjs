@@ -50,7 +50,7 @@ app.get('/api/instagram/auth', (req, res) => {
     client_id: appId,
     redirect_uri: redirectUri,
     state: stateKey,
-    scope: 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement',
+    scope: 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,pages_manage_posts',
     response_type: 'code',
   });
 
@@ -107,11 +107,12 @@ app.get('/api/instagram/callback', async (req, res) => {
     // 4. Save accounts to DB
     for (const acc of accounts) {
       await sql`
-        INSERT INTO instagram_accounts (name, instagram_business_id, facebook_page_id, access_token, expires_at, is_active)
-        VALUES (${acc.name} + ' (' + ${acc.username} + ')', ${acc.instagram_business_id}, ${acc.facebook_page_id}, ${acc.page_access_token}, ${expiresAt}, 1)
+        INSERT INTO instagram_accounts (name, instagram_business_id, facebook_page_id, access_token, facebook_access_token, expires_at, is_active)
+        VALUES (${acc.name} + ' (' + ${acc.username} + ')', ${acc.instagram_business_id}, ${acc.facebook_page_id}, ${acc.page_access_token}, ${acc.page_access_token}, ${expiresAt}, 1)
         ON CONFLICT (instagram_business_id)
         DO UPDATE SET
           access_token = ${acc.page_access_token},
+          facebook_access_token = ${acc.page_access_token},
           facebook_page_id = ${acc.facebook_page_id},
           expires_at = ${expiresAt},
           name = ${acc.name} + ' (' + ${acc.username} + ')',

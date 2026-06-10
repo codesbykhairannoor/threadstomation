@@ -10,6 +10,7 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
   const [visualTheme, setVisualTheme] = useState('');
   const [colorPalette, setColorPalette] = useState('');
   const [preferredLayout, setPreferredLayout] = useState(0);
+  const [crosspostFb, setCrosspostFb] = useState(1);
   const [savingConfig, setSavingConfig] = useState(false);
 
   // Manual configuration states
@@ -27,6 +28,7 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
       setVisualTheme(acc.visual_theme || '');
       setColorPalette(acc.color_palette || '');
       setPreferredLayout(acc.preferred_layout || 0);
+      setCrosspostFb(acc.crosspost_to_facebook !== undefined ? acc.crosspost_to_facebook : 1);
     }
   }, [accountId, accounts]);
 
@@ -60,7 +62,8 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
           master_prompt: masterPrompt,
           visual_theme: visualTheme,
           color_palette: colorPalette,
-          preferred_layout: parseInt(preferredLayout)
+          preferred_layout: parseInt(preferredLayout),
+          crosspost_to_facebook: crosspostFb ? 1 : 0
         })
       });
       if (res.ok) {
@@ -279,6 +282,21 @@ const InstagramConfigPanel = ({ status, fetchData, loading, accountId, accounts 
               <option value="2">2 - Startup Educational Bento</option>
             </select>
             <small className="opacity-50">Choose how the text is arranged on the slides.</small>
+          </div>
+
+          <div className="input-group" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={!!crosspostFb}
+                onChange={e => setCrosspostFb(e.target.checked ? 1 : 0)}
+              />
+              <span className="slider round" />
+            </label>
+            <div>
+              <label className="text-xs" style={{ display: 'block', marginBottom: '2px' }}>Enable Facebook Crossposting</label>
+              <small className="opacity-50">Automatically publish this account's Instagram posts to its linked Facebook Page.</small>
+            </div>
           </div>
 
           <button className="btn btn-glow w-full" onClick={saveAccountConfig} disabled={savingConfig}>
