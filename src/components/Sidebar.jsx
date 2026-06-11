@@ -10,7 +10,7 @@ const Sidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId, setSele
     <div className="sidebar">
       <div className="sidebar-brand">
         <div className="brand-icon">🚀</div>
-        <h2>Socmed AI</h2>
+        <h2 style={{ fontSize: '1.2rem' }}>threadstomation</h2>
       </div>
 
       {/* Back to platform selector */}
