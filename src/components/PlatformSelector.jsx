@@ -44,6 +44,16 @@ const PlatformSelector = ({ onSelect }) => {
       glowColor: 'rgba(0, 114, 255, 0.25)',
       available: true,
     },
+    {
+      id: 'tumblr',
+      icon: '📝',
+      name: 'Tumblr AI',
+      description: 'Automatically post AI-generated photo sets and captions to your Tumblr blogs.',
+      features: ['Photo Sets', 'Auto Scheduling', 'AI Content Engine', 'Multi-Blog Support'],
+      gradient: 'linear-gradient(135deg, #001935 0%, #36465D 100%)',
+      glowColor: 'rgba(0, 25, 53, 0.25)',
+      available: true,
+    },
   ];
 
   return (

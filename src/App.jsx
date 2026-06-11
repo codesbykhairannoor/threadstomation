@@ -8,6 +8,7 @@ import PlatformSelector from './components/PlatformSelector';
 import TikTokApp from './components/TikTokApp';
 import InstagramApp from './components/InstagramApp';
 import FacebookApp from './components/FacebookApp';
+import TumblrApp from './components/TumblrApp';
 import './App.css';
 
 const API_BASE = '';
@@ -163,6 +164,9 @@ function App() {
   }
   if (pathname === '/facebook') {
     return <FacebookApp onBack={() => navigate('/')} />;
+  }
+  if (pathname === '/tumblr') {
+    return <TumblrApp onBack={() => navigate('/')} />;
   }
 
   // Home → Platform Selector

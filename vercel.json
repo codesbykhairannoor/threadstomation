@@ -22,6 +22,14 @@
       "destination": "/term-of-service.html"
     },
     {
+      "source": "/api/tumblr",
+      "destination": "/api/tumblr.mjs"
+    },
+    {
+      "source": "/api/tumblr/(.*)",
+      "destination": "/api/tumblr.mjs"
+    },
+    {
       "source": "/api/tiktok",
       "destination": "/api/tiktok.mjs"
     },

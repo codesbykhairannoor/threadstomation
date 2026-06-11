@@ -10,11 +10,21 @@ import { generateThreadsContent } from '../lib/gemini.js';
 import { postToPlatforms } from '../lib/threads_service.js';
 import axios from 'axios';
 import fs from 'fs';
+import tiktokApp from './tiktok.mjs';
+import instagramApp from './instagram.mjs';
+import facebookApp from './facebook.mjs';
+import tumblrApp from './tumblr.mjs';
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Mount platform specific routers
+app.use(tiktokApp);
+app.use(instagramApp);
+app.use(facebookApp);
+app.use(tumblrApp);
 
 // Global DB Init Middleware
 app.use(async (req, res, next) => {
