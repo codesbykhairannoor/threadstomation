@@ -21,7 +21,12 @@ async function testMastodon() {
 
   let imageUrls = [];
   if (slides && slides.length > 0) {
-    imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, "caridisinishop_mastodon");
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, "caridisinishop_mastodon");
+    } else {
+      console.log('Skipping Supabase upload locally due to missing key');
+      imageUrls = ['https://via.placeholder.com/800x600?text=Test+Mastodon+Image'];
+    }
   }
 
   let mediaIds = [];
@@ -30,9 +35,15 @@ async function testMastodon() {
     mediaIds.push(id);
   }
 
-  const cleanCaption = caption.replace(/<[^>]+>/g, '') + '\n\n' + hashtags.map(h => '#' + h.replace('#', '')).join(' ');
+  let cleanText = caption.replace(/<[^>]+>/g, '').trim();
+  if (cleanText.length > 480) {
+    cleanText = cleanText.substring(0, 480) + '...';
+  }
 
-  const response = await postToMastodon(token, 'https://mastodon.social', cleanCaption, mediaIds);
+  const hashtagsText = hashtags && hashtags.length > 0 ? `\n\n${hashtags.map(h => '#' + h.replace('#', '')).join(' ')}` : '';
+  const statusText = `${cleanText}${hashtagsText}`.substring(0, 500);
+
+  const response = await postToMastodon(token, 'https://mastodon.social', statusText, mediaIds);
   console.log(`[Mastodon-Test] Success! Post ID: ${response.id}`);
   process.exit(0);
 }

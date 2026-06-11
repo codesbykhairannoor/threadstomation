@@ -145,14 +145,26 @@ async function runMastodonPost(accountId, customPrompt = null) {
 
   // Mastodon doesn't support HTML in the same way, but it will parse basic URLs into links. 
   // We'll strip any heavy HTML tags from caption if generateTumblrContent used HTML.
-  const cleanCaption = caption.replace(/<[^>]+>/g, '') + '\n\n' + hashtags.map(h => '#' + h.replace('#', '')).join(' ');
+  // Mastodon API limit is 500 chars
+  let cleanText = caption.replace(/<[^>]+>/g, '').trim();
+  if (cleanText.length > 480) {
+    cleanText = cleanText.substring(0, 480) + '...';
+  }
 
-  const response = await postToMastodon(account.access_token, account.instance_url, cleanCaption, mediaIds);
+  const hashtagsText = hashtags && hashtags.length > 0 ? `\n\n${hashtags.map(h => '#' + h.replace('#', '')).join(' ')}` : '';
+  const statusText = `${cleanText}${hashtagsText}`.substring(0, 500);
+
+  const response = await postToMastodon(
+    account.access_token,
+    account.instance_url,
+    statusText,
+    mediaIds
+  );
   console.log(`[Mastodon-Post] Successfully posted to Mastodon. Post ID: ${response.id}`);
 
   await sql`
     INSERT INTO mastodon_history (account_id, caption, slide_count, image_urls, post_id, status)
-    VALUES (${accountId}, ${cleanCaption}, ${imageUrls.length}, ${JSON.stringify(imageUrls)}, ${String(response.id)}, 'success')
+    VALUES (${accountId}, ${statusText}, ${imageUrls.length}, ${JSON.stringify(imageUrls)}, ${String(response.id)}, 'success')
   `;
 
   return { publishId: response.id, status: 'success' };
