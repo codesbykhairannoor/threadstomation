@@ -660,9 +660,9 @@ input:checked + .slider:before {
   inset: 0;
   background: var(--background);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  overflow: hidden;
+  overflow-y: auto;
   z-index: 999;
 }
 
@@ -754,7 +754,7 @@ input:checked + .slider:before {
 /* Cards container */
 .ps-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.5rem;
   width: 100%;
   animation: fadeIn 0.6s ease-out 0.2s both;
