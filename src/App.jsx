@@ -10,6 +10,7 @@ import InstagramApp from './components/InstagramApp';
 import FacebookApp from './components/FacebookApp';
 import TumblrApp from './components/TumblrApp';
 import MastodonApp from './components/MastodonApp';
+import DevtoApp from './components/DevtoApp';
 import './App.css';
 
 const API_BASE = '';
@@ -171,6 +172,9 @@ function App() {
   }
   if (pathname === '/mastodon') {
     return <MastodonApp onBack={() => navigate('/')} />;
+  }
+  if (pathname === '/devto') {
+    return <DevtoApp onBack={() => navigate('/')} />;
   }
 
   // Home → Platform Selector

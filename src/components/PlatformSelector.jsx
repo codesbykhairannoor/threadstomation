@@ -64,6 +64,16 @@ const PlatformSelector = ({ onSelect }) => {
       glowColor: 'rgba(43, 144, 217, 0.25)',
       available: true,
     },
+    {
+      id: 'devto',
+      icon: '👩‍💻',
+      name: 'DEV.TO Articles',
+      description: 'Automatically publish AI-generated affiliate articles to your DEV.TO community.',
+      features: ['Markdown Support', 'Auto Scheduling', 'AI Article Writer', 'No-Review API'],
+      gradient: 'linear-gradient(135deg, #0a0a0a 0%, #3b49df 100%)',
+      glowColor: 'rgba(59, 73, 223, 0.25)',
+      available: true,
+    },
   ];
 
   return (

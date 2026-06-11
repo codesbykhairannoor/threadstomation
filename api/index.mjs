@@ -15,6 +15,7 @@ import instagramApp from './instagram.mjs';
 import facebookApp from './facebook.mjs';
 import tumblrApp from './tumblr.mjs';
 import mastodonApp from './mastodon.mjs';
+import devtoApp from './devto.mjs';
 
 const app = express();
 app.use(cors());
@@ -27,6 +28,7 @@ app.use(instagramApp);
 app.use(facebookApp);
 app.use(tumblrApp);
 app.use(mastodonApp);
+app.use(devtoApp);
 
 // Global DB Init Middleware
 app.use(async (req, res, next) => {

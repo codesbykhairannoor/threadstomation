@@ -58,6 +58,10 @@
       "destination": "/api/index.mjs"
     },
     {
+      "source": "/api/devto/(.*)",
+      "destination": "/api/index.mjs"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.mjs"
     },
