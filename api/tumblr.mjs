@@ -246,7 +246,7 @@ app.get('/api/tumblr/cron', async (req, res) => {
   const secretParam = req.query.secret;
 
   if (process.env.CRON_SECRET) {
-    if (authHeader !== \`Bearer \${expectedSecret}\` && secretParam !== expectedSecret) {
+    if (authHeader !== `Bearer ${expectedSecret}` && secretParam !== expectedSecret) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
   }
