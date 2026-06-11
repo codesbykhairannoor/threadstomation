@@ -53,10 +53,9 @@ const PlatformSelector = ({ onSelect }) => {
       <div className="ps-blob ps-blob-2" />
 
       <div className="ps-content">
-        {/* Header */}
         <div className="ps-header">
           <div className="ps-logo">🚀</div>
-          <h1 className="ps-title">Socmed <span className="ps-title-accent">AI</span></h1>
+          <h1 className="ps-title">Threadstomation</h1>
           <p className="ps-subtitle">Choose your automation platform to get started</p>
         </div>
 
