@@ -41,7 +41,7 @@ const DevtoConfigPanel = ({ status, fetchData, loading, accountId, accounts, sta
         <section className="glass-card mb-2">
           <h3>🔗 Connect Dev.to Account</h3>
           <p className="section-desc">
-            Link your Dev.to account using your API Key. You can find this in your Dev.to Settings > Extensions.
+            Link your Dev.to account using your API Key. You can find this in your Dev.to Settings &gt; Extensions.
           </p>
           <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
             <input
