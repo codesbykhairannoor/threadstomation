@@ -54,6 +54,16 @@ const PlatformSelector = ({ onSelect }) => {
       glowColor: 'rgba(0, 25, 53, 0.25)',
       available: true,
     },
+    {
+      id: 'mastodon',
+      icon: '🐘',
+      name: 'Mastodon Auto',
+      description: 'Automatically publish affiliate content and image posts to your Mastodon instances.',
+      features: ['Mastodon API', 'Auto Scheduling', 'AI Content Engine', 'Multi-Instance Support'],
+      gradient: 'linear-gradient(135deg, #2b90d9 0%, #1c68a6 100%)',
+      glowColor: 'rgba(43, 144, 217, 0.25)',
+      available: true,
+    },
   ];
 
   return (

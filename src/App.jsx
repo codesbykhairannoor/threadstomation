@@ -9,6 +9,7 @@ import TikTokApp from './components/TikTokApp';
 import InstagramApp from './components/InstagramApp';
 import FacebookApp from './components/FacebookApp';
 import TumblrApp from './components/TumblrApp';
+import MastodonApp from './components/MastodonApp';
 import './App.css';
 
 const API_BASE = '';
@@ -167,6 +168,9 @@ function App() {
   }
   if (pathname === '/tumblr') {
     return <TumblrApp onBack={() => navigate('/')} />;
+  }
+  if (pathname === '/mastodon') {
+    return <MastodonApp onBack={() => navigate('/')} />;
   }
 
   // Home → Platform Selector
