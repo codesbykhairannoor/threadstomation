@@ -332,8 +332,21 @@ async function runInstagramPost(accountId, customPrompt = null) {
   const { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
   console.log(`[Instagram-Post] ${slides.length} slides generated`);
 
+  // Detect Affiliate Product for Dynamic Color Palette
+  let dynamicPalette = colorPalette;
+  if (customPrompt) {
+    const cp = customPrompt.toLowerCase();
+    if (cp.includes('make.com')) {
+      dynamicPalette = { name: 'make', bg1: '#ffffff', bg2: '#ffffff', accent: '#7b2cbf', text: '#000000' };
+    } else if (cp.includes('wise.com')) {
+      dynamicPalette = { name: 'wise', bg1: '#ffffff', bg2: '#ffffff', accent: '#9fe870', text: '#000000' };
+    } else if (cp.includes('systeme')) {
+      dynamicPalette = { name: 'systeme', bg1: '#ffffff', bg2: '#ffffff', accent: '#1778f2', text: '#000000' };
+    }
+  }
+
   // Step 2: Render slides via Satori/ImgLy & Upload to Supabase Storage
-  const imageUrls = await generateInstagramSlideImages(slides, colorPalette, accountName);
+  const imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName);
   console.log(`[Instagram-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
 
   // Step 3: Publish to Instagram
