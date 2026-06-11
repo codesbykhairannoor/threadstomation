@@ -179,10 +179,14 @@ async function runTumblrPost(accountId, customPrompt = null) {
 
   console.log(`[Tumblr-Post] Generating content for blog ${account.blog_name}...`);
 
-  // We reuse the Instagram carousel logic since the user wants the exact same content!
-  const accountName = account.name || "tumblr_blog";
+  const accountName = "caridisinishop_tumblr"; // Force caridisinishop persona instead of Adhlil for Tumblr
 
-  const { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
+  const tumblrPrompt = `
+    ${customPrompt || 'Create engaging content'}
+    [TUMBLR CRITICAL RULE: You MUST write the content in ENGLISH. This is an affiliate marketing post for a SaaS product (e.g., Make.com, Wise, Systeme). You MUST use highly aggressive marketing language like "Try it now", "Claim your free trial", "Click the link". The tone must be persuasive and hard-selling, identical to the 'caridisini' account strategy. Do not use Islamic themes.]
+  `;
+
+  const { slides, caption, hashtags } = await generateInstagramContent(tumblrPrompt, masterPrompt, visualTheme, accountName, accountId);
   console.log(`[Tumblr-Post] ${slides.length} slides generated`);
 
   let dynamicPalette = colorPalette;
