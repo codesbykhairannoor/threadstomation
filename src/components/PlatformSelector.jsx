@@ -74,6 +74,16 @@ const PlatformSelector = ({ onSelect }) => {
       glowColor: 'rgba(59, 73, 223, 0.25)',
       available: true,
     },
+    {
+      id: 'bluesky',
+      icon: '🦋',
+      name: 'Bluesky Autopilot',
+      description: 'Automatically post AI-generated text and images to the AT Protocol network.',
+      features: ['AT Protocol', 'Auto Scheduling', 'Text & Images', 'No-Review API'],
+      gradient: 'linear-gradient(135deg, #0085ff 0%, #00d2ff 100%)',
+      glowColor: 'rgba(0, 133, 255, 0.25)',
+      available: true,
+    },
   ];
 
   return (

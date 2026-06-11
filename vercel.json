@@ -62,6 +62,10 @@
       "destination": "/api/index.mjs"
     },
     {
+      "source": "/api/bluesky/(.*)",
+      "destination": "/api/index.mjs"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.mjs"
     },
