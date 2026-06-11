@@ -8,7 +8,7 @@ import {
   getTumblrUserInfo,
   postToTumblr
 } from '../lib/tumblr.js';
-import { generateInstagramContent } from '../lib/gemini_instagram.js';
+import { generateTumblrContent } from '../lib/gemini_tumblr.js';
 import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
 
 const app = express();
@@ -181,13 +181,8 @@ async function runTumblrPost(accountId, customPrompt = null) {
 
   const accountName = "caridisinishop_tumblr"; // Force caridisinishop persona instead of Adhlil for Tumblr
 
-  const tumblrPrompt = `
-    ${customPrompt || 'Create engaging content'}
-    [TUMBLR CRITICAL RULE: You MUST write the content in ENGLISH. This is an affiliate marketing post for a SaaS product (e.g., Make.com, Wise, Systeme). You MUST use highly aggressive marketing language like "Try it now", "Claim your free trial", "Click the link". The tone must be persuasive and hard-selling, identical to the 'caridisini' account strategy. Do not use Islamic themes.]
-  `;
-
-  const { slides, caption, hashtags } = await generateInstagramContent(tumblrPrompt, masterPrompt, visualTheme, accountName, accountId);
-  console.log(`[Tumblr-Post] ${slides.length} slides generated`);
+  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
+  console.log(`[Tumblr-Post] Generated with ${slides.length} images`);
 
   let dynamicPalette = colorPalette;
   if (customPrompt) {
@@ -201,8 +196,13 @@ async function runTumblrPost(accountId, customPrompt = null) {
     }
   }
 
-  const imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName);
-  console.log(`[Tumblr-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
+  let imageUrls = [];
+  if (slides && slides.length > 0) {
+    imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName);
+    console.log(`[Tumblr-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
+  } else {
+    console.log(`[Tumblr-Post] TEXT-ONLY mode activated. No images generated.`);
+  }
 
   const response = await postToTumblr(account.blog_name, accessToken, imageUrls, caption, hashtags);
   console.log(`[Tumblr-Post] Successfully posted to Tumblr. Post ID: ${response.id}`);
