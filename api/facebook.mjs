@@ -264,7 +264,15 @@ app.post('/api/facebook/post-now', async (req, res) => {
   if (!accountId) return res.status(400).json({ error: 'accountId required' });
 
   try {
-    const result = await runFacebookCarouselPost(parseInt(accountId), customPrompt);
+    let finalPrompt = customPrompt;
+    if (!finalPrompt) {
+      const pending = await sql`SELECT custom_prompt FROM facebook_schedules WHERE account_id = ${accountId} AND is_active = 1`;
+      if (pending.length > 0) {
+        finalPrompt = pending[Math.floor(Math.random() * pending.length)].custom_prompt;
+      }
+    }
+
+    const result = await runFacebookCarouselPost(parseInt(accountId), finalPrompt);
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('[Facebook-PostNow] Error:', e.message);
