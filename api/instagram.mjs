@@ -202,12 +202,12 @@ app.get('/api/instagram/status', async (req, res) => {
     const [schedules, lastPost, tokenRow, autoRow] = await Promise.all([
       sql`SELECT * FROM instagram_schedules WHERE account_id = ${accountId} ORDER BY id ASC`,
       sql`SELECT * FROM instagram_history WHERE account_id = ${accountId} ORDER BY id DESC LIMIT 1`,
-      sql`SELECT access_token, expires_at FROM instagram_accounts WHERE id = ${accountId}`,
+      sql`SELECT access_token, facebook_access_token, expires_at FROM instagram_accounts WHERE id = ${accountId}`,
       sql`SELECT value FROM instagram_settings WHERE key = 'instagram_automation_enabled'`,
     ]);
 
     const token = tokenRow[0];
-    const isTokenValid = !!(token?.access_token && (!token.expires_at || new Date(token.expires_at) > new Date()));
+    const isTokenValid = !!((token?.access_token || token?.facebook_access_token) && (!token.expires_at || new Date(token.expires_at) > new Date()));
 
     res.json({
       schedules,
