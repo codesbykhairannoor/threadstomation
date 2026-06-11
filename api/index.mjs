@@ -6,8 +6,7 @@ process.env.FONTCONFIG_PATH = join(__dirname, '../lib/fonts');
 import express from 'express';
 import cors from 'cors';
 import sql, { initDb, cleanupOldHistory } from '../lib/database.js';
-import { generateThreadsContent, generateShopeeAffiliatePost } from '../lib/gemini.js';
-import { getRandomShopeeProduct } from '../lib/shopee.js';
+import { generateThreadsContent } from '../lib/gemini.js';
 import { postToPlatforms } from '../lib/threads_service.js';
 import axios from 'axios';
 import fs from 'fs';
@@ -191,14 +190,9 @@ async function runScheduledTask(schedule) {
     const accountId = schedule.account_id;
     const account = await sql`SELECT account_type FROM accounts WHERE id = ${accountId}`.then(r => r[0]);
 
-    if (account?.account_type === 'shopee') {
-        const product = await getRandomShopeeProduct();
-        const caption = await generateShopeeAffiliatePost(product, accountId);
-        await postToPlatforms(caption, ['threads'], product.imageUrl, accountId);
-    } else {
-        const customPrompt = schedule.custom_prompt || null;
-        const imageUrl = schedule.image_url || null;
-        let imageBase64 = null;
+    const customPrompt = schedule.custom_prompt || null;
+    const imageUrl = schedule.image_url || null;
+    let imageBase64 = null;
 
         if (imageUrl) {
             try {
@@ -207,9 +201,8 @@ async function runScheduledTask(schedule) {
             } catch (e) { console.warn('[Task] Image fetch failed:', e.message); }
         }
         
-        const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
-        if (content) await postToPlatforms(content, ['threads'], imageUrl, accountId);
-    }
+    const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
+    if (content) await postToPlatforms(content, ['threads'], imageUrl, accountId);
 }
 
 app.get('/api', (req, res) => res.json({ status: 'Online', time: new Date() }));
