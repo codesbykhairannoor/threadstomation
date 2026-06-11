@@ -138,15 +138,6 @@ app.get('/api/cron', async (req, res) => {
         const host = req.headers.host || 'threadstomation.vercel.app';
         const protocol = host.includes('localhost') ? 'http' : 'https';
         const baseUrl = `${protocol}://${host}`;
-        
-        if (isMasterPing) {
-            const pingOptions = { timeout: 8000 }; 
-            setTimeout(() => {
-                axios.get(`${baseUrl}/api/tiktok/cron?secret=${expectedSecret}`, pingOptions).catch(() => {});
-                axios.get(`${baseUrl}/api/instagram/cron?secret=${expectedSecret}`, pingOptions).catch(() => {});
-                axios.get(`${baseUrl}/api/facebook/cron?secret=${expectedSecret}`, pingOptions).catch(() => {});
-            }, 5);
-        }
 
         const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{value: 'true'}]);
         if (globalStatus[0]?.value === 'false') {
