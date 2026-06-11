@@ -386,7 +386,7 @@ app.post('/api/instagram/post-now', async (req, res) => {
   try {
     let finalPrompt = customPrompt;
     if (!finalPrompt) {
-      const pending = await sql`SELECT custom_prompt FROM schedules WHERE account_id = ${accountId} AND is_active = 1`;
+      const pending = await sql`SELECT custom_prompt FROM instagram_schedules WHERE account_id = ${accountId} AND is_active = 1`;
       if (pending.length > 0) {
         finalPrompt = pending[Math.floor(Math.random() * pending.length)].custom_prompt;
       }
