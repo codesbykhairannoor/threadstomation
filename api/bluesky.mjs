@@ -1,3 +1,4 @@
+export const maxDuration = 60;
 import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
@@ -141,7 +142,8 @@ async function runBlueskyPost(accountId, customPrompt = null) {
 
   const accountName = "caridisinishop_bluesky";
 
-  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
+  // Force Text-Only for Bluesky to save Vercel CPU time
+  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, true);
   console.log(`[Bluesky-Post] Generated with ${slides.length} images`);
 
   let dynamicPalette = colorPalette;
@@ -176,7 +178,7 @@ async function runBlueskyPost(accountId, customPrompt = null) {
   console.log(`[Bluesky-Post] Successfully posted to Bluesky.`);
 
   await sql`
-    INSERT INTO bluesky_history (account_id, caption, slide_count, image_urls, post_id, status)
+    INSERT INTO bluesky_history (account_id, caption, slide_count, image_urls, publish_id, status)
     VALUES (${accountId}, ${statusText}, ${imageUrls.length}, ${JSON.stringify(imageUrls)}, ${String(response.uri || 'success')}, 'success')
   `;
 

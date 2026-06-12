@@ -3,6 +3,8 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 process.env.FONTCONFIG_PATH = join(__dirname, '../lib/fonts');
 
+export const maxDuration = 60;
+
 import express from 'express';
 import cors from 'cors';
 import sql, { initDb, cleanupOldHistory } from '../lib/database.js';

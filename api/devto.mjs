@@ -1,3 +1,4 @@
+export const maxDuration = 60;
 import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
@@ -136,10 +137,9 @@ async function runDevtoPost(accountId, customPrompt = null) {
 
   const accountName = "caridisinishop_devto";
 
-  // Dev.to needs a title. We'll extract a title from the caption or generate one.
-  // Gemini Tumblr might not return a explicit title, but it returns a rich HTML/Text caption.
-  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
-  console.log(`[Devto-Post] Generated with ${slides.length} images`);
+  // Force Text-Only for DevTo to save Vercel CPU time
+  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, true);
+  console.log(`[DevTo-Post] Generated with ${slides.length} images`);
 
   let dynamicPalette = colorPalette;
   if (customPrompt) {

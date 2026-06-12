@@ -1,3 +1,4 @@
+export const maxDuration = 60;
 import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
@@ -114,7 +115,8 @@ async function runMastodonPost(accountId, customPrompt = null) {
 
   const accountName = "caridisinishop_mastodon";
 
-  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
+  // Force Text-Only for Mastodon to save Vercel CPU time
+  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, true);
   console.log(`[Mastodon-Post] Generated with ${slides.length} images`);
 
   let dynamicPalette = colorPalette;

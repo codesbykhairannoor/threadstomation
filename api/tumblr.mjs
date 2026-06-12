@@ -1,3 +1,4 @@
+export const maxDuration = 60;
 import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
