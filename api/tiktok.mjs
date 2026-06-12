@@ -277,14 +277,19 @@ app.post('/api/tiktok/settings/toggle-automation', async (req, res) => {
  * Proxies images from Supabase storage through the Vercel domain to pass TikTok's domain ownership rules.
  */
 app.get('/api/tiktok/media', async (req, res) => {
-  const { path } = req.query;
-  if (!path) return res.status(400).send('path required');
+  const { path, imgbb } = req.query;
+  if (!path && !imgbb) return res.status(400).send('path or imgbb required');
 
   try {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    if (!supabaseUrl) throw new Error('SUPABASE_URL environment variable is missing');
+    let imageUrl;
+    if (imgbb) {
+      imageUrl = decodeURIComponent(imgbb);
+    } else {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      if (!supabaseUrl) throw new Error('SUPABASE_URL environment variable is missing');
+      imageUrl = `${supabaseUrl}/storage/v1/object/public/media/${path}`;
+    }
 
-    const imageUrl = `${supabaseUrl}/storage/v1/object/public/media/${path}`;
     const response = await fetch(imageUrl);
 
     if (!response.ok) {
@@ -325,6 +330,9 @@ async function runTikTokCarouselPost(accountId, customPrompt = null, baseUrl = '
   let finalUrls = imageUrls;
   if (baseUrl) {
     finalUrls = imageUrls.map(url => {
+      if (url.includes('catbox.moe') || url.includes('ibb.co')) {
+        return `${baseUrl}/api/tiktok/media?imgbb=${encodeURIComponent(url)}`;
+      }
       const match = url.match(/\/storage\/v1\/object\/public\/media\/(.*)/);
       if (match && match[1]) {
         return `${baseUrl}/api/tiktok/media?path=${match[1]}`;

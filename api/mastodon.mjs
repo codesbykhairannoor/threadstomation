@@ -147,9 +147,21 @@ async function runMastodonPost(accountId, customPrompt = null, forceNoImage = fa
   }
 
   let mediaIds = [];
-  for (const url of imageUrls) {
-    const id = await uploadMediaToMastodon(url, account.access_token, account.instance_url);
-    mediaIds.push(id);
+  if (imageUrls.length > 0) {
+    try {
+      let imageBuffer;
+      if (imageUrls[0].isRawBuffer) {
+        imageBuffer = imageUrls[0].buffer;
+      } else {
+        const imgRes = await fetch(imageUrls[0]);
+        const arrayBuffer = await imgRes.arrayBuffer();
+        imageBuffer = Buffer.from(arrayBuffer);
+      }
+      const mediaId = await uploadMediaToMastodon(account.instance_url, account.access_token, imageBuffer);
+      mediaIds.push(mediaId);
+    } catch(e) {
+      console.error(`[Mastodon-Post] Failed to process/upload image:`, e.message);
+    }
   }
 
   // Mastodon doesn't support HTML in the same way, but it will parse basic URLs into links. 

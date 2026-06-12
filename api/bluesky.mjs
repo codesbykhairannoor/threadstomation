@@ -129,7 +129,7 @@ app.delete('/api/bluesky/schedules/:id', async (req, res) => {
 
 // ── CORE: POST TO BLUESKY ─────────────────────────────────────────────
 
-async function runBlueskyPost(accountId, customPrompt = null, forceNoImage = false) {
+export async function runBlueskyPost(accountId, customPrompt = null, forceNoImage = false) {
   const accountRow = await sql`SELECT * FROM bluesky_accounts WHERE id = ${accountId}`;
   if (!accountRow.length) throw new Error(`Bluesky account ${accountId} not found`);
   const account = accountRow[0];
@@ -180,7 +180,12 @@ async function runBlueskyPost(accountId, customPrompt = null, forceNoImage = fal
     statusText = statusText.substring(0, MAX_LENGTH - 3) + '...';
   }
 
-  const response = await postToBluesky(account.identifier, account.app_password, statusText, imageUrls.length > 0 ? imageUrls[0] : null);
+  let imageSource = null;
+  if (imageUrls.length > 0) {
+    imageSource = imageUrls[0].isRawBuffer ? imageUrls[0].buffer : imageUrls[0];
+  }
+
+  const response = await postToBluesky(account.identifier, account.app_password, statusText, imageSource);
   console.log(`[Bluesky-Post] Successfully posted to Bluesky.`);
 
   await sql`

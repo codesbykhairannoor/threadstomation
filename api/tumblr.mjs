@@ -212,7 +212,10 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
     console.log(`[Tumblr-Post] TEXT-ONLY mode activated. No images generated.`);
   }
 
-  const response = await postToTumblr(account.blog_name, accessToken, imageUrls, caption, hashtags);
+  let cleanText = caption.replace(/<[^>]+>/g, '').trim();
+  const tagsList = hashtags || [];
+
+  const response = await postToTumblr(account.blog_name, accessToken, imageUrls, cleanText, tagsList);
   console.log(`[Tumblr-Post] Successfully posted to Tumblr. Post ID: ${response.id}`);
 
   await sql`

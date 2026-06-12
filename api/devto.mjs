@@ -169,7 +169,11 @@ async function runDevtoPost(accountId, customPrompt = null, forceNoImage = false
   // Construct Markdown Body
   let markdownBody = "";
   if (imageUrls.length > 0) {
-    markdownBody += `![Cover Image](${imageUrls[0]})\n\n`;
+    if (imageUrls[0].isRawBuffer) {
+      console.warn(`[Devto-Post] Raw buffer returned (no Supabase). Dev.to needs a public URL. Skipping image.`);
+    } else {
+      markdownBody += `![Cover Image](${imageUrls[0]})\n\n`;
+    }
   }
   
   // Dev.to markdown
