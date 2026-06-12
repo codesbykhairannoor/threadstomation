@@ -260,8 +260,8 @@ app.get('/api/devto/cron', async (req, res) => {
 
     for (const acc of accounts) {
       const ranToday = await sql`
-        SELECT COUNT(*) as count FROM devto_schedules
-        WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}
+        SELECT COUNT(*) as count FROM devto_history
+        WHERE account_id = ${acc.id} AND status = 'success' AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar') = ${todayStr}
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
@@ -270,14 +270,16 @@ app.get('/api/devto/cron', async (req, res) => {
         continue;
       }
 
-      const pending = await sql`
+      let pending = await sql`
         SELECT * FROM devto_schedules
         WHERE account_id = ${acc.id}
           AND is_active = 1
           AND (last_run_date IS NULL OR last_run_date != ${todayStr})
       `;
 
-      if (!pending.length) continue;
+      if (!pending.length) {
+        pending = Array(5).fill({ id: null, custom_prompt: "" });
+      }
 
       const postsRemaining = 5 - postsToday;
       const numToMake = Math.min(postsRemaining, pending.length);
@@ -304,7 +306,9 @@ app.get('/api/devto/cron', async (req, res) => {
 
         try {
           const result = await runDevtoPost(acc.id, finalPrompt, forceNoImage);
-          await sql`UPDATE devto_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
+          if (chosen.id) {
+            await sql`UPDATE devto_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
+          }
           executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
         } catch (postErr) {
           console.error(`[Devto-Cron] Post failed for ${acc.name}:`, postErr.message);
