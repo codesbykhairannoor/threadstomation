@@ -276,11 +276,11 @@ app.get('/api/bluesky/cron', async (req, res) => {
           if (postsToday === 0 || postsToday === 2) {
             finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
           } else if (postsToday === 1) {
-            finalPrompt = "Aggressively promote this tool: https://systeme.io/?sa=sa0154070058e57ee8c7407004f20bfb111a4362a9";
+            finalPrompt = "Aggressively promote this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
           } else if (postsToday === 3) {
-            finalPrompt = "Aggressively promote this tool: https://make.com/?ref=threadstomation";
+            finalPrompt = "Aggressively promote this tool: https://www.make.com/en/register?pc=airan";
           } else {
-            finalPrompt = "Aggressively promote this tool: https://wise.com/?ref=threadstomation";
+            finalPrompt = "Aggressively promote this tool: https://wise.com/invite/dic/khairannoorf";
           }
         }
 
