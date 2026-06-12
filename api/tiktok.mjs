@@ -290,12 +290,7 @@ app.get('/api/tiktok/media', async (req, res) => {
       imageUrl = `${supabaseUrl}/storage/v1/object/public/media/${path}`;
     }
 
-    const response = await fetch(imageUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'image/jpeg,image/png,*/*'
-      }
-    });
+    const response = await fetch(imageUrl);
 
     if (!response.ok) {
       return res.status(response.status).send('Failed to fetch media from storage');

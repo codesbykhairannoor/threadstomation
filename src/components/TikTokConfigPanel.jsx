@@ -116,26 +116,6 @@ const TikTokConfigPanel = ({ status, fetchData, loading, accountId, accounts }) 
 
 
 
-        <section className="glass-card mb-2">
-          <h3>⚙️ Sandbox / Testing Mode</h3>
-          <p className="section-desc">
-            Jika aplikasi developer TikTok Anda masih berstatus Sandbox (belum diaudit) atau fitur <code>video.publish</code> masih Pending Review, fitur ini <b>WAJIB DIAKTIFKAN</b> dan akun TikTok Anda harus disetel menjadi <b>PRIVATE ACCOUNT</b>.
-          </p>
-          <div className="input-group checkbox-group">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={sandboxMode}
-                onChange={e => {
-                  setSandboxMode(e.target.checked);
-                  saveSettings('tiktok_sandbox_mode', e.target.checked ? '1' : '0');
-                }}
-              />
-              Aktifkan Sandbox Mode (Hanya posting ke akun Private)
-            </label>
-          </div>
-        </section>
-
         {/* Master Prompt */}
         <section className="glass-card mb-2">
           <h3>🤖 AI Personality (Global)</h3>
