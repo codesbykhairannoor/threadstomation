@@ -4,7 +4,7 @@ import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { getBlueskyAgent, postToBluesky } from '../lib/bluesky.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js'; 
-import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
+import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 
 const app = express();
 app.use(cors());
@@ -143,8 +143,12 @@ async function runBlueskyPost(accountId, customPrompt = null) {
   const accountName = "caridisinishop_bluesky";
 
   // Allow 1 image for Bluesky Promo layout. Max Length 280 chars to avoid truncation.
-  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, false, 280);
-  console.log(`[Bluesky-Post] Generated with ${slides.length} images`);
+  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, false, 280);
+  const slides = content.slides || [];
+  const caption = content.caption || '';
+  const hashtags = content.hashtags || [];
+  const full_image_prompt = content.full_image_prompt || null;
+  console.log(`[Bluesky-Post] Generated Content`);
 
   let dynamicPalette = colorPalette;
   if (customPrompt) {
@@ -159,11 +163,13 @@ async function runBlueskyPost(accountId, customPrompt = null) {
   }
 
   let imageUrls = [];
-  if (slides && slides.length > 0) {
+  if (full_image_prompt) {
+    imageUrls = await generateNativeBannerImage(full_image_prompt);
+    console.log(`[Bluesky-Post] Native image generated and uploaded to Supabase`);
+  } else if (slides && slides.length > 0) {
     imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName);
-    console.log(`[Bluesky-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
   }
-
+  
   let cleanText = caption.replace(/<[^>]+>/g, '').trim();
   const hashtagsText = hashtags && hashtags.length > 0 ? `\n\n${hashtags.map(h => '#' + h.replace('#', '')).join(' ')}` : '';
   

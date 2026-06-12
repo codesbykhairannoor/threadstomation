@@ -10,7 +10,7 @@ import {
   postToTumblr
 } from '../lib/tumblr.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js';
-import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
+import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 
 const app = express();
 app.use(cors());
@@ -182,8 +182,12 @@ async function runTumblrPost(accountId, customPrompt = null) {
 
   const accountName = "caridisinishop_tumblr"; // Force caridisinishop persona instead of Adhlil for Tumblr
 
-  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
-  console.log(`[Tumblr-Post] Generated with ${slides.length} images`);
+  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
+  const slides = content.slides || [];
+  const caption = content.caption || '';
+  const hashtags = content.hashtags || [];
+  const full_image_prompt = content.full_image_prompt || null;
+  console.log(`[Tumblr-Post] Generated Content`);
 
   let dynamicPalette = colorPalette;
   if (customPrompt) {
@@ -198,9 +202,12 @@ async function runTumblrPost(accountId, customPrompt = null) {
   }
 
   let imageUrls = [];
-  if (slides && slides.length > 0) {
+  if (full_image_prompt) {
+    imageUrls = await generateNativeBannerImage(full_image_prompt);
+    console.log(`[Tumblr-Post] Native image generated and uploaded to Supabase`);
+  } else if (slides && slides.length > 0) {
+    // Fallback if legacy formatting happens
     imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName);
-    console.log(`[Tumblr-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
   } else {
     console.log(`[Tumblr-Post] TEXT-ONLY mode activated. No images generated.`);
   }

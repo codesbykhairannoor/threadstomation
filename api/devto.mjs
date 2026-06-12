@@ -4,7 +4,7 @@ import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { getDevtoUserInfo, postToDevto } from '../lib/devto.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js'; 
-import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
+import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 
 const app = express();
 app.use(cors());
@@ -138,8 +138,12 @@ async function runDevtoPost(accountId, customPrompt = null) {
   const accountName = "caridisinishop_devto";
 
   // Allow 1 image for Devto Promo layout
-  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, false);
-  console.log(`[DevTo-Post] Generated with ${slides.length} images`);
+  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, false);
+  const slides = content.slides || [];
+  const caption = content.caption || '';
+  const hashtags = content.hashtags || [];
+  const full_image_prompt = content.full_image_prompt || null;
+  console.log(`[DevTo-Post] Generated Content`);
 
   let dynamicPalette = colorPalette;
   if (customPrompt) {
@@ -154,7 +158,10 @@ async function runDevtoPost(accountId, customPrompt = null) {
   }
 
   let imageUrls = [];
-  if (slides && slides.length > 0) {
+  if (full_image_prompt) {
+    imageUrls = await generateNativeBannerImage(full_image_prompt);
+    console.log(`[Devto-Post] Native image generated and uploaded to Supabase`);
+  } else if (slides && slides.length > 0) {
     imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName);
     console.log(`[Devto-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
   }

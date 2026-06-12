@@ -4,7 +4,7 @@ import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { getMastodonUserInfo, postToMastodon, uploadMediaToMastodon } from '../lib/mastodon.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js'; // Reuse the tumblr logic because it has text-only or 1 image + english aggressive marketing
-import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
+import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 
 const app = express();
 app.use(cors());
@@ -116,8 +116,12 @@ async function runMastodonPost(accountId, customPrompt = null) {
   const accountName = "caridisinishop_mastodon";
 
   // Allow 1 image for Mastodon Promo layout. Max Length 480 chars to avoid truncation.
-  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, false, 480);
-  console.log(`[Mastodon-Post] Generated with ${slides.length} images`);
+  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, false, 480);
+  const slides = content.slides || [];
+  const caption = content.caption || '';
+  const hashtags = content.hashtags || [];
+  const full_image_prompt = content.full_image_prompt || null;
+  console.log(`[Mastodon-Post] Generated Content`);
 
   let dynamicPalette = colorPalette;
   if (customPrompt) {
@@ -132,7 +136,10 @@ async function runMastodonPost(accountId, customPrompt = null) {
   }
 
   let imageUrls = [];
-  if (slides && slides.length > 0) {
+  if (full_image_prompt) {
+    imageUrls = await generateNativeBannerImage(full_image_prompt);
+    console.log(`[Mastodon-Post] Native image generated and uploaded to Supabase`);
+  } else if (slides && slides.length > 0) {
     imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName);
     console.log(`[Mastodon-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
   } else {
