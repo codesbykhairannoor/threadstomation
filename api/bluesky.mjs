@@ -142,8 +142,8 @@ async function runBlueskyPost(accountId, customPrompt = null) {
 
   const accountName = "caridisinishop_bluesky";
 
-  // Force Text-Only for Bluesky to save Vercel CPU time
-  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, true);
+  // Force Text-Only for Bluesky to save Vercel CPU time. Max Length 280 chars to avoid truncation.
+  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, true, 280);
   console.log(`[Bluesky-Post] Generated with ${slides.length} images`);
 
   let dynamicPalette = colorPalette;

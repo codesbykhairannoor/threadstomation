@@ -115,8 +115,8 @@ async function runMastodonPost(accountId, customPrompt = null) {
 
   const accountName = "caridisinishop_mastodon";
 
-  // Force Text-Only for Mastodon to save Vercel CPU time
-  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, true);
+  // Force Text-Only for Mastodon to save Vercel CPU time. Max Length 480 chars to avoid truncation.
+  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, true, 480);
   console.log(`[Mastodon-Post] Generated with ${slides.length} images`);
 
   let dynamicPalette = colorPalette;
