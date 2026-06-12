@@ -167,7 +167,7 @@ async function refreshTumblrTokenIfNeeded(account) {
   return account.access_token;
 }
 
-async function runTumblrPost(accountId, customPrompt = null) {
+async function runTumblrPost(accountId, customPrompt = null, forceNoImage = false) {
   const accountRow = await sql`SELECT * FROM tumblr_accounts WHERE id = ${accountId}`;
   if (!accountRow.length) throw new Error(`Tumblr account ${accountId} not found`);
   const account = accountRow[0];
@@ -182,7 +182,7 @@ async function runTumblrPost(accountId, customPrompt = null) {
 
   const accountName = "caridisinishop_tumblr"; // Force caridisinishop persona instead of Adhlil for Tumblr
 
-  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
+  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, forceNoImage);
   const slides = content.slides || [];
   const caption = content.caption || '';
   const hashtags = content.hashtags || [];
@@ -236,7 +236,7 @@ app.post('/api/tumblr/post-now', async (req, res) => {
       }
     }
 
-    const result = await runTumblrPost(accountId, finalPrompt);
+    const result = await runTumblrPost(accountId, finalPrompt, false);
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('[Tumblr-Manual]', e.message);
@@ -310,20 +310,22 @@ app.get('/api/tumblr/cron', async (req, res) => {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
         let finalPrompt = chosen.custom_prompt;
         
+        let forceNoImage = false;
         if (!finalPrompt || finalPrompt.trim() === '') {
           if (postsToday === 0 || postsToday === 2) {
             finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
+            forceNoImage = true;
           } else if (postsToday === 1) {
-            finalPrompt = "Aggressively promote this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
+            finalPrompt = "Enthusiastically recommend this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
           } else if (postsToday === 3) {
-            finalPrompt = "Aggressively promote this tool: https://www.make.com/en/register?pc=airan";
+            finalPrompt = "Enthusiastically recommend this tool: https://www.make.com/en/register?pc=airan";
           } else {
-            finalPrompt = "Aggressively promote this tool: https://wise.com/invite/dic/khairannoorf";
+            finalPrompt = "Enthusiastically recommend this tool: https://wise.com/invite/dic/khairannoorf";
           }
         }
 
         try {
-          const result = await runTumblrPost(acc.id, finalPrompt);
+          const result = await runTumblrPost(acc.id, finalPrompt, forceNoImage);
           await sql`UPDATE tumblr_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
           executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
         } catch (postErr) {

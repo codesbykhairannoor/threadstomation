@@ -124,7 +124,7 @@ app.delete('/api/devto/schedules/:id', async (req, res) => {
 
 // ── CORE: POST TO DEV.TO ─────────────────────────────────────────────
 
-async function runDevtoPost(accountId, customPrompt = null) {
+async function runDevtoPost(accountId, customPrompt = null, forceNoImage = false) {
   const accountRow = await sql`SELECT * FROM devto_accounts WHERE id = ${accountId}`;
   if (!accountRow.length) throw new Error(`Dev.to account ${accountId} not found`);
   const account = accountRow[0];
@@ -138,7 +138,7 @@ async function runDevtoPost(accountId, customPrompt = null) {
   const accountName = "caridisinishop_devto";
 
   // Allow 1 image for Devto Promo layout
-  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, false);
+  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, forceNoImage);
   const slides = content.slides || [];
   const caption = content.caption || '';
   const hashtags = content.hashtags || [];
@@ -214,7 +214,7 @@ app.post('/api/devto/post-now', async (req, res) => {
       }
     }
 
-    const result = await runDevtoPost(accountId, finalPrompt);
+    const result = await runDevtoPost(accountId, finalPrompt, false);
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('[Devto-Manual]', e.message);
@@ -288,20 +288,22 @@ app.get('/api/devto/cron', async (req, res) => {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
         let finalPrompt = chosen.custom_prompt;
         
+        let forceNoImage = false;
         if (!finalPrompt || finalPrompt.trim() === '') {
           if (postsToday === 0 || postsToday === 2) {
             finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
+            forceNoImage = true;
           } else if (postsToday === 1) {
-            finalPrompt = "Aggressively promote this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
+            finalPrompt = "Enthusiastically recommend this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
           } else if (postsToday === 3) {
-            finalPrompt = "Aggressively promote this tool: https://www.make.com/en/register?pc=airan";
+            finalPrompt = "Enthusiastically recommend this tool: https://www.make.com/en/register?pc=airan";
           } else {
-            finalPrompt = "Aggressively promote this tool: https://wise.com/invite/dic/khairannoorf";
+            finalPrompt = "Enthusiastically recommend this tool: https://wise.com/invite/dic/khairannoorf";
           }
         }
 
         try {
-          const result = await runDevtoPost(acc.id, finalPrompt);
+          const result = await runDevtoPost(acc.id, finalPrompt, forceNoImage);
           await sql`UPDATE devto_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
           executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
         } catch (postErr) {

@@ -129,7 +129,7 @@ app.delete('/api/bluesky/schedules/:id', async (req, res) => {
 
 // ── CORE: POST TO BLUESKY ─────────────────────────────────────────────
 
-async function runBlueskyPost(accountId, customPrompt = null) {
+async function runBlueskyPost(accountId, customPrompt = null, forceNoImage = false) {
   const accountRow = await sql`SELECT * FROM bluesky_accounts WHERE id = ${accountId}`;
   if (!accountRow.length) throw new Error(`Bluesky account ${accountId} not found`);
   const account = accountRow[0];
@@ -142,8 +142,8 @@ async function runBlueskyPost(accountId, customPrompt = null) {
 
   const accountName = "caridisinishop_bluesky";
 
-  // Allow 1 image for Bluesky Promo layout. Max Length 280 chars to avoid truncation.
-  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, false, 280);
+  // Allow 1 image for Bluesky Promo layout, or text-only if forceNoImage is true. Max Length 280 chars to avoid truncation.
+  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, forceNoImage, 280);
   const slides = content.slides || [];
   const caption = content.caption || '';
   const hashtags = content.hashtags || [];
@@ -204,7 +204,7 @@ app.post('/api/bluesky/post-now', async (req, res) => {
       }
     }
 
-    const result = await runBlueskyPost(accountId, finalPrompt);
+    const result = await runBlueskyPost(accountId, finalPrompt, false);
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('[Bluesky-Manual]', e.message);
@@ -278,20 +278,22 @@ app.get('/api/bluesky/cron', async (req, res) => {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
         let finalPrompt = chosen.custom_prompt;
         
+        let forceNoImage = false;
         if (!finalPrompt || finalPrompt.trim() === '') {
           if (postsToday === 0 || postsToday === 2) {
             finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
+            forceNoImage = true;
           } else if (postsToday === 1) {
-            finalPrompt = "Aggressively promote this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
+            finalPrompt = "Enthusiastically recommend this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
           } else if (postsToday === 3) {
-            finalPrompt = "Aggressively promote this tool: https://www.make.com/en/register?pc=airan";
+            finalPrompt = "Enthusiastically recommend this tool: https://www.make.com/en/register?pc=airan";
           } else {
-            finalPrompt = "Aggressively promote this tool: https://wise.com/invite/dic/khairannoorf";
+            finalPrompt = "Enthusiastically recommend this tool: https://wise.com/invite/dic/khairannoorf";
           }
         }
 
         try {
-          const result = await runBlueskyPost(acc.id, finalPrompt);
+          const result = await runBlueskyPost(acc.id, finalPrompt, forceNoImage);
           await sql`UPDATE bluesky_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
           executed.push({ account: acc.identifier, scheduleId: chosen.id, ...result });
         } catch (postErr) {
