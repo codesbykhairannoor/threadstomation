@@ -115,8 +115,8 @@ async function runMastodonPost(accountId, customPrompt = null) {
 
   const accountName = "caridisinishop_mastodon";
 
-  // Force Text-Only for Mastodon to save Vercel CPU time. Max Length 480 chars to avoid truncation.
-  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, true, 480);
+  // Allow 1 image for Mastodon Promo layout. Max Length 480 chars to avoid truncation.
+  const { slides, caption, hashtags } = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, false, 480);
   console.log(`[Mastodon-Post] Generated with ${slides.length} images`);
 
   let dynamicPalette = colorPalette;
@@ -257,8 +257,22 @@ app.get('/api/mastodon/cron', async (req, res) => {
 
       if (roll < chance) {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
+        let finalPrompt = chosen.custom_prompt;
+        
+        if (!finalPrompt || finalPrompt.trim() === '') {
+          if (postsToday === 0 || postsToday === 2) {
+            finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
+          } else if (postsToday === 1) {
+            finalPrompt = "Aggressively promote this tool: https://systeme.io/?sa=sa0154070058e57ee8c7407004f20bfb111a4362a9";
+          } else if (postsToday === 3) {
+            finalPrompt = "Aggressively promote this tool: https://make.com/?ref=threadstomation";
+          } else {
+            finalPrompt = "Aggressively promote this tool: https://wise.com/?ref=threadstomation";
+          }
+        }
+
         try {
-          const result = await runMastodonPost(acc.id, chosen.custom_prompt);
+          const result = await runMastodonPost(acc.id, finalPrompt);
           await sql`UPDATE mastodon_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
           executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
         } catch (postErr) {
