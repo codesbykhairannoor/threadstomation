@@ -306,8 +306,12 @@ app.get('/api/facebook/cron', async (req, res) => {
     const executed = [];
 
     for (const acc of accounts) {
+      const nName = acc.name ? acc.name.toLowerCase() : '';
+      const isRestricted = nName.includes('oneformind') || nName.includes('sharesa space') || nName.includes('adhlil co');
+      const dailyLimit = isRestricted ? 2 : 5;
+
       const [{ count: postsToday }] = await sql`SELECT COUNT(*) as count FROM facebook_history WHERE account_id = ${acc.id} AND created_at::date = CURRENT_DATE AND status = 'success'`;
-      if (parseInt(postsToday) >= 5) continue;
+      if (parseInt(postsToday) >= dailyLimit) continue;
 
       const pending = await sql`
         SELECT * FROM facebook_schedules
@@ -315,7 +319,7 @@ app.get('/api/facebook/cron', async (req, res) => {
       `;
       if (!pending.length) continue;
 
-      const chance = (5 - parseInt(postsToday)) / totalMinutesLeft;
+      const chance = (dailyLimit - parseInt(postsToday)) / totalMinutesLeft;
       if (Math.random() < chance) {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
         try {

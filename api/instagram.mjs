@@ -445,8 +445,12 @@ app.get('/api/instagram/cron', async (req, res) => {
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
-      if (postsToday >= 5) {
-        console.log(`[Instagram-Cron] Acc ${acc.name}: hit 5-post daily limit.`);
+      const nName = acc.name ? acc.name.toLowerCase() : '';
+      const isRestricted = nName.includes('oneformind') || nName.includes('sharesa space') || nName.includes('adhlil co');
+      const dailyLimit = isRestricted ? 2 : 5;
+
+      if (postsToday >= dailyLimit) {
+        console.log(`[Instagram-Cron] Acc ${acc.name}: hit ${dailyLimit}-post daily limit.`);
         continue;
       }
 
@@ -459,7 +463,7 @@ app.get('/api/instagram/cron', async (req, res) => {
 
       if (!pending.length) continue;
 
-      const postsRemaining = 5 - postsToday;
+      const postsRemaining = dailyLimit - postsToday;
       const numToMake = Math.min(postsRemaining, pending.length);
       const chance = numToMake / totalMinutesLeft;
       const roll = Math.random();
