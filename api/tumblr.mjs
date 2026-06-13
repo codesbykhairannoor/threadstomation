@@ -218,11 +218,6 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
   const response = await postToTumblr(account.blog_name, accessToken, imageUrls, cleanText, tagsList);
   console.log(`[Tumblr-Post] Successfully posted to Tumblr. Post ID: ${response.id}`);
 
-  await sql`
-    INSERT INTO tumblr_history (account_id, caption, slide_count, image_urls, post_id, status)
-    VALUES (${accountId}, ${caption}, ${imageUrls.length}, ${JSON.stringify(imageUrls)}, ${String(response.id)}, 'success')
-  `;
-
   return { publishId: response.id, status: 'success' };
 }
 
@@ -239,7 +234,17 @@ app.post('/api/tumblr/post-now', async (req, res) => {
       }
     }
 
+    const pendingInsert = await sql`
+      INSERT INTO tumblr_history (account_id, status) VALUES (${accountId}, 'pending') RETURNING id
+    `;
+    const historyId = pendingInsert[0].id;
+
     const result = await runTumblrPost(accountId, finalPrompt, false);
+    
+    await sql`
+      UPDATE tumblr_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+    `;
+
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('[Tumblr-Manual]', e.message);
@@ -286,7 +291,7 @@ app.get('/api/tumblr/cron', async (req, res) => {
     for (const acc of accounts) {
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM tumblr_history
-        WHERE account_id = ${acc.id} AND status = 'success' AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar') = ${todayStr}
+        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar') = ${todayStr}
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
@@ -330,10 +335,20 @@ app.get('/api/tumblr/cron', async (req, res) => {
         }
 
         try {
+          const pendingInsert = await sql`
+            INSERT INTO tumblr_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
+          `;
+          const historyId = pendingInsert[0].id;
+
           const result = await runTumblrPost(acc.id, finalPrompt, forceNoImage);
           if (chosen.id) {
             await sql`UPDATE tumblr_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
           }
+
+          await sql`
+            UPDATE tumblr_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+          `;
+
           executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
         } catch (postErr) {
           console.error(`[Tumblr-Cron] Post failed for ${acc.name}:`, postErr.message);

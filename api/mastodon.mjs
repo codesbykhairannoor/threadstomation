@@ -183,11 +183,7 @@ async function runMastodonPost(accountId, customPrompt = null, forceNoImage = fa
   );
   console.log(`[Mastodon-Post] Successfully posted to Mastodon. Post ID: ${response.id}`);
 
-  await sql`
-    INSERT INTO mastodon_history (account_id, caption, slide_count, image_urls, post_id, status)
-    VALUES (${accountId}, ${statusText}, ${imageUrls.length}, ${JSON.stringify(imageUrls)}, ${String(response.id)}, 'success')
-  `;
-
+  // History is now inserted by the caller (Cron or Manual) to prevent spamming
   return { publishId: response.id, status: 'success' };
 }
 
@@ -204,7 +200,17 @@ app.post('/api/mastodon/post-now', async (req, res) => {
       }
     }
 
+    const pendingInsert = await sql`
+      INSERT INTO mastodon_history (account_id, status) VALUES (${accountId}, 'pending') RETURNING id
+    `;
+    const historyId = pendingInsert[0].id;
+
     const result = await runMastodonPost(accountId, finalPrompt, false);
+    
+    await sql`
+      UPDATE mastodon_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+    `;
+
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('[Mastodon-Manual]', e.message);
@@ -251,7 +257,7 @@ app.get('/api/mastodon/cron', async (req, res) => {
     for (const acc of accounts) {
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM mastodon_history
-        WHERE account_id = ${acc.id} AND status = 'success' AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar') = ${todayStr}
+        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar') = ${todayStr}
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
@@ -295,10 +301,23 @@ app.get('/api/mastodon/cron', async (req, res) => {
         }
 
         try {
+          // --- SPAM PREVENTION LOCK ---
+          const pendingInsert = await sql`
+            INSERT INTO mastodon_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
+          `;
+          const historyId = pendingInsert[0].id;
+
           const result = await runMastodonPost(acc.id, finalPrompt, forceNoImage);
+          
           if (chosen.id) {
             await sql`UPDATE mastodon_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
           }
+          
+          // --- UPDATE LOCK TO SUCCESS ---
+          await sql`
+            UPDATE mastodon_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+          `;
+
           executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
         } catch (postErr) {
           console.error(`[Mastodon-Cron] Post failed for ${acc.name}:`, postErr.message);

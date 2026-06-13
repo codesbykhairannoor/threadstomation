@@ -197,11 +197,6 @@ async function runDevtoPost(accountId, customPrompt = null, forceNoImage = false
   const response = await postToDevto(account.api_key, articleTitle, markdownBody, hashtags);
   console.log(`[Devto-Post] Successfully posted to Dev.to. Post ID: ${response.id}`);
 
-  await sql`
-    INSERT INTO devto_history (account_id, caption, slide_count, image_urls, post_id, status)
-    VALUES (${accountId}, ${markdownBody}, ${imageUrls.length}, ${JSON.stringify(imageUrls)}, ${String(response.id)}, 'success')
-  `;
-
   return { publishId: response.id, status: 'success' };
 }
 
@@ -218,7 +213,17 @@ app.post('/api/devto/post-now', async (req, res) => {
       }
     }
 
+    const pendingInsert = await sql`
+      INSERT INTO devto_history (account_id, status) VALUES (${accountId}, 'pending') RETURNING id
+    `;
+    const historyId = pendingInsert[0].id;
+
     const result = await runDevtoPost(accountId, finalPrompt, false);
+    
+    await sql`
+      UPDATE devto_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+    `;
+
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('[Devto-Manual]', e.message);
@@ -265,7 +270,7 @@ app.get('/api/devto/cron', async (req, res) => {
     for (const acc of accounts) {
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM devto_history
-        WHERE account_id = ${acc.id} AND status = 'success' AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar') = ${todayStr}
+        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar') = ${todayStr}
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
@@ -309,10 +314,20 @@ app.get('/api/devto/cron', async (req, res) => {
         }
 
         try {
+          const pendingInsert = await sql`
+            INSERT INTO devto_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
+          `;
+          const historyId = pendingInsert[0].id;
+
           const result = await runDevtoPost(acc.id, finalPrompt, forceNoImage);
           if (chosen.id) {
             await sql`UPDATE devto_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
           }
+
+          await sql`
+            UPDATE devto_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+          `;
+
           executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
         } catch (postErr) {
           console.error(`[Devto-Cron] Post failed for ${acc.name}:`, postErr.message);

@@ -188,12 +188,7 @@ export async function runBlueskyPost(accountId, customPrompt = null, forceNoImag
   const response = await postToBluesky(account.identifier, account.app_password, statusText, imageSource);
   console.log(`[Bluesky-Post] Successfully posted to Bluesky.`);
 
-  await sql`
-    INSERT INTO bluesky_history (account_id, caption, slide_count, image_urls, publish_id, status)
-    VALUES (${accountId}, ${statusText}, ${imageUrls.length}, ${JSON.stringify(imageUrls)}, ${String(response.uri || 'success')}, 'success')
-  `;
-
-  return { publishId: response.uri, status: 'success' };
+  return { publishId: response.uri || 'success', status: 'success' };
 }
 
 app.post('/api/bluesky/post-now', async (req, res) => {
@@ -209,7 +204,17 @@ app.post('/api/bluesky/post-now', async (req, res) => {
       }
     }
 
+    const pendingInsert = await sql`
+      INSERT INTO bluesky_history (account_id, status) VALUES (${accountId}, 'pending') RETURNING id
+    `;
+    const historyId = pendingInsert[0].id;
+
     const result = await runBlueskyPost(accountId, finalPrompt, false);
+    
+    await sql`
+      UPDATE bluesky_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+    `;
+
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('[Bluesky-Manual]', e.message);
@@ -256,7 +261,7 @@ app.get('/api/bluesky/cron', async (req, res) => {
     for (const acc of accounts) {
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM bluesky_history
-        WHERE account_id = ${acc.id} AND status = 'success' AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar') = ${todayStr}
+        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar') = ${todayStr}
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
@@ -300,10 +305,20 @@ app.get('/api/bluesky/cron', async (req, res) => {
         }
 
         try {
+          const pendingInsert = await sql`
+            INSERT INTO bluesky_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
+          `;
+          const historyId = pendingInsert[0].id;
+
           const result = await runBlueskyPost(acc.id, finalPrompt, forceNoImage);
           if (chosen.id) {
             await sql`UPDATE bluesky_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
           }
+
+          await sql`
+            UPDATE bluesky_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+          `;
+
           executed.push({ account: acc.identifier, scheduleId: chosen.id, ...result });
         } catch (postErr) {
           console.error(`[Bluesky-Cron] Post failed for ${acc.identifier}:`, postErr.message);
