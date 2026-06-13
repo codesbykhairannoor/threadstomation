@@ -29,7 +29,11 @@ const TumblrSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId, s
           <select
             className="account-select"
             value={selectedAccountId}
-            onChange={e => setSelectedAccountId(parseInt(e.target.value))}
+            onChange={e => {
+              const id = parseInt(e.target.value, 10);
+              setSelectedAccountId(id);
+              localStorage.setItem('tumblr_selected_account_id', id);
+            }}
           >
             {accounts.map(acc => (
               <option key={acc.id} value={acc.id}>{acc.blog_name || acc.name}</option>
@@ -69,7 +73,9 @@ const TumblrSidebar = ({ activeTab, setActiveTab, accounts, selectedAccountId, s
 const TumblrApp = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [accounts, setAccounts] = useState([]);
-  const [selectedAccountId, setSelectedAccountId] = useState(1);
+  const [selectedAccountId, setSelectedAccountId] = useState(() => {
+    return parseInt(localStorage.getItem('tumblr_selected_account_id') || '1', 10);
+  });
   const [status, setStatus] = useState({ schedules: [], tumblrToken: false, lastPost: null, automation_enabled: 'true' });
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -80,8 +86,13 @@ const TumblrApp = ({ onBack }) => {
   // Check for OAuth redirect result
   useEffect(() => {
     const handleMessage = (event) => {
-      if (event.data === 'TUMBLR_AUTH_SUCCESS') {
+      if (event.data === 'TUMBLR_AUTH_SUCCESS' || event.data?.type === 'TUMBLR_AUTH_SUCCESS') {
+        const id = event.data?.accountId || event.data;
         setMessage('✅ Tumblr blog connected successfully!');
+        if (id && typeof id === 'number') {
+          setSelectedAccountId(id);
+          localStorage.setItem('tumblr_selected_account_id', id);
+        }
         fetchAccounts();
         setTimeout(() => setMessage(''), 4000);
       }
@@ -92,14 +103,17 @@ const TumblrApp = ({ onBack }) => {
 
   const fetchAccounts = async () => {
     try {
-      // Create accounts endpoint if not exist yet, or just mock it here for now
-      // Actually we need to add /api/tumblr/accounts in backend
       const res = await fetch(`${API}/accounts`);
       if (res.ok) {
         const data = await res.json();
         setAccounts(data);
-        if (data.length > 0 && !data.find(a => a.id === selectedAccountId)) {
-          setSelectedAccountId(data[0].id);
+        const storedId = parseInt(localStorage.getItem('tumblr_selected_account_id'), 10);
+        if (data.length > 0) {
+          if (storedId && data.find(a => a.id === storedId)) {
+            setSelectedAccountId(storedId);
+          } else {
+            setSelectedAccountId(data[0].id);
+          }
         }
       }
     } catch (e) {

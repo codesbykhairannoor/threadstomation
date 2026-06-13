@@ -51,7 +51,7 @@ app.get('/api/tumblr/callback', async (req, res) => {
 
     const expiresAt = tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null;
 
-    await sql`
+    const inserted = await sql`
       INSERT INTO tumblr_accounts (name, blog_name, access_token, refresh_token, expires_at, is_active)
       VALUES (${userInfo.name}, ${blogName}, ${tokens.access_token}, ${tokens.refresh_token}, ${expiresAt}, 1)
       ON CONFLICT (blog_name) DO UPDATE SET
@@ -59,11 +59,13 @@ app.get('/api/tumblr/callback', async (req, res) => {
         refresh_token = ${tokens.refresh_token},
         expires_at = ${expiresAt},
         is_active = 1
+      RETURNING id
     `;
+    const accountId = inserted[0]?.id;
 
     res.send(`
       <script>
-        window.opener.postMessage('TUMBLR_AUTH_SUCCESS', '*');
+        window.opener.postMessage({ type: 'TUMBLR_AUTH_SUCCESS', accountId: ${accountId} }, '*');
         window.close();
       </script>
       Login successful. You can close this window.
@@ -215,7 +217,32 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
   let cleanText = caption.replace(/<[^>]+>/g, '').trim();
   const tagsList = hashtags || [];
 
-  const response = await postToTumblr(account.blog_name, accessToken, imageUrls, cleanText, tagsList);
+  let response;
+  try {
+    response = await postToTumblr(account.blog_name, accessToken, imageUrls, cleanText, tagsList);
+  } catch (err) {
+    if (err.response?.status === 401) {
+      console.warn(`[Tumblr-Post] 401 Unauthorized on post. Attempting forced token refresh...`);
+      try {
+        const newTokens = await refreshTumblrToken(account.refresh_token);
+        const expiresAt = newTokens.expires_in ? new Date(Date.now() + newTokens.expires_in * 1000) : null;
+        await sql`
+          UPDATE tumblr_accounts SET
+            access_token = ${newTokens.access_token},
+            refresh_token = ${newTokens.refresh_token},
+            expires_at = ${expiresAt}
+          WHERE id = ${account.id}
+        `;
+        accessToken = newTokens.access_token;
+        console.log(`[Tumblr-Post] Token refreshed. Retrying post...`);
+        response = await postToTumblr(account.blog_name, accessToken, imageUrls, cleanText, tagsList);
+      } catch (refreshErr) {
+        throw new Error(`Token expired/invalid, and forced refresh failed: ${refreshErr.message}`);
+      }
+    } else {
+      throw err;
+    }
+  }
   console.log(`[Tumblr-Post] Successfully posted to Tumblr. Post ID: ${response.id}`);
 
   return { publishId: response.id, status: 'success' };
