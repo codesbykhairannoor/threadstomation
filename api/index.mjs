@@ -42,25 +42,7 @@ app.use(async (req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 // ── VERCEL CRON JOB FOR 4 NEW MEDSOS ──────────────────────────────────────
-app.get('/api/cron', async (req, res) => {
-    try {
-        const baseUrl = req.headers.host.includes('localhost') 
-            ? `http://localhost:${PORT}` 
-            : `https://${req.headers.host}`;
-        
-        console.log(`[Cron] Triggering posts for 4 medsos at ${baseUrl}`);
-        
-        // Fire and forget to avoid Vercel 10s timeout on hobby plan
-        axios.post(`${baseUrl}/api/tumblr/post-now`, { accountId: 1 }).catch(e => console.error('[Cron] Tumblr err:', e.message));
-        axios.post(`${baseUrl}/api/bluesky/post-now`, { accountId: 1 }).catch(e => console.error('[Cron] Bluesky err:', e.message));
-        axios.post(`${baseUrl}/api/mastodon/post-now`, { accountId: 1 }).catch(e => console.error('[Cron] Mastodon err:', e.message));
-        axios.post(`${baseUrl}/api/devto/post-now`, { accountId: 1 }).catch(e => console.error('[Cron] DevTo err:', e.message));
 
-        res.json({ success: true, message: 'Cron job successfully triggered for 4 medsos.' });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
 
 // ── THREADS API ROUTES ────────────────────────────────────────────────────────
 
