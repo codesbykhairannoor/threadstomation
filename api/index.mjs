@@ -185,10 +185,13 @@ app.get('/api/cron', async (req, res) => {
 
         if (isMasterPing) {
             const subCrons = ['tumblr', 'mastodon', 'devto', 'bluesky', 'tiktok', 'instagram', 'facebook'];
-            await Promise.all(subCrons.map(platform => 
+            // Fire and forget to prevent Master Cron from timing out
+            subCrons.forEach(platform => {
                 fetch(`${baseUrl}/api/${platform}/cron?secret=${expectedSecret}`)
-                    .catch(e => console.warn(`[Cron-Ping] ${platform} failed:`, e.message))
-            ));
+                    .catch(() => {}); // Ignore disconnects
+            });
+            // Wait 1.5 seconds to ensure all requests leave the network interface
+            await new Promise(r => setTimeout(r, 1500));
         }
 
         const accounts = targetAccountId 
