@@ -212,7 +212,7 @@ app.post('/api/bluesky/post-now', async (req, res) => {
     const result = await runBlueskyPost(accountId, finalPrompt, false);
     
     await sql`
-      UPDATE bluesky_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+      UPDATE bluesky_history SET status = 'success', publish_id = ${String(result.publishId)} WHERE id = ${historyId}
     `;
 
     res.json({ success: true, ...result });
