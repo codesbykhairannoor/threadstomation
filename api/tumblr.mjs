@@ -291,7 +291,7 @@ app.get('/api/tumblr/cron', async (req, res) => {
     for (const acc of accounts) {
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM tumblr_history
-        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar') = ${todayStr}
+        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND created_at::date = CURRENT_DATE
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
