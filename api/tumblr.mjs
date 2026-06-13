@@ -204,12 +204,17 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
   }
 
   let imageUrls = [];
-  if (full_image_prompt) {
-    imageUrls = await generateNativeBannerImage(full_image_prompt);
+  let imagePrompt = full_image_prompt;
+  if (!imagePrompt && slides && slides.length > 0) {
+    imagePrompt = slides[0].title_part1 || slides[0].text || null;
+  }
+
+  if (imagePrompt) {
+    imageUrls = await generateNativeBannerImage(imagePrompt);
     console.log(`[Tumblr-Post] Native image generated and uploaded to Supabase`);
   } else if (slides && slides.length > 0) {
-    // Fallback if legacy formatting happens
-    imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName);
+    // Fallback if legacy formatting happens - only generate 1 image
+    imageUrls = await generateInstagramSlideImages(slides.slice(0, 1), dynamicPalette, accountName);
   } else {
     console.log(`[Tumblr-Post] TEXT-ONLY mode activated. No images generated.`);
   }

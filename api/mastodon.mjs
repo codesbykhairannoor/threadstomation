@@ -136,11 +136,17 @@ async function runMastodonPost(accountId, customPrompt = null, forceNoImage = fa
   }
 
   let imageUrls = [];
-  if (full_image_prompt) {
-    imageUrls = await generateNativeBannerImage(full_image_prompt);
+  let imagePrompt = full_image_prompt;
+  if (!imagePrompt && slides && slides.length > 0) {
+    imagePrompt = slides[0].title_part1 || slides[0].text || null;
+  }
+
+  if (imagePrompt) {
+    imageUrls = await generateNativeBannerImage(imagePrompt);
     console.log(`[Mastodon-Post] Native image generated and uploaded to Supabase`);
   } else if (slides && slides.length > 0) {
-    imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName);
+    // Fallback if legacy formatting happens - only generate 1 image
+    imageUrls = await generateInstagramSlideImages(slides.slice(0, 1), dynamicPalette, accountName);
     console.log(`[Mastodon-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
   } else {
     console.log(`[Mastodon-Post] TEXT-ONLY mode activated. No images generated.`);
