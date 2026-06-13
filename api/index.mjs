@@ -183,6 +183,14 @@ app.get('/api/cron', async (req, res) => {
             return res.status(200).json({ success: true, status: 'Automation disabled globally.' });
         }
 
+        if (isMasterPing) {
+            const subCrons = ['tumblr', 'mastodon', 'devto', 'bluesky', 'tiktok', 'instagram', 'facebook'];
+            await Promise.all(subCrons.map(platform => 
+                fetch(`${baseUrl}/api/${platform}/cron?secret=${expectedSecret}`)
+                    .catch(e => console.warn(`[Cron-Ping] ${platform} failed:`, e.message))
+            ));
+        }
+
         const accounts = targetAccountId 
             ? await sql`SELECT id, name FROM accounts WHERE id = ${targetAccountId} AND is_active = 1`
             : await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
