@@ -444,12 +444,6 @@ app.get('/api/instagram/cron', async (req, res) => {
         WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
-
-      const nName = acc.name ? acc.name.toLowerCase() : '';
-      if (nName.includes('caridisini')) {
-        console.log(`[Instagram-Cron] Acc ${acc.name}: Skipping 'caridisinishop' per user request.`);
-        continue;
-      }
       
       const dailyLimit = 1; // User requested 1x per day for all IG
 
