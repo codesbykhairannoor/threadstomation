@@ -446,8 +446,12 @@ app.get('/api/instagram/cron', async (req, res) => {
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
       const nName = acc.name ? acc.name.toLowerCase() : '';
-      const isRestricted = nName.includes('oneformind') || nName.includes('sharesa space') || nName.includes('adhlil co');
-      const dailyLimit = isRestricted ? 2 : 5;
+      if (nName.includes('caridisini')) {
+        console.log(`[Instagram-Cron] Acc ${acc.name}: Skipping 'caridisinishop' per user request.`);
+        continue;
+      }
+      
+      const dailyLimit = 1; // User requested 1x per day for all IG
 
       if (postsToday >= dailyLimit) {
         console.log(`[Instagram-Cron] Acc ${acc.name}: hit ${dailyLimit}-post daily limit.`);

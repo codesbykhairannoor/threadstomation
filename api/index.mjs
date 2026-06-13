@@ -201,8 +201,13 @@ app.get('/api/cron', async (req, res) => {
         const executed = [];
         for (const acc of accounts) {
             try {
+                const nName = acc.name ? acc.name.toLowerCase() : '';
+                const isSpecial = nName.includes('adhlil') || nName.includes('caridisini');
+                const dailyLimit = isSpecial ? 4 : 2;
+
                 const [ranToday] = await sql`SELECT COUNT(*) as count FROM schedules WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}`;
-                if (parseInt(ranToday?.count || 0) >= 5) continue;
+                const postsToday = parseInt(ranToday?.count || 0);
+                if (postsToday >= dailyLimit) continue;
 
                 const pending = await sql`
                     SELECT * FROM schedules 
@@ -210,7 +215,7 @@ app.get('/api/cron', async (req, res) => {
                 `;
                 if (!pending.length) continue;
 
-                const chance = (5 - parseInt(ranToday?.count || 0)) / totalMinutesLeft;
+                const chance = (dailyLimit - postsToday) / totalMinutesLeft;
                 if (Math.random() < chance) {
                     const sch = pending[Math.floor(Math.random() * pending.length)];
                     await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${sch.id}`;

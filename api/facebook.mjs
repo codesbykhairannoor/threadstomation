@@ -307,8 +307,12 @@ app.get('/api/facebook/cron', async (req, res) => {
 
     for (const acc of accounts) {
       const nName = acc.name ? acc.name.toLowerCase() : '';
-      const isRestricted = nName.includes('oneformind') || nName.includes('sharesa space') || nName.includes('adhlil co');
-      const dailyLimit = isRestricted ? 2 : 5;
+      if (nName.includes('caridisini')) {
+        console.log(`[Facebook-Cron] Acc ${acc.name}: Skipping 'caridisinishop' per user request.`);
+        continue;
+      }
+      
+      const dailyLimit = 1; // User requested 1x per day synced with IG
 
       const [{ count: postsToday }] = await sql`SELECT COUNT(*) as count FROM facebook_history WHERE account_id = ${acc.id} AND created_at::date = CURRENT_DATE AND status = 'success'`;
       if (parseInt(postsToday) >= dailyLimit) continue;
