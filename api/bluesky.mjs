@@ -176,7 +176,10 @@ export async function runBlueskyPost(accountId, customPrompt = null, forceNoImag
     imageUrls = await generateInstagramSlideImages(slides.slice(0, 1), dynamicPalette, accountName);
   }
   
-  let cleanText = caption.replace(/<[^>]+>/g, '').trim();
+  let cleanText = caption.replace(/<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, (match, url, anchorText) => {
+    if (url === anchorText || anchorText.includes('http')) return url;
+    return `${anchorText} (${url})`;
+  }).replace(/<[^>]+>/g, '').trim();
   const hashtagsText = hashtags && hashtags.length > 0 ? `\n\n${hashtags.map(h => '#' + h.replace('#', '')).join(' ')}` : '';
   
   // Bluesky limits text to 300 characters
@@ -322,7 +325,7 @@ app.get('/api/bluesky/cron', async (req, res) => {
           }
 
           await sql`
-            UPDATE bluesky_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+            UPDATE bluesky_history SET status = 'success', publish_id = ${String(result.publishId)} WHERE id = ${historyId}
           `;
 
           executed.push({ account: acc.identifier, scheduleId: chosen.id, ...result });

@@ -219,7 +219,10 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
     console.log(`[Tumblr-Post] TEXT-ONLY mode activated. No images generated.`);
   }
 
-  let cleanText = caption.replace(/<[^>]+>/g, '').trim();
+  let cleanText = caption.replace(/<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, (match, url, anchorText) => {
+    if (url === anchorText || anchorText.includes('http')) return url;
+    return `${anchorText} (${url})`;
+  }).replace(/<[^>]+>/g, '').trim();
   const tagsList = hashtags || [];
 
   let response;

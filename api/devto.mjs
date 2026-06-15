@@ -183,9 +183,11 @@ async function runDevtoPost(accountId, customPrompt = null, forceNoImage = false
   }
   
   // Dev.to markdown
-  // Assuming caption may contain HTML tags, let's strip basic ones or leave them since Dev.to supports HTML & Markdown
-  // But to be safe, we'll convert simple <br> to \n
-  let cleanText = caption.replace(/<br\s*\/?>/gi, '\n');
+  // Assuming caption may contain HTML tags, let's convert HTML links to Markdown links first
+  // and convert simple <br> to \n
+  let cleanText = caption
+    .replace(/<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)')
+    .replace(/<br\s*\/?>/gi, '\n');
   
   // Extract a Title from the first sentence or use a generic one based on the prompt
   let titleMatch = cleanText.match(/^([^\n]{10,60})(?:\n|$)/);

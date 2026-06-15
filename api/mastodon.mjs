@@ -173,7 +173,10 @@ async function runMastodonPost(accountId, customPrompt = null, forceNoImage = fa
   // Mastodon doesn't support HTML in the same way, but it will parse basic URLs into links. 
   // We'll strip any heavy HTML tags from caption if generateTumblrContent used HTML.
   // Mastodon API limit is 500 chars
-  let cleanText = caption.replace(/<[^>]+>/g, '').trim();
+  let cleanText = caption.replace(/<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, (match, url, anchorText) => {
+    if (url === anchorText || anchorText.includes('http')) return url;
+    return `${anchorText} (${url})`;
+  }).replace(/<[^>]+>/g, '').trim();
   if (cleanText.length > 480) {
     cleanText = cleanText.substring(0, 480) + '...';
   }
