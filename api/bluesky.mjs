@@ -169,11 +169,28 @@ export async function runBlueskyPost(accountId, customPrompt = null, forceNoImag
   }
 
   if (imagePrompt) {
-    imageUrls = await generateNativeBannerImage(imagePrompt);
-    console.log(`[Bluesky-Post] Native image generated and uploaded to Supabase`);
-  } else if (slides && slides.length > 0) {
-    // Fallback if legacy formatting happens - only generate 1 image
-    imageUrls = await generateInstagramSlideImages(slides.slice(0, 1), dynamicPalette, accountName);
+    const nativeImages = await generateNativeBannerImage(imagePrompt);
+    if (nativeImages && nativeImages.length > 0) {
+      imageUrls = nativeImages;
+      console.log(`[Bluesky-Post] Native image generated and uploaded to Supabase`);
+    }
+  } 
+
+  if (imageUrls.length === 0) {
+    console.log(`[Bluesky-Post] Native AI failed or no prompt, falling back to Satori layout.`);
+    let fallbackText = customPrompt ? customPrompt.substring(0, 50) : "Learn More";
+    if (caption) {
+      const cleaned = caption.replace(/<[^>]+>/g, '').trim();
+      const match = cleaned.match(/^([^\.\!\?]+[\.\!\?]?)/);
+      if (match) fallbackText = match[1];
+    }
+    const fallbackSlide = (slides && slides.length > 0) ? slides.slice(0, 1) : [{
+      layout_type: 'TextHeavy',
+      title_part1: fallbackText.substring(0, 60),
+      text: "Read more details below.",
+      foreground_subject_prompt: null
+    }];
+    imageUrls = await generateInstagramSlideImages(fallbackSlide, dynamicPalette, accountName);
   }
   
   let cleanText = caption.replace(/<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, (match, url, anchorText) => {
