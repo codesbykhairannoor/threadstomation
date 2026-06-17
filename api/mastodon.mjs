@@ -286,8 +286,10 @@ app.get('/api/mastodon/cron', async (req, res) => {
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
-      if (postsToday >= 5) {
-        console.log(`[Mastodon-Cron] Acc ${acc.name}: hit 5-post daily limit.`);
+      const dailyLimit = acc.name.toLowerCase().includes('oneformind') ? 4 : 5;
+
+      if (postsToday >= dailyLimit) {
+        console.log(`[Mastodon-Cron] Acc ${acc.name}: hit ${dailyLimit}-post daily limit.`);
         continue;
       }
 
@@ -312,6 +314,10 @@ app.get('/api/mastodon/cron', async (req, res) => {
         let finalPrompt = chosen.custom_prompt;
         
         let forceNoImage = false;
+        if (acc.name.toLowerCase().includes('oneformind')) {
+            forceNoImage = true;
+        }
+
         if (!finalPrompt || finalPrompt.trim() === '') {
           if (postsToday === 0 || postsToday === 2) {
             finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";

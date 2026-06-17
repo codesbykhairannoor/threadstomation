@@ -176,7 +176,7 @@ export async function runBlueskyPost(accountId, customPrompt = null, forceNoImag
     }
   } 
 
-  if (imageUrls.length === 0) {
+  if (imageUrls.length === 0 && !forceNoImage) {
     console.log(`[Bluesky-Post] Native AI failed or no prompt, falling back to Satori layout.`);
     let fallbackText = customPrompt ? customPrompt.substring(0, 50) : "Learn More";
     if (caption) {
@@ -191,6 +191,8 @@ export async function runBlueskyPost(accountId, customPrompt = null, forceNoImag
       foreground_subject_prompt: null
     }];
     imageUrls = await generateInstagramSlideImages(fallbackSlide, dynamicPalette, accountName);
+  } else if (forceNoImage) {
+    console.log(`[Bluesky-Post] TEXT-ONLY mode activated. No images generated.`);
   }
   
   let cleanText = caption.replace(/<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, (match, url, anchorText) => {
@@ -291,8 +293,10 @@ app.get('/api/bluesky/cron', async (req, res) => {
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
-      if (postsToday >= 5) {
-        console.log(`[Bluesky-Cron] Acc ${acc.identifier}: hit 5-post daily limit.`);
+      const dailyLimit = acc.identifier.toLowerCase().includes('oneformind') ? 4 : 5;
+
+      if (postsToday >= dailyLimit) {
+        console.log(`[Bluesky-Cron] Acc ${acc.identifier}: hit ${dailyLimit}-post daily limit.`);
         continue;
       }
 
@@ -317,6 +321,10 @@ app.get('/api/bluesky/cron', async (req, res) => {
         let finalPrompt = chosen.custom_prompt;
         
         let forceNoImage = false;
+        if (acc.identifier.toLowerCase().includes('oneformind')) {
+            forceNoImage = true;
+        }
+
         if (!finalPrompt || finalPrompt.trim() === '') {
           if (postsToday === 0 || postsToday === 2) {
             finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
