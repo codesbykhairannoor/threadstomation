@@ -142,7 +142,7 @@ async function runMastodonPost(accountId, customPrompt = null, forceNoImage = fa
   }
 
   if (imagePrompt) {
-    const nativeImages = await generateNativeBannerImage(imagePrompt);
+    const nativeImages = await generateNativeBannerImage(imagePrompt, caption, dynamicPalette);
     if (nativeImages && nativeImages.length > 0) {
       imageUrls = nativeImages;
       console.log(`[Mastodon-Post] Native image generated and uploaded to Supabase`);

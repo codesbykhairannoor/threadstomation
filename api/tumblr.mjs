@@ -210,7 +210,7 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
   }
 
   if (imagePrompt) {
-    const nativeImages = await generateNativeBannerImage(imagePrompt);
+    const nativeImages = await generateNativeBannerImage(imagePrompt, caption, dynamicPalette);
     if (nativeImages && nativeImages.length > 0) {
       imageUrls = nativeImages;
       console.log(`[Tumblr-Post] Native image generated and uploaded to Supabase`);
