@@ -140,7 +140,7 @@ export async function runBlueskyPost(accountId, customPrompt = null, forceNoImag
 
   console.log(`[Bluesky-Post] Generating content for ${account.identifier}...`);
 
-  const accountName = "caridisinishop_bluesky";
+  const accountName = account.identifier || account.name || "bluesky_account";
 
   // Allow 1 image for Bluesky Promo layout, or text-only if forceNoImage is true. Max Length 280 chars to avoid truncation.
   const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, forceNoImage, 280);
@@ -320,13 +320,21 @@ app.get('/api/bluesky/cron', async (req, res) => {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
         let finalPrompt = chosen.custom_prompt;
         
-        let forceNoImage = false;
-        if (acc.identifier.toLowerCase().includes('oneformind')) {
-            forceNoImage = true;
-        }
+        const isOneformind = acc.identifier.toLowerCase().includes('oneformind');
+        let forceNoImage = isOneformind;
 
         if (!finalPrompt || finalPrompt.trim() === '') {
-          if (postsToday === 0 || postsToday === 2) {
+          if (isOneformind) {
+            // OneForMind: always SaaS/productivity topics, NEVER affiliate
+            const oneformindTopics = [
+              "Share a powerful insight on deep work and achieving cognitive flow state for maximum productivity.",
+              "Write about the most effective time-blocking strategies that high-performers use.",
+              "Discuss how habit stacking can completely transform morning routines for ambitious people.",
+              "Share actionable tips on overcoming digital distractions and staying in deep focus.",
+              "Write about the psychology of productivity: why most people fail at being consistent.",
+            ];
+            finalPrompt = oneformindTopics[postsToday % oneformindTopics.length];
+          } else if (postsToday === 0 || postsToday === 2) {
             finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
             forceNoImage = true;
           } else if (postsToday === 1) {
