@@ -306,34 +306,35 @@ app.get('/api/mastodon/cron', async (req, res) => {
 
       const postsRemaining = 5 - postsToday;
       const numToMake = Math.min(postsRemaining, pending.length);
+      // Simple probability to decide if we post this tick
       const chance = numToMake / totalMinutesLeft;
       const roll = Math.random();
 
       if (roll < chance) {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
         let finalPrompt = chosen.custom_prompt;
-        
         const isOneformind = acc.name.toLowerCase().includes('oneformind');
         let forceNoImage = isOneformind;
 
         if (!finalPrompt || finalPrompt.trim() === '') {
-          if (isOneformind) {
-            // OneForMind: always SaaS/productivity topics, NEVER affiliate
+          // Affiliate prompts with clear "Sponsored" label for non-OneForMind accounts
+          if (!isOneformind) {
+            const affiliatePrompts = [
+              "Sponsored: Automate your workflow with Make.com – https://www.make.com/en/register?pc=airan",
+              "Sponsored: Boost your sales funnels with Systeme.io – https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5",
+              "Sponsored: Transfer money worldwide with ZERO fees – Wise – https://wise.com/invite/dic/khairannoorf"
+            ];
+            finalPrompt = affiliatePrompts[postsToday % affiliatePrompts.length];
+          } else {
+            // OneForMind: pure SaaS/productivity content, no affiliate
             const oneformindTopics = [
               "Share a powerful insight on deep work and achieving cognitive flow state for maximum productivity.",
               "Write about the most effective time-blocking strategies that high-performers use.",
               "Discuss how habit stacking can completely transform morning routines for ambitious people.",
               "Share actionable tips on overcoming digital distractions and staying in deep focus.",
-              "Write about the psychology of productivity: why most people fail at being consistent.",
+              "Write about the psychology of productivity: why most people fail at being consistent."
             ];
             finalPrompt = oneformindTopics[postsToday % oneformindTopics.length];
-          } else if (postsToday === 0 || postsToday === 2) {
-            finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
-            forceNoImage = true;
-          } else if (postsToday === 1) {
-            finalPrompt = "Enthusiastically recommend this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
-          } else if (postsToday === 3) {
-            finalPrompt = "Enthusiastically recommend this tool: https://www.make.com/en/register?pc=airan";
           } else {
             finalPrompt = "Enthusiastically recommend this tool: https://wise.com/invite/dic/khairannoorf";
           }
