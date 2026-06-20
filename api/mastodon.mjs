@@ -335,8 +335,6 @@ app.get('/api/mastodon/cron', async (req, res) => {
               "Write about the psychology of productivity: why most people fail at being consistent."
             ];
             finalPrompt = oneformindTopics[postsToday % oneformindTopics.length];
-          } else {
-            finalPrompt = "Enthusiastically recommend this tool: https://wise.com/invite/dic/khairannoorf";
           }
         }
 
