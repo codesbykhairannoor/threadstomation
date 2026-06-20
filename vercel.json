@@ -54,16 +54,28 @@
       "destination": "/api/facebook.mjs"
     },
     {
+      "source": "/api/mastodon",
+      "destination": "/api/mastodon.mjs"
+    },
+    {
       "source": "/api/mastodon/(.*)",
-      "destination": "/api/index.mjs"
+      "destination": "/api/mastodon.mjs"
+    },
+    {
+      "source": "/api/devto",
+      "destination": "/api/devto.mjs"
     },
     {
       "source": "/api/devto/(.*)",
-      "destination": "/api/index.mjs"
+      "destination": "/api/devto.mjs"
+    },
+    {
+      "source": "/api/bluesky",
+      "destination": "/api/bluesky.mjs"
     },
     {
       "source": "/api/bluesky/(.*)",
-      "destination": "/api/index.mjs"
+      "destination": "/api/bluesky.mjs"
     },
     {
       "source": "/api/(.*)",

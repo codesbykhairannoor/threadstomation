@@ -138,14 +138,15 @@ app.post('/api/post-now', async (req, res) => {
 
 app.get('/api/cron', async (req, res) => {
     const secretParam = req.query.secret;
+    const authHeader = req.headers.authorization;
     const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
 
-    if (secretParam !== expectedSecret) {
-        return res.status(200).json({ success: false, error: 'Unauthorized' });
+    if (secretParam !== expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
     const targetAccountId = req.query.accountId ? parseInt(req.query.accountId, 10) : null;
-    const isMasterPing = req.query.master === 'true' || !targetAccountId;
+    const isMasterPing = req.query.master === 'true'; // Only trigger cascades if explicitly requested
 
     const now = new Date();
     const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
@@ -207,10 +208,9 @@ app.get('/api/cron', async (req, res) => {
             } catch (accErr) { console.error(`[Cron-Acc] ${acc.name}:`, accErr.message); }
         }
 
-        cleanupOldHistory().catch(() => {});
         res.status(200).json({ success: true, executed });
     } catch (e) {
-        res.status(200).json({ success: false, error: e.message });
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
