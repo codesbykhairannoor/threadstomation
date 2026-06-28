@@ -198,7 +198,7 @@ app.get('/api/cron', async (req, res) => {
                 `;
                 if (!pending.length) continue;
 
-                const chance = (dailyLimit - postsToday) / totalMinutesLeft;
+                const chance = ((dailyLimit - postsToday) / totalMinutesLeft) * 3;
                 if (Math.random() < chance) {
                     const sch = pending[Math.floor(Math.random() * pending.length)];
                     await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${sch.id}`;

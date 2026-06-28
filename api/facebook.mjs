@@ -314,7 +314,7 @@ app.get('/api/facebook/cron', async (req, res) => {
       
       const dailyLimit = 1; // User requested 1x per day synced with IG
 
-      const [{ count: postsToday }] = await sql`SELECT COUNT(*) as count FROM facebook_history WHERE account_id = ${acc.id} AND created_at::date = CURRENT_DATE AND status = 'success'`;
+      const [{ count: postsToday }] = await sql`SELECT COUNT(*) as count FROM facebook_history WHERE account_id = ${acc.id} AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr} AND status = 'success'`;
       if (parseInt(postsToday) >= dailyLimit) continue;
 
       const pending = await sql`

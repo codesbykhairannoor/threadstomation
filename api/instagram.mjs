@@ -463,7 +463,7 @@ app.get('/api/instagram/cron', async (req, res) => {
 
       const postsRemaining = dailyLimit - postsToday;
       const numToMake = Math.min(postsRemaining, pending.length);
-      const chance = numToMake / totalMinutesLeft;
+      const chance = (numToMake / totalMinutesLeft) * 3;
       const roll = Math.random();
 
       console.log(`[Instagram-Cron] ${acc.name}: postsToday=${postsToday}/5, pending=${pending.length}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);

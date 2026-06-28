@@ -296,7 +296,7 @@ app.get('/api/devto/cron', async (req, res) => {
     for (const acc of accounts) {
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM devto_history
-        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND created_at::date = CURRENT_DATE
+        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
@@ -318,7 +318,7 @@ app.get('/api/devto/cron', async (req, res) => {
 
       const postsRemaining = 5 - postsToday;
       const numToMake = Math.min(postsRemaining, pending.length);
-      const chance = numToMake / totalMinutesLeft;
+      const chance = (numToMake / totalMinutesLeft) * 3;
       const roll = Math.random();
 
       if (roll < chance) {
