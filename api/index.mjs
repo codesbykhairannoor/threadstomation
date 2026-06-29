@@ -10,6 +10,7 @@ import cors from 'cors';
 import sql, { initDb, cleanupOldHistory } from '../lib/database.js';
 import { generateThreadsContent } from '../lib/gemini.js';
 import { postToPlatforms } from '../lib/threads_service.js';
+import { refreshThreadsToken } from '../lib/threads.js';
 import axios from 'axios';
 import fs from 'fs';
 import tiktokApp from './tiktok.mjs';
@@ -131,6 +132,35 @@ app.post('/api/post-now', async (req, res) => {
         }
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// ── TOKEN AUTO-REFRESH ENDPOINT ──────────────────────────────────────────────
+// Can be called by a weekly cron to proactively refresh Threads tokens
+app.get('/api/threads/refresh-tokens', async (req, res) => {
+    const secretParam = req.query.secret;
+    const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
+    if (secretParam !== expectedSecret) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const tokens = await sql`SELECT id, account_id, access_token, expires_at FROM tokens WHERE platform = 'threads'`;
+        const results = [];
+        for (const t of tokens) {
+            const daysLeft = (new Date(t.expires_at) - Date.now()) / (1000 * 60 * 60 * 24);
+            if (daysLeft < 30) {
+                try {
+                    const newToken = await refreshThreadsToken(t.access_token, t.account_id);
+                    results.push({ account_id: t.account_id, status: 'refreshed' });
+                } catch (e) {
+                    results.push({ account_id: t.account_id, status: 'failed', error: e.message });
+                }
+            } else {
+                results.push({ account_id: t.account_id, status: 'ok', days_left: Math.round(daysLeft) });
+            }
+        }
+        res.json({ success: true, results });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 

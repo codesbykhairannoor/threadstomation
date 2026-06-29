@@ -90,6 +90,10 @@
     {
       "path": "/api/cron",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/threads/refresh-tokens?secret=super_chaos_secret_99",
+      "schedule": "0 12 * * 1"
     }
   ]
 }
