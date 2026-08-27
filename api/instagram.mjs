@@ -10,6 +10,7 @@ import sql, { initDb } from '../lib/database.js';
 import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts, postToFacebook } from '../lib/instagram.js';
 import { generateInstagramContent } from '../lib/gemini_instagram.js';
 import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
+import { createVideoFromImages } from '../lib/video_generator.js';
 
 const app = express();
 app.use(cors());
@@ -346,31 +347,36 @@ async function runInstagramPost(accountId, customPrompt = null) {
     }
   }
 
-  // Step 2: Render slides via Satori/ImgLy & Upload to Supabase Storage
-  const imageUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName);
-  console.log(`[Instagram-Post] ${imageUrls.length} images generated and uploaded to Supabase`);
+  // Step 2: Render slides via Satori/ImgLy to raw buffers
+  const imageBuffers = await generateInstagramSlideImages(slides, dynamicPalette, accountName, true);
+  console.log(`[Instagram-Post] ${imageBuffers.length} images generated as buffers.`);
 
-  // Step 3: Publish to Instagram
+  // Step 3: Convert buffers to Video (Reels) and Upload to Supabase
+  const rawBuffers = imageBuffers.map(img => img.buffer);
+  const videoUrl = await createVideoFromImages(rawBuffers, 3);
+  console.log(`[Instagram-Post] Video generated and uploaded to Supabase: ${videoUrl}`);
+
+  // Step 4: Publish to Instagram
   const hashtagStr = hashtags.map(h => `#${h}`).join(' ');
   const finalCaption = `${caption}\n\n${hashtagStr}`;
   
-  const { publishId, status } = await postToInstagram(imageUrls, finalCaption, accountId);
+  const { publishId, status } = await postToInstagram([videoUrl], finalCaption, accountId);
 
-  // Step 3.5: Publish to Facebook (if enabled)
+  // Step 5: Publish to Facebook (if enabled)
   console.log(`[Instagram-Post] Attempting Facebook crosspost for account ${accountId}...`);
-  const fbResult = await postToFacebook(imageUrls, finalCaption, accountId);
+  const fbResult = await postToFacebook([videoUrl], finalCaption, accountId);
   if (fbResult.publishId) {
     console.log(`[Facebook-Post] Successfully crossposted to FB with ID: ${fbResult.publishId}`);
   }
 
-  // Step 4: Save success to history
+  // Step 6: Save success to history
   await sql`
     INSERT INTO instagram_history (account_id, caption, slide_count, image_urls, creation_id, status)
     VALUES (
       ${accountId},
       ${caption || ''},
       ${slides ? slides.length : 0},
-      ${JSON.stringify(imageUrls) || '[]'},
+      ${JSON.stringify([videoUrl]) || '[]'},
       ${publishId || ''},
       ${status || 'success'}
     )
