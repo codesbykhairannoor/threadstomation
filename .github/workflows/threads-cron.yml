@@ -41,4 +41,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           THREADS_APP_ID: ${{ secrets.THREADS_APP_ID }}
           THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          AGNES_API_KEY: ${{ secrets.AGNES_API_KEY }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           # Any other specific secrets needed can be mapped here.
