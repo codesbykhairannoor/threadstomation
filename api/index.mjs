@@ -207,9 +207,12 @@ app.get('/api/cron', async (req, res) => {
             await new Promise(r => setTimeout(r, 1500));
         }
 
-        const accounts = targetAccountId 
-            ? await sql`SELECT id, name FROM accounts WHERE id = ${targetAccountId} AND is_active = 1`
-            : await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
+        let accounts = [];
+        if (targetAccountId) {
+            accounts = await sql`SELECT id, name FROM accounts WHERE id = ${targetAccountId} AND is_active = 1`;
+        } else {
+            console.log('[Cron] Threads automation moved to GitHub Actions. Skipping internal Vercel execution.');
+        }
 
         const executed = [];
         for (const acc of accounts) {
