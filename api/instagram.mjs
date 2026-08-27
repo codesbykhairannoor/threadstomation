@@ -347,24 +347,44 @@ async function runInstagramPost(accountId, customPrompt = null) {
     }
   }
 
-  // Step 2: Render slides via Satori/ImgLy to raw buffers
-  const imageBuffers = await generateInstagramSlideImages(slides, dynamicPalette, accountName, true);
-  console.log(`[Instagram-Post] ${imageBuffers.length} images generated as buffers.`);
+  // Step 2: Determine if today is a Video Day or Carousel Day
+  const now = new Date();
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const witaTime = new Date(utcTime + (3600000 * 8)); 
+  const dayOfWeek = witaTime.getDay(); // 0 (Sun) to 6 (Sat)
+  
+  // Carousel days: Monday (1), Wednesday (3), Friday (5)
+  const isCarouselDay = [1, 3, 5].includes(dayOfWeek);
+  
+  let mediaUrls = [];
 
-  // Step 3: Convert buffers to Video (Reels) and Upload to Supabase
-  const rawBuffers = imageBuffers.map(img => img.buffer);
-  const videoUrl = await createVideoFromImages(rawBuffers, 3);
-  console.log(`[Instagram-Post] Video generated and uploaded to Supabase: ${videoUrl}`);
+  if (isCarouselDay) {
+    console.log(`[Instagram-Post] Today (${dayOfWeek}) is a Carousel day. Rendering and uploading images directly to Supabase...`);
+    // returnBuffers = false -> uploads to Supabase and returns URLs
+    mediaUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName, false);
+    console.log(`[Instagram-Post] ${mediaUrls.length} images generated and uploaded to Supabase`);
+  } else {
+    console.log(`[Instagram-Post] Today (${dayOfWeek}) is a Video day. Rendering slides to buffers...`);
+    // Step 2.1: Render slides via Satori/ImgLy to raw buffers
+    const imageBuffers = await generateInstagramSlideImages(slides, dynamicPalette, accountName, true);
+    console.log(`[Instagram-Post] ${imageBuffers.length} images generated as buffers.`);
+
+    // Step 3: Convert buffers to Video (Reels) and Upload to Supabase
+    const rawBuffers = imageBuffers.map(img => img.buffer);
+    const videoUrl = await createVideoFromImages(rawBuffers, 3);
+    console.log(`[Instagram-Post] Video generated and uploaded to Supabase: ${videoUrl}`);
+    mediaUrls = [videoUrl];
+  }
 
   // Step 4: Publish to Instagram
   const hashtagStr = hashtags.map(h => `#${h}`).join(' ');
   const finalCaption = `${caption}\n\n${hashtagStr}`;
   
-  const { publishId, status } = await postToInstagram([videoUrl], finalCaption, accountId);
+  const { publishId, status } = await postToInstagram(mediaUrls, finalCaption, accountId);
 
   // Step 5: Publish to Facebook (if enabled)
   console.log(`[Instagram-Post] Attempting Facebook crosspost for account ${accountId}...`);
-  const fbResult = await postToFacebook([videoUrl], finalCaption, accountId);
+  const fbResult = await postToFacebook(mediaUrls, finalCaption, accountId);
   if (fbResult.publishId) {
     console.log(`[Facebook-Post] Successfully crossposted to FB with ID: ${fbResult.publishId}`);
   }
@@ -376,7 +396,7 @@ async function runInstagramPost(accountId, customPrompt = null) {
       ${accountId},
       ${caption || ''},
       ${slides ? slides.length : 0},
-      ${JSON.stringify([videoUrl]) || '[]'},
+      ${JSON.stringify(mediaUrls) || '[]'},
       ${publishId || ''},
       ${status || 'success'}
     )
