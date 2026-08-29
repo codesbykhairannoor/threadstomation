@@ -211,10 +211,43 @@ app.get('/api/cron', async (req, res) => {
         if (targetAccountId) {
             accounts = await sql`SELECT id, name FROM accounts WHERE id = ${targetAccountId} AND is_active = 1`;
         } else {
-            console.log('[Cron] Threads automation moved to GitHub Actions. Skipping internal Vercel execution.');
+            console.log('[Cron] Threads internal Vercel execution disabled. Use /api/threads/cron directly.');
         }
 
+        res.status(200).json({ success: true, message: 'Master ping executed successfully.' });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// ── ISOLATED THREADS CRON (FOR GITHUB ACTIONS) ─────────────────────────────────
+app.get('/api/threads/cron', async (req, res) => {
+    const secretParam = req.query.secret;
+    const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
+
+    if (secretParam !== expectedSecret && req.headers.authorization !== `Bearer ${expectedSecret}`) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const now = new Date();
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const witaTime = new Date(utcTime + (3600000 * 8)); 
+    
+    const todayStr = witaTime.toISOString().split('T')[0];
+    const currentHour = witaTime.getHours();
+    
+    // FIX: Use hoursLeft for probability since cron runs hourly, not minutely
+    const hoursLeft = Math.max(1, 24 - currentHour);
+
+    try {
+        const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{value: 'true'}]);
+        if (globalStatus[0]?.value === 'false') {
+            return res.status(200).json({ success: true, status: 'Automation disabled globally.' });
+        }
+
+        const accounts = await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
         const executed = [];
+        
         for (const acc of accounts) {
             try {
                 const nName = acc.name ? acc.name.toLowerCase() : '';
@@ -231,10 +264,16 @@ app.get('/api/cron', async (req, res) => {
                 `;
                 if (!pending.length) continue;
 
-                const chance = ((dailyLimit - postsToday) / totalMinutesLeft) * 3;
-                if (Math.random() < chance) {
+                // FIXED PROBABILITY LOGIC
+                const chance = (dailyLimit - postsToday) / hoursLeft;
+                const roll = Math.random();
+                console.log(`[Threads-Cron] ${acc.name} chance: ${chance.toFixed(2)}, roll: ${roll.toFixed(2)}`);
+
+                if (roll < chance) {
                     const sch = pending[Math.floor(Math.random() * pending.length)];
                     await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${sch.id}`;
+                    
+                    // Fire task asynchronously without awaiting to prevent timeout
                     runScheduledTask(sch).catch(e => console.error(`[Cron-Task] ${acc.name} Error:`, e.message));
                     executed.push({ account: acc.name, scheduleId: sch.id });
                 }
