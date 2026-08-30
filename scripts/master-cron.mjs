@@ -25,7 +25,7 @@ async function main() {
     // Wait for the server to bind to port 3000 by polling
     console.log('[Master-Cron] Waiting for server to be ready...');
     let isReady = false;
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 120; i++) {
         try {
             await fetch('http://127.0.0.1:3000');
             isReady = true;
