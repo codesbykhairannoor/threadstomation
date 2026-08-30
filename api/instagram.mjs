@@ -442,7 +442,10 @@ export async function runInstagramCron() {
   
   const currentHour = witaTime.getHours();
   const todayStr = witaTime.toISOString().split('T')[0];
-  const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));
+  const currentMinute = witaTime.getMinutes();
+  
+  const totalMinutesLeft = Math.max(1, (24 * 60) - (currentHour * 60 + currentMinute));
+  const intervalsLeft = Math.max(1, Math.floor(totalMinutesLeft / 15));
 
   try {
     const globalStatus = await sql`SELECT value FROM instagram_settings WHERE key = 'instagram_automation_enabled'`;
@@ -478,7 +481,7 @@ export async function runInstagramCron() {
 
       const postsRemaining = dailyLimit - postsToday;
       const numToMake = Math.min(postsRemaining, pending.length);
-      const chance = (numToMake / totalMinutesLeft) * 3;
+      const chance = numToMake / intervalsLeft;
       const roll = Math.random();
 
       console.log(`[Instagram-Cron] ${acc.name}: postsToday=${postsToday}/5, pending=${pending.length}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);

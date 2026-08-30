@@ -228,8 +228,10 @@ export async function runThreadsCron(awaitTasks = false) {
     
     const todayStr = witaTime.toISOString().split('T')[0];
     const currentHour = witaTime.getHours();
+    const currentMinute = witaTime.getMinutes();
     
-    const hoursLeft = Math.max(1, 24 - currentHour);
+    const totalMinutesLeft = Math.max(1, (24 * 60) - (currentHour * 60 + currentMinute));
+    const intervalsLeft = Math.max(1, Math.floor(totalMinutesLeft / 15));
 
     const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{value: 'true'}]);
     if (globalStatus[0]?.value === 'false') {
@@ -256,9 +258,9 @@ export async function runThreadsCron(awaitTasks = false) {
             `;
             if (!pending.length) continue;
 
-            const chance = (dailyLimit - postsToday) / hoursLeft;
+            const chance = (dailyLimit - postsToday) / intervalsLeft;
             const roll = Math.random();
-            console.log(`[Threads-Cron] ${acc.name} chance: ${chance.toFixed(2)}, roll: ${roll.toFixed(2)}`);
+            console.log(`[Threads-Cron] ${acc.name} chance: ${chance.toFixed(4)}, roll: ${roll.toFixed(4)}`);
 
             if (roll < chance) {
                 const sch = pending[Math.floor(Math.random() * pending.length)];
