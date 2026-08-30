@@ -435,18 +435,7 @@ app.post('/api/instagram/post-now', async (req, res) => {
 
 // ── CRON: AUTOMATION SCHEDULER ────────────────────────────────────────────────
 
-app.get('/api/instagram/cron', async (req, res) => {
-  const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
-  const authHeader = req.headers.authorization;
-  const secretParam = req.query.secret;
-
-  if (process.env.CRON_SECRET) {
-    if (authHeader !== `Bearer ${expectedSecret}` && secretParam !== expectedSecret) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  }
-
-  // Robust WITA (UTC+8) Time Calculation
+export async function runInstagramCron() {
   const now = new Date();
   const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
   const witaTime = new Date(utcTime + (3600000 * 8)); 
@@ -458,7 +447,7 @@ app.get('/api/instagram/cron', async (req, res) => {
   try {
     const globalStatus = await sql`SELECT value FROM instagram_settings WHERE key = 'instagram_automation_enabled'`;
     if (globalStatus[0]?.value === 'false') {
-      return res.json({ success: true, status: 'Instagram automation disabled globally.' });
+      return { success: true, status: 'Instagram automation disabled globally.' };
     }
 
     const accounts = await sql`SELECT id, name FROM instagram_accounts WHERE is_active = 1`;
@@ -513,9 +502,28 @@ app.get('/api/instagram/cron', async (req, res) => {
       }
     }
 
-    res.json({ success: true, executed });
+    return { success: true, executed };
   } catch (e) {
     console.error('[Instagram-Cron] Error:', e.message);
+    throw e;
+  }
+}
+
+app.get('/api/instagram/cron', async (req, res) => {
+  const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
+  const authHeader = req.headers.authorization;
+  const secretParam = req.query.secret;
+
+  if (process.env.CRON_SECRET) {
+    if (authHeader !== `Bearer ${expectedSecret}` && secretParam !== expectedSecret) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  }
+
+  try {
+    const result = await runInstagramCron();
+    res.json(result);
+  } catch (e) {
     res.status(200).json({ success: false, error: e.message });
   }
 });

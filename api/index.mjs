@@ -221,6 +221,65 @@ app.get('/api/cron', async (req, res) => {
 });
 
 // ── ISOLATED THREADS CRON (FOR GITHUB ACTIONS) ─────────────────────────────────
+export async function runThreadsCron(awaitTasks = false) {
+    const now = new Date();
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const witaTime = new Date(utcTime + (3600000 * 8)); 
+    
+    const todayStr = witaTime.toISOString().split('T')[0];
+    const currentHour = witaTime.getHours();
+    
+    const hoursLeft = Math.max(1, 24 - currentHour);
+
+    const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{value: 'true'}]);
+    if (globalStatus[0]?.value === 'false') {
+        return { success: true, status: 'Automation disabled globally.' };
+    }
+
+    const accounts = await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
+    const executed = [];
+    const pendingTasks = [];
+    
+    for (const acc of accounts) {
+        try {
+            const nName = acc.name ? acc.name.toLowerCase() : '';
+            const isSpecial = nName.includes('adhlil') || nName.includes('caridisini');
+            const dailyLimit = isSpecial ? 4 : 2;
+
+            const [ranToday] = await sql`SELECT COUNT(*) as count FROM schedules WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}`;
+            const postsToday = parseInt(ranToday?.count || 0);
+            if (postsToday >= dailyLimit) continue;
+
+            const pending = await sql`
+                SELECT * FROM schedules 
+                WHERE account_id = ${acc.id} AND is_active = 1 AND (last_run_date IS NULL OR last_run_date != ${todayStr})
+            `;
+            if (!pending.length) continue;
+
+            const chance = (dailyLimit - postsToday) / hoursLeft;
+            const roll = Math.random();
+            console.log(`[Threads-Cron] ${acc.name} chance: ${chance.toFixed(2)}, roll: ${roll.toFixed(2)}`);
+
+            if (roll < chance) {
+                const sch = pending[Math.floor(Math.random() * pending.length)];
+                await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${sch.id}`;
+                
+                const taskPromise = runScheduledTask(sch).catch(e => console.error(`[Cron-Task] ${acc.name} Error:`, e.message));
+                if (awaitTasks) {
+                    pendingTasks.push(taskPromise);
+                }
+                executed.push({ account: acc.name, scheduleId: sch.id });
+            }
+        } catch (accErr) { console.error(`[Cron-Acc] ${acc.name}:`, accErr.message); }
+    }
+
+    if (awaitTasks && pendingTasks.length > 0) {
+        await Promise.all(pendingTasks);
+    }
+
+    return { success: true, executed };
+}
+
 app.get('/api/threads/cron', async (req, res) => {
     const secretParam = req.query.secret;
     const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
@@ -229,58 +288,9 @@ app.get('/api/threads/cron', async (req, res) => {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const now = new Date();
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const witaTime = new Date(utcTime + (3600000 * 8)); 
-    
-    const todayStr = witaTime.toISOString().split('T')[0];
-    const currentHour = witaTime.getHours();
-    
-    // FIX: Use hoursLeft for probability since cron runs hourly, not minutely
-    const hoursLeft = Math.max(1, 24 - currentHour);
-
     try {
-        const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{value: 'true'}]);
-        if (globalStatus[0]?.value === 'false') {
-            return res.status(200).json({ success: true, status: 'Automation disabled globally.' });
-        }
-
-        const accounts = await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
-        const executed = [];
-        
-        for (const acc of accounts) {
-            try {
-                const nName = acc.name ? acc.name.toLowerCase() : '';
-                const isSpecial = nName.includes('adhlil') || nName.includes('caridisini');
-                const dailyLimit = isSpecial ? 4 : 2;
-
-                const [ranToday] = await sql`SELECT COUNT(*) as count FROM schedules WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}`;
-                const postsToday = parseInt(ranToday?.count || 0);
-                if (postsToday >= dailyLimit) continue;
-
-                const pending = await sql`
-                    SELECT * FROM schedules 
-                    WHERE account_id = ${acc.id} AND is_active = 1 AND (last_run_date IS NULL OR last_run_date != ${todayStr})
-                `;
-                if (!pending.length) continue;
-
-                // FIXED PROBABILITY LOGIC
-                const chance = (dailyLimit - postsToday) / hoursLeft;
-                const roll = Math.random();
-                console.log(`[Threads-Cron] ${acc.name} chance: ${chance.toFixed(2)}, roll: ${roll.toFixed(2)}`);
-
-                if (roll < chance) {
-                    const sch = pending[Math.floor(Math.random() * pending.length)];
-                    await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${sch.id}`;
-                    
-                    // Fire task asynchronously without awaiting to prevent timeout
-                    runScheduledTask(sch).catch(e => console.error(`[Cron-Task] ${acc.name} Error:`, e.message));
-                    executed.push({ account: acc.name, scheduleId: sch.id });
-                }
-            } catch (accErr) { console.error(`[Cron-Acc] ${acc.name}:`, accErr.message); }
-        }
-
-        res.status(200).json({ success: true, executed });
+        const result = await runThreadsCron(false);
+        res.status(200).json(result);
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
@@ -313,7 +323,8 @@ app.use((err, req, res, next) => {
     res.status(200).json({ success: false, error: 'Internal system error', detail: err.message });
 });
 
-if (!process.env.VERCEL) {
+const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
+if (!process.env.VERCEL && isMainModule) {
     app.listen(PORT, '0.0.0.0', () => console.log(`[Local] Server at ${PORT}`));
 }
 
