@@ -258,7 +258,8 @@ export async function runThreadsCron(awaitTasks = false) {
             `;
             if (!pending.length) continue;
 
-            const chance = (dailyLimit - postsToday) / intervalsLeft;
+            let chance = (dailyLimit - postsToday) / intervalsLeft;
+            if (chance < 0.45) chance = 0.45; // Force at least 45% chance as requested
             const roll = Math.random();
             console.log(`[Threads-Cron] ${acc.name} chance: ${chance.toFixed(4)}, roll: ${roll.toFixed(4)}`);
 

@@ -316,7 +316,7 @@ app.post('/api/instagram/settings/toggle-automation', async (req, res) => {
 
 // ── CORE: POST CAROUSEL ───────────────────────────────────────────────────────
 
-async function runInstagramPost(accountId, customPrompt = null) {
+export async function runInstagramPost(accountId, customPrompt = null) {
   // Get account details
   const account = await sql`SELECT * FROM instagram_accounts WHERE id = ${accountId}`;
   if (!account.length) throw new Error(`Instagram account ${accountId} not found`);
@@ -481,7 +481,8 @@ export async function runInstagramCron() {
 
       const postsRemaining = dailyLimit - postsToday;
       const numToMake = Math.min(postsRemaining, pending.length);
-      const chance = numToMake / intervalsLeft;
+      let chance = numToMake / intervalsLeft;
+      if (chance < 0.45) chance = 0.45; // Force at least 45% chance as requested
       const roll = Math.random();
 
       console.log(`[Instagram-Cron] ${acc.name}: postsToday=${postsToday}/5, pending=${pending.length}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
