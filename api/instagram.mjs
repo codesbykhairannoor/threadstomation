@@ -347,24 +347,31 @@ export async function runInstagramPost(accountId, customPrompt = null) {
     }
   }
 
-  // Step 2: Determine if today is a Video Day or Carousel Day
-  const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const witaTime = new Date(utcTime + (3600000 * 8)); 
-  const dayOfWeek = witaTime.getDay(); // 0 (Sun) to 6 (Sat)
+  // Step 2: Determine if this should be a Video or Carousel (Alternating per post)
+  const lastPostRows = await sql`
+    SELECT slide_count FROM instagram_history 
+    WHERE account_id = ${accountId} AND status = 'success' 
+    ORDER BY created_at DESC LIMIT 1
+  `;
   
-  // Carousel days: Monday (1), Wednesday (3), Friday (5)
-  const isCarouselDay = [1, 3, 5].includes(dayOfWeek);
+  let isCarouselDay = true; // Default to Carousel if no history
+  if (lastPostRows.length > 0) {
+    const lastSlideCount = lastPostRows[0].slide_count;
+    // If the last successful post was a carousel (slide_count > 0), make this one a video
+    if (lastSlideCount && lastSlideCount > 0) {
+      isCarouselDay = false;
+    }
+  }
   
   let mediaUrls = [];
 
   if (isCarouselDay) {
-    console.log(`[Instagram-Post] Today (${dayOfWeek}) is a Carousel day. Rendering and uploading images directly to Supabase...`);
+    console.log(`[Instagram-Post] Using Carousel for this post. Rendering and uploading images directly to Supabase...`);
     // returnBuffers = false -> uploads to Supabase and returns URLs
     mediaUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName, false);
     console.log(`[Instagram-Post] ${mediaUrls.length} images generated and uploaded to Supabase`);
   } else {
-    console.log(`[Instagram-Post] Today (${dayOfWeek}) is a Video day. Rendering slides to buffers...`);
+    console.log(`[Instagram-Post] Using Video for this post. Rendering slides to buffers...`);
     // Step 2.1: Render slides via Satori/ImgLy to raw buffers
     const imageBuffers = await generateInstagramSlideImages(slides, dynamicPalette, accountName, true);
     console.log(`[Instagram-Post] ${imageBuffers.length} images generated as buffers.`);
@@ -382,13 +389,7 @@ export async function runInstagramPost(accountId, customPrompt = null) {
   
   const { publishId, status } = await postToInstagram(mediaUrls, finalCaption, accountId);
 
-  // Step 5: Publish to Facebook (if enabled)
-  console.log(`[Instagram-Post] Attempting Facebook crosspost for account ${accountId}...`);
-  const fbResult = await postToFacebook(mediaUrls, finalCaption, accountId);
-  if (fbResult.publishId) {
-    console.log(`[Facebook-Post] Successfully crossposted to FB with ID: ${fbResult.publishId}`);
-  }
-
+  // Step 5: (Facebook Crossposting Removed per user request)
   // Step 6: Save success to history
   await sql`
     INSERT INTO instagram_history (account_id, caption, slide_count, image_urls, creation_id, status)
