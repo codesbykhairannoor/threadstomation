@@ -396,7 +396,7 @@ export async function runInstagramPost(accountId, customPrompt = null) {
     VALUES (
       ${accountId},
       ${caption || ''},
-      ${slides ? slides.length : 0},
+      ${isCarouselDay ? (slides ? slides.length : 0) : 0},
       ${JSON.stringify(mediaUrls) || '[]'},
       ${publishId || ''},
       ${status || 'success'}
@@ -483,7 +483,7 @@ export async function runInstagramCron() {
       const postsRemaining = dailyLimit - postsToday;
       const numToMake = Math.min(postsRemaining, pending.length);
       let chance = numToMake / intervalsLeft;
-      if (chance < 0.45) chance = 0.45; // Force at least 45% chance as requested
+      if (chance < 0.30) chance = 0.30; // Force at least 30% chance as requested
       const roll = Math.random();
 
       console.log(`[Instagram-Cron] ${acc.name}: postsToday=${postsToday}/5, pending=${pending.length}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
