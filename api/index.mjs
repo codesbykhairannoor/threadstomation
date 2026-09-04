@@ -258,7 +258,8 @@ export async function runThreadsCron(awaitTasks = false) {
             `;
             if (!pending.length) continue;
 
-            let chance = 1.0; // User requested 100% chance for manual/github cron triggering
+            let chance = (dailyLimit - postsToday) / intervalsLeft;
+            // Removed hardcoded minimums to ensure completely random posting times throughout the day
             const roll = Math.random();
             console.log(`[Threads-Cron] ${acc.name} chance: ${chance.toFixed(4)}, roll: ${roll.toFixed(4)}`);
 
