@@ -481,9 +481,7 @@ export async function runInstagramCron() {
       if (!pending.length) continue;
 
       const postsRemaining = dailyLimit - postsToday;
-      const numToMake = Math.min(postsRemaining, pending.length);
-      let chance = numToMake / intervalsLeft;
-      if (chance < 0.30) chance = 0.30; // Force at least 30% chance as requested
+      let chance = 1.0; // User requested 100% chance for manual/github cron triggering
       const roll = Math.random();
 
       console.log(`[Instagram-Cron] ${acc.name}: postsToday=${postsToday}/5, pending=${pending.length}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
