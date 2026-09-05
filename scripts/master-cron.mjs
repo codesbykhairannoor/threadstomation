@@ -1,6 +1,7 @@
 import { initDb } from '../lib/database.js';
 import { runThreadsCron } from '../api/index.mjs';
 import { runInstagramCron } from '../api/instagram.mjs';
+import { cleanupOldStorage } from '../lib/supabase_storage.js';
 
 async function main() {
     console.log('[Master-Cron] 🚀 Starting Native GitHub Actions Cron for Threads & Instagram (Imagecuan Architecture)...');
@@ -11,6 +12,9 @@ async function main() {
         console.log('[Master-Cron] 📦 Initializing database connection...');
         await initDb();
         console.log('[Master-Cron] ✅ Database connected!');
+
+        // Run automated 24-hour storage cleanup to keep Supabase 100% free forever
+        await cleanupOldStorage().catch(e => console.warn('[Master-Cron] Storage cleanup note:', e.message));
 
         console.log('\n=========================================');
         console.log('🤖📸 EXECUTING THREADS & INSTAGRAM CONCURRENTLY');

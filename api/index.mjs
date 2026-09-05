@@ -265,13 +265,16 @@ export async function runThreadsCron(awaitTasks = false) {
 
             if (roll < chance) {
                 const sch = pending[Math.floor(Math.random() * pending.length)];
-                await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${sch.id}`;
                 
-                const taskPromise = runScheduledTask(sch).catch(e => console.error(`[Cron-Task] ${acc.name} Error:`, e.message));
+                const taskPromise = runScheduledTask(sch, todayStr)
+                    .then(() => {
+                        executed.push({ account: acc.name, scheduleId: sch.id });
+                    })
+                    .catch(e => console.error(`[Cron-Task] ${acc.name} Error:`, e.message));
+                    
                 if (awaitTasks) {
                     pendingTasks.push(taskPromise);
                 }
-                executed.push({ account: acc.name, scheduleId: sch.id });
             }
         } catch (accErr) { console.error(`[Cron-Acc] ${acc.name}:`, accErr.message); }
     }
@@ -299,7 +302,7 @@ app.get('/api/threads/cron', async (req, res) => {
     }
 });
 
-async function runScheduledTask(schedule) {
+async function runScheduledTask(schedule, todayStr = null) {
     const accountId = schedule.account_id;
     const account = await sql`SELECT account_type FROM accounts WHERE id = ${accountId}`.then(r => r[0]);
 
@@ -307,15 +310,21 @@ async function runScheduledTask(schedule) {
     const imageUrl = schedule.image_url || null;
     let imageBase64 = null;
 
-        if (imageUrl) {
-            try {
-                const response = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 5000 });
-                imageBase64 = Buffer.from(response.data, 'binary').toString('base64');
-            } catch (e) { console.warn('[Task] Image fetch failed:', e.message); }
-        }
+    if (imageUrl) {
+        try {
+            const response = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 5000 });
+            imageBase64 = Buffer.from(response.data, 'binary').toString('base64');
+        } catch (e) { console.warn('[Task] Image fetch failed:', e.message); }
+    }
         
     const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
-    if (content) await postToPlatforms(content, ['threads'], imageUrl, accountId);
+    if (content) {
+        const postResult = await postToPlatforms(content, ['threads'], imageUrl, accountId);
+        if (todayStr && postResult) {
+            await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${schedule.id}`;
+        }
+        return postResult;
+    }
 }
 
 app.get('/api', (req, res) => res.json({ status: 'Online', time: new Date() }));
