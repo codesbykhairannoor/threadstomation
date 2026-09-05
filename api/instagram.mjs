@@ -486,7 +486,7 @@ export async function runInstagramCron() {
       // Removed hardcoded minimums to ensure completely random posting times throughout the day
       const roll = Math.random();
 
-      console.log(`[Instagram-Cron] ${acc.name}: postsToday=${postsToday}/5, pending=${pending.length}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
+      console.log(`[Instagram-Cron] ${acc.name}: postsToday=${postsToday}/${dailyLimit}, pending=${pending.length}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
 
       if (roll < chance) {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
