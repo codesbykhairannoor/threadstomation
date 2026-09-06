@@ -258,10 +258,20 @@ export async function runThreadsCron(awaitTasks = false) {
             `;
             if (!pending.length) continue;
 
-            let chance = (dailyLimit - postsToday) / intervalsLeft;
-            // Removed hardcoded minimums to ensure completely random posting times throughout the day
+            const postsRemaining = dailyLimit - postsToday;
+            const hoursLeft = Math.max(1, 23 - currentHour);
+            // Adaptive probability: realistic floor during daytime + evening safety net for GitHub Actions
+            let chance = postsRemaining / Math.max(1, hoursLeft * 1.5);
+            if (currentHour >= 7 && currentHour <= 23) {
+                chance = Math.max(0.40, chance);
+            }
+            if (hoursLeft <= 4 && postsRemaining > 0) {
+                chance = 1.0; // Evening safety net
+            }
+            chance = Math.min(1.0, chance);
+
             const roll = Math.random();
-            console.log(`[Threads-Cron] ${acc.name} chance: ${chance.toFixed(4)}, roll: ${roll.toFixed(4)}`);
+            console.log(`[Threads-Cron] ${acc.name}: postsToday=${postsToday}/${dailyLimit}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
 
             if (roll < chance) {
                 const sch = pending[Math.floor(Math.random() * pending.length)];
