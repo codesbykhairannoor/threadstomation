@@ -221,7 +221,7 @@ app.get('/api/cron', async (req, res) => {
 });
 
 // ── ISOLATED THREADS CRON (FOR GITHUB ACTIONS) ─────────────────────────────────
-export async function runThreadsCron(awaitTasks = false) {
+export async function runThreadsCron(awaitTasks = false, force = false) {
     const now = new Date();
     const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
     const witaTime = new Date(utcTime + (3600000 * 8)); 
@@ -252,6 +252,13 @@ export async function runThreadsCron(awaitTasks = false) {
             const postsToday = parseInt(ranToday?.count || 0);
             if (postsToday >= dailyLimit) continue;
 
+            // Strict Active Hours Guard: 08:00 WITA - 22:00 WITA
+            // Prevents burning daily quota at midnight/early morning (00:00 - 07:59 WITA)
+            if (!force && (currentHour < 8 || currentHour >= 22)) {
+                console.log(`[Threads-Cron] ${acc.name}: Current hour ${currentHour}:00 WITA is outside active daytime window (08:00 - 22:00 WITA). Sleeping.`);
+                continue;
+            }
+
             const pending = await sql`
                 SELECT * FROM schedules 
                 WHERE account_id = ${acc.id} AND is_active = 1 AND (last_run_date IS NULL OR last_run_date != ${todayStr})
@@ -259,16 +266,9 @@ export async function runThreadsCron(awaitTasks = false) {
             if (!pending.length) continue;
 
             const postsRemaining = dailyLimit - postsToday;
-            const hoursLeft = Math.max(1, 23 - currentHour);
-            // Adaptive probability: realistic floor during daytime + evening safety net for GitHub Actions
-            let chance = postsRemaining / Math.max(1, hoursLeft * 1.5);
-            if (currentHour >= 7 && currentHour <= 23) {
-                chance = Math.max(0.40, chance);
-            }
-            if (hoursLeft <= 4 && postsRemaining > 0) {
-                chance = 1.0; // Evening safety net
-            }
-            chance = Math.min(1.0, chance);
+            // Daytime high confidence: 65% chance per trigger, guaranteed 100% after 18:00 WITA
+            let chance = currentHour >= 18 ? 1.0 : 0.65;
+            if (force) chance = 1.0;
 
             const roll = Math.random();
             console.log(`[Threads-Cron] ${acc.name}: postsToday=${postsToday}/${dailyLimit}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);

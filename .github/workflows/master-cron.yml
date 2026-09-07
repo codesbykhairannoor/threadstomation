@@ -2,8 +2,9 @@ name: Master Cron (Threads & IG)
 
 on:
   schedule:
-    # Runs every 15 minutes to randomize execution times and emulate human behavior
-    - cron: '*/15 * * * *'
+    # Staggered non-round cron schedules to bypass GitHub Actions top-of-hour congestion
+    - cron: '7,22,37,52 * * * *'
+    - cron: '14,29,44,59 * * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:

@@ -436,7 +436,7 @@ app.post('/api/instagram/post-now', async (req, res) => {
 
 // ── CRON: AUTOMATION SCHEDULER ────────────────────────────────────────────────
 
-export async function runInstagramCron() {
+export async function runInstagramCron(force = false) {
   const now = new Date();
   const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
   const witaTime = new Date(utcTime + (3600000 * 8)); 
@@ -471,6 +471,13 @@ export async function runInstagramCron() {
         continue;
       }
 
+      // Strict Active Hours Guard: 08:00 WITA - 22:00 WITA
+      // Prevents burning daily quota at midnight/early morning (00:00 - 07:59 WITA)
+      if (!force && (currentHour < 8 || currentHour >= 22)) {
+        console.log(`[Instagram-Cron] ${acc.name}: Current hour ${currentHour}:00 WITA is outside active daytime window (08:00 - 22:00 WITA). Sleeping.`);
+        continue;
+      }
+
       const pending = await sql`
         SELECT * FROM instagram_schedules
         WHERE account_id = ${acc.id}
@@ -480,18 +487,9 @@ export async function runInstagramCron() {
 
       if (!pending.length) continue;
 
-      const postsRemaining = dailyLimit - postsToday;
-      const numToMake = Math.min(postsRemaining, pending.length);
-      const hoursLeft = Math.max(1, 23 - currentHour);
-      // Adaptive probability: realistic floor during daytime + evening safety net for GitHub Actions
-      let chance = numToMake / Math.max(1, hoursLeft * 1.5);
-      if (currentHour >= 7 && currentHour <= 23) {
-        chance = Math.max(0.40, chance);
-      }
-      if (hoursLeft <= 4 && postsRemaining > 0) {
-        chance = 1.0; // Evening safety net
-      }
-      chance = Math.min(1.0, chance);
+      // Daytime high confidence: 65% chance per trigger, guaranteed 100% after 17:00 WITA
+      let chance = currentHour >= 17 ? 1.0 : 0.65;
+      if (force) chance = 1.0;
 
       const roll = Math.random();
 
