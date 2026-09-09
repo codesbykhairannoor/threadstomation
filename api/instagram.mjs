@@ -9,7 +9,7 @@ import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts, postToFacebook } from '../lib/instagram.js';
 import { generateInstagramContent } from '../lib/gemini_instagram.js';
-import { generateInstagramSlideImages } from '../lib/instagram_carousel.js';
+import { generateInstagramSlideImages, generateReelTextOverlayBuffers } from '../lib/instagram_carousel.js';
 import { createVideoFromImages } from '../lib/video_generator.js';
 
 const app = express();
@@ -371,16 +371,16 @@ export async function runInstagramPost(accountId, customPrompt = null) {
     mediaUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName, false);
     console.log(`[Instagram-Post] ${mediaUrls.length} images generated and uploaded to Supabase`);
   } else {
-    console.log(`[Instagram-Post] Using Video for this post. Rendering slides to buffers...`);
-    // Step 2.1: Render slides via Satori/ImgLy to raw buffers
-    const imageBuffers = await generateInstagramSlideImages(slides, dynamicPalette, accountName, true);
-    console.log(`[Instagram-Post] ${imageBuffers.length} images generated as buffers.`);
+    console.log(`[Instagram-Post] Using Video (Reels) mode with full-screen 9:16 text overlay...`);
+    // Render clean transparent 9:16 subtitle overlays for B-Roll video background (No bulky 4:5 cards!)
+    const imageBuffers = await generateReelTextOverlayBuffers(slides, accountName);
+    console.log(`[Instagram-Post] ${imageBuffers.length} 9:16 Reels text overlays generated.`);
 
     // Step 3: Convert buffers to Video (Reels) and Upload to Supabase
     // Pass slides + masterPrompt so the B-Roll engine can search Pexels with relevant keywords
     const rawBuffers = imageBuffers.map(img => img.buffer);
     const videoUrl = await createVideoFromImages(rawBuffers, 3, slides, masterPrompt, caption);
-    console.log(`[Instagram-Post] Video generated and uploaded to Supabase: ${videoUrl}`);
+    console.log(`[Instagram-Post] B-Roll Reel generated and uploaded to Supabase: ${videoUrl}`);
     mediaUrls = [videoUrl];
   }
 
