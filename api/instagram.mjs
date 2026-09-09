@@ -377,8 +377,9 @@ export async function runInstagramPost(accountId, customPrompt = null) {
     console.log(`[Instagram-Post] ${imageBuffers.length} images generated as buffers.`);
 
     // Step 3: Convert buffers to Video (Reels) and Upload to Supabase
+    // Pass slides + masterPrompt so the B-Roll engine can search Pexels with relevant keywords
     const rawBuffers = imageBuffers.map(img => img.buffer);
-    const videoUrl = await createVideoFromImages(rawBuffers, 3);
+    const videoUrl = await createVideoFromImages(rawBuffers, 3, slides, masterPrompt);
     console.log(`[Instagram-Post] Video generated and uploaded to Supabase: ${videoUrl}`);
     mediaUrls = [videoUrl];
   }
