@@ -8,10 +8,10 @@ import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts, postToFacebook } from '../lib/instagram.js';
-import { generateInstagramContent } from '../lib/gemini_instagram.js';
+import { generateInstagramContent, generateVisualMetaphorSpec } from '../lib/gemini_instagram.js';
 import { generateInstagramSlideImages, generateReelTextOverlayBuffers } from '../lib/instagram_carousel.js';
 import { createVideoFromImages } from '../lib/video_generator.js';
-import { renderDynamicMindsetReel, renderTranvasMotionReel } from '../lib/remotion_renderer.js';
+import { renderDynamicMindsetReel, renderTranvasMotionReel, renderGenerativeMetaphorReel } from '../lib/remotion_renderer.js';
 
 const app = express();
 app.use(cors());
@@ -381,9 +381,13 @@ export async function runInstagramPost(accountId, customPrompt = null) {
       console.log(`[Instagram-Post] ✅ Remotion Mindset Reel generated: ${videoUrl}`);
       mediaUrls = [videoUrl];
     } else if (isTranvas) {
-      console.log(`[Instagram-Post] 🎬 Using Tranvas Visual Metaphor Motion Graphics for ${accountName}...`);
-      const videoUrl = await renderTranvasMotionReel(slides, masterPrompt, accountName, caption);
-      console.log(`[Instagram-Post] ✅ Remotion Tranvas Reel generated: ${videoUrl}`);
+      console.log(`[Instagram-Post] 🎬 Using Generative Visual Metaphor Engine for ${accountName}...`);
+      const metaphorSpec = await generateVisualMetaphorSpec(customPrompt, masterPrompt, accountName, accountId);
+      if (metaphorSpec.caption) caption = metaphorSpec.caption;
+      if (metaphorSpec.hashtags && Array.isArray(metaphorSpec.hashtags)) hashtags = metaphorSpec.hashtags;
+
+      const videoUrl = await renderGenerativeMetaphorReel(metaphorSpec, accountName);
+      console.log(`[Instagram-Post] ✅ Remotion Generative Metaphor Reel generated: ${videoUrl}`);
       mediaUrls = [videoUrl];
     } else {
       console.log(`[Instagram-Post] Using Video (Reels) mode with full-screen 9:16 text overlay...`);
