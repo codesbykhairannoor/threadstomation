@@ -383,3 +383,242 @@ export function TranvasChaosToStructureVideo({ watermark = 'tranvas.com' }) {
     </AbsoluteFill>
   );
 }
+
+// =========================================================================
+// VARIANT 3: 10-12s 1% HABIT COMPOUNDING (1.01^365 vs 0.99^365 Growth Curve)
+// =========================================================================
+export function TranvasHabitCompoundingVideo({ watermark = 'tranvas.com' }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const progress = spring({
+    frame: frame - 30,
+    fps,
+    config: { mass: 1.5, stiffness: 40, damping: 18 },
+  });
+
+  const counterValue = interpolate(progress, [0, 1], [1.0, 37.78], { extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: '#030712',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: '"Plus Jakarta Sans", -apple-system, sans-serif',
+      }}
+    >
+      {/* Glow */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '35%',
+          left: '50%',
+          width: '900px',
+          height: '900px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, rgba(56, 189, 248, 0.08) 50%, transparent 75%)',
+          transform: 'translate(-50%, -50%)',
+          filter: 'blur(110px)',
+        }}
+      />
+
+      {/* Header */}
+      <div style={{ position: 'absolute', top: '220px', textAlign: 'center' }}>
+        <span style={{ color: '#38bdf8', fontSize: '20px', fontWeight: 800, letterSpacing: '3px', textTransform: 'uppercase' }}>
+          The Power of Compounding
+        </span>
+        <h1 style={{ color: '#ffffff', fontSize: '56px', fontWeight: 900, letterSpacing: '-1.5px', margin: '12px 0 0 0' }}>
+          1% Better Every Day
+        </h1>
+      </div>
+
+      {/* Main Chart Graphic */}
+      <div
+        style={{
+          width: '780px',
+          height: '520px',
+          borderRadius: '28px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1.5px solid rgba(99, 102, 241, 0.3)',
+          backdropFilter: 'blur(20px)',
+          padding: '36px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          position: 'relative',
+          marginTop: '60px',
+          boxShadow: '0 30px 60px rgba(0, 0, 0, 0.7)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 10px #38bdf8' }} />
+            <span style={{ color: '#ffffff', fontSize: '20px', fontWeight: 700 }}>Daily Atomic Habits (1.01³⁶⁵)</span>
+          </div>
+          <span style={{ color: '#38bdf8', fontSize: '42px', fontWeight: 900, fontFamily: 'monospace' }}>
+            +{counterValue.toFixed(2)}x
+          </span>
+        </div>
+
+        {/* SVG Exponential Curve */}
+        <svg width="708" height="260" viewBox="0 0 708 260" style={{ overflow: 'visible' }}>
+          {/* Baseline */}
+          <line x1="0" y1="200" x2="708" y2="200" stroke="rgba(255, 255, 255, 0.15)" strokeDasharray="6 6" strokeWidth="2" />
+          <text x="10" y="190" fill="rgba(255, 255, 255, 0.4)" fontSize="16" fontWeight="600">Baseline (1.0x)</text>
+
+          {/* Exponential Growth Curve */}
+          <path
+            d="M 0 200 Q 350 190, 708 30"
+            fill="none"
+            stroke="url(#growthGradient)"
+            strokeWidth="6"
+            strokeDasharray="800"
+            strokeDashoffset={interpolate(progress, [0, 1], [800, 0], { extrapolateRight: 'clamp' })}
+            style={{ filter: 'drop-shadow(0 0 16px rgba(56, 189, 248, 0.8))' }}
+          />
+
+          {/* Decline Curve */}
+          <path
+            d="M 0 200 Q 350 210, 708 245"
+            fill="none"
+            stroke="rgba(248, 113, 113, 0.6)"
+            strokeWidth="3"
+            strokeDasharray="800"
+            strokeDashoffset={interpolate(progress, [0, 1], [800, 0], { extrapolateRight: 'clamp' })}
+          />
+
+          <defs>
+            <linearGradient id="growthGradient" x1="0" y1="200" x2="708" y2="30" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#6366f1" />
+              <stop offset="50%" stopColor="#38bdf8" />
+              <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '16px' }}>
+          <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '18px' }}>Day 1: Invisible Effort</span>
+          <span style={{ color: '#818cf8', fontSize: '18px', fontWeight: 800 }}>Day 365: Unstoppable Momentum 🚀</span>
+        </div>
+      </div>
+
+      <TranvasOfficialLogo watermark={watermark} />
+    </AbsoluteFill>
+  );
+}
+
+// =========================================================================
+// VARIANT 4: 10-12s DEEP FOCUS FLOW STATE (Distractions Blocked -> Pure Output)
+// =========================================================================
+export function TranvasFocusTimerVideo({ watermark = 'tranvas.com' }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const progress = spring({
+    frame: frame - 30,
+    fps,
+    config: { mass: 1.3, stiffness: 45, damping: 16 },
+  });
+
+  const pulse = 1 + Math.sin(frame / 15) * 0.04;
+  const rotation = (frame * 1.5) % 360;
+
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: '#030712',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: '"Plus Jakarta Sans", -apple-system, sans-serif',
+      }}
+    >
+      {/* Background Lighting */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '40%',
+          left: '50%',
+          width: '950px',
+          height: '950px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, rgba(168, 85, 247, 0.1) 50%, transparent 75%)',
+          transform: `translate(-50%, -50%) scale(${pulse})`,
+          filter: 'blur(110px)',
+        }}
+      />
+
+      {/* Header */}
+      <div style={{ position: 'absolute', top: '220px', textAlign: 'center' }}>
+        <span style={{ color: '#a855f7', fontSize: '20px', fontWeight: 800, letterSpacing: '3px', textTransform: 'uppercase' }}>
+          Deep Work Architecture
+        </span>
+        <h1 style={{ color: '#ffffff', fontSize: '56px', fontWeight: 900, letterSpacing: '-1.5px', margin: '12px 0 0 0' }}>
+          {progress < 0.5 ? 'Constant Interruption' : 'Unbroken Flow State'}
+        </h1>
+      </div>
+
+      {/* Glowing Radar Focus Sphere */}
+      <div
+        style={{
+          position: 'relative',
+          width: '420px',
+          height: '420px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(3, 7, 18, 0.8) 100%)',
+          border: '2px solid rgba(99, 102, 241, 0.4)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 0 60px rgba(99, 102, 241, 0.35)',
+          marginTop: '60px',
+        }}
+      >
+        {/* Rotating Radar Ring */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: '-15px',
+            borderRadius: '50%',
+            border: '2px dashed rgba(56, 189, 248, 0.5)',
+            transform: `rotate(${rotation}deg)`,
+          }}
+        />
+
+        <span style={{ fontSize: '54px', marginBottom: '10px' }}>⚡</span>
+        <span style={{ color: '#ffffff', fontSize: '52px', fontWeight: 900, letterSpacing: '-1px' }}>
+          90:00
+        </span>
+        <span style={{ color: '#38bdf8', fontSize: '18px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginTop: '6px' }}>
+          Deep Work Block
+        </span>
+
+        {/* Status Pill */}
+        <div
+          style={{
+            marginTop: '20px',
+            background: progress > 0.5 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+            border: progress > 0.5 ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(239, 68, 68, 0.5)',
+            padding: '6px 18px',
+            borderRadius: '100px',
+            color: progress > 0.5 ? '#4ade80' : '#f87171',
+            fontSize: '15px',
+            fontWeight: 700,
+          }}
+        >
+          {progress > 0.5 ? '● All Distractions Blocked' : '○ 12 Tabs & Notifications Open'}
+        </div>
+      </div>
+
+      <TranvasOfficialLogo watermark={watermark} />
+    </AbsoluteFill>
+  );
+}
+
