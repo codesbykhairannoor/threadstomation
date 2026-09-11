@@ -11,7 +11,7 @@ import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts, postTo
 import { generateInstagramContent } from '../lib/gemini_instagram.js';
 import { generateInstagramSlideImages, generateReelTextOverlayBuffers } from '../lib/instagram_carousel.js';
 import { createVideoFromImages } from '../lib/video_generator.js';
-import { renderDynamicMindsetReel } from '../lib/remotion_renderer.js';
+import { renderDynamicMindsetReel, renderTranvasMotionReel } from '../lib/remotion_renderer.js';
 
 const app = express();
 app.use(cors());
@@ -373,10 +373,17 @@ export async function runInstagramPost(accountId, customPrompt = null) {
     console.log(`[Instagram-Post] ${mediaUrls.length} images generated and uploaded to Supabase`);
   } else {
     const isAdhlil = accountName.toLowerCase().includes('adhlil') || parseInt(accountId, 10) === 1;
+    const isTranvas = accountName.toLowerCase().includes('tranvas') || accountName.toLowerCase().includes('oneformind');
+
     if (isAdhlil) {
       console.log(`[Instagram-Post] 🎬 Using Mindset.Therapy Code-to-Video Motion Graphics for ${accountName}...`);
       const videoUrl = await renderDynamicMindsetReel(slides, masterPrompt, accountName, caption);
       console.log(`[Instagram-Post] ✅ Remotion Mindset Reel generated: ${videoUrl}`);
+      mediaUrls = [videoUrl];
+    } else if (isTranvas) {
+      console.log(`[Instagram-Post] 🎬 Using Tranvas Visual Metaphor Motion Graphics for ${accountName}...`);
+      const videoUrl = await renderTranvasMotionReel(slides, masterPrompt, accountName, caption);
+      console.log(`[Instagram-Post] ✅ Remotion Tranvas Reel generated: ${videoUrl}`);
       mediaUrls = [videoUrl];
     } else {
       console.log(`[Instagram-Post] Using Video (Reels) mode with full-screen 9:16 text overlay...`);

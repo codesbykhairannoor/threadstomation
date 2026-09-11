@@ -6,10 +6,36 @@ import { MindsetTherapyDemo } from './MindsetTherapyDemo.jsx';
 import { DynamicMindsetVideo } from './DynamicMindsetVideo.jsx';
 import { RiskToRichExact } from './RiskToRichExact.jsx';
 import { ConfidenceVsEgoExact } from './ConfidenceVsEgoExact.jsx';
+import { TranvasFlipVideo, TranvasChaosToStructureVideo } from './TranvasVisualMetaphors.jsx';
 
 export const RemotionRoot = () => {
   return (
     <>
+      <Composition
+        id="TranvasFlipVideo"
+        component={TranvasFlipVideo}
+        durationInFrames={190} // ~6.33 seconds
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          fromWord: 'BUSY',
+          toWord: 'CALM',
+          watermark: '@tranvas',
+        }}
+      />
+
+      <Composition
+        id="TranvasChaosToStructureVideo"
+        component={TranvasChaosToStructureVideo}
+        durationInFrames={190} // ~6.33 seconds
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          watermark: '@tranvas',
+        }}
+      />
       <Composition
         id="RiskToRichExact"
         component={RiskToRichExact}
