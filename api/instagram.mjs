@@ -11,6 +11,7 @@ import { postToInstagram, exchangeInstagramToken, fetchInstagramAccounts, postTo
 import { generateInstagramContent } from '../lib/gemini_instagram.js';
 import { generateInstagramSlideImages, generateReelTextOverlayBuffers } from '../lib/instagram_carousel.js';
 import { createVideoFromImages } from '../lib/video_generator.js';
+import { renderDynamicMindsetReel } from '../lib/remotion_renderer.js';
 
 const app = express();
 app.use(cors());
@@ -371,17 +372,24 @@ export async function runInstagramPost(accountId, customPrompt = null) {
     mediaUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName, false);
     console.log(`[Instagram-Post] ${mediaUrls.length} images generated and uploaded to Supabase`);
   } else {
-    console.log(`[Instagram-Post] Using Video (Reels) mode with full-screen 9:16 text overlay...`);
-    // Render clean transparent 9:16 subtitle overlays for B-Roll video background (No bulky 4:5 cards!)
-    const imageBuffers = await generateReelTextOverlayBuffers(slides, accountName);
-    console.log(`[Instagram-Post] ${imageBuffers.length} 9:16 Reels text overlays generated.`);
+    const isAdhlil = accountName.toLowerCase().includes('adhlil') || parseInt(accountId, 10) === 1;
+    if (isAdhlil) {
+      console.log(`[Instagram-Post] 🎬 Using Mindset.Therapy Code-to-Video Motion Graphics for ${accountName}...`);
+      const videoUrl = await renderDynamicMindsetReel(slides, masterPrompt, accountName, caption);
+      console.log(`[Instagram-Post] ✅ Remotion Mindset Reel generated: ${videoUrl}`);
+      mediaUrls = [videoUrl];
+    } else {
+      console.log(`[Instagram-Post] Using Video (Reels) mode with full-screen 9:16 text overlay...`);
+      // Render clean transparent 9:16 subtitle overlays for B-Roll video background (No bulky 4:5 cards!)
+      const imageBuffers = await generateReelTextOverlayBuffers(slides, accountName);
+      console.log(`[Instagram-Post] ${imageBuffers.length} 9:16 Reels text overlays generated.`);
 
-    // Step 3: Convert buffers to Video (Reels) and Upload to Supabase
-    // Pass slides + masterPrompt so the B-Roll engine can search Pexels with relevant keywords
-    const rawBuffers = imageBuffers.map(img => img.buffer);
-    const videoUrl = await createVideoFromImages(rawBuffers, 3, slides, masterPrompt, caption);
-    console.log(`[Instagram-Post] B-Roll Reel generated and uploaded to Supabase: ${videoUrl}`);
-    mediaUrls = [videoUrl];
+      // Step 3: Convert buffers to Video (Reels) and Upload to Supabase
+      const rawBuffers = imageBuffers.map(img => img.buffer);
+      const videoUrl = await createVideoFromImages(rawBuffers, 3, slides, masterPrompt, caption);
+      console.log(`[Instagram-Post] B-Roll Reel generated and uploaded to Supabase: ${videoUrl}`);
+      mediaUrls = [videoUrl];
+    }
   }
 
   // Step 4: Publish to Instagram

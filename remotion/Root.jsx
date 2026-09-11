@@ -3,9 +3,35 @@ import { Composition } from 'remotion';
 import { MotionGraphicDemo } from './MotionDemo.jsx';
 import { MindsetTherapyDemo } from './MindsetTherapyDemo.jsx';
 
+import { DynamicMindsetVideo } from './DynamicMindsetVideo.jsx';
+
 export const RemotionRoot = () => {
   return (
     <>
+      <Composition
+        id="DynamicMindsetVideo"
+        component={DynamicMindsetVideo}
+        durationInFrames={600}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          slides: [],
+          badgeText: '@adhlil.co',
+          sceneDurationsInFrames: [],
+        }}
+        calculateMetadata={async ({ props }) => {
+          const sceneDurations = props.sceneDurationsInFrames || [];
+          const totalFrames = sceneDurations.length > 0
+            ? sceneDurations.reduce((a, b) => a + b, 0)
+            : (props.slides?.length || 3) * 150;
+          return {
+            durationInFrames: Math.max(30, totalFrames),
+            props,
+          };
+        }}
+      />
+
       <Composition
         id="MotionGraphicDemo"
         component={MotionGraphicDemo}
