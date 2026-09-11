@@ -20,17 +20,13 @@ export const RemotionRoot = () => {
       <Composition
         id="GenerativeVisualMetaphor"
         component={GenerativeVisualMetaphor}
-        durationInFrames={330} // 11.0s @ 30fps
+        durationInFrames={195} // 6.5s @ 30fps (perfect punchy loopable sweet spot)
         fps={30}
         width={1080}
         height={1920}
         defaultProps={{
           primitive: 'ChaosToPrism',
-          categoryBadge: 'Life Architecture',
-          headlinePart1: 'Your Brain Is For Ideas,',
-          headlinePart2: 'Not Holding Them.',
-          narrativeSubtitle: 'Scattered cognitive load drains 80% of daily momentum.',
-          takeaway: 'Offload mental friction to a single unified second brain.',
+          headline: 'Ideas In. Pure Flow Out.',
           watermark: 'tranvas.com',
           primitiveData: {},
         }}
