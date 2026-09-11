@@ -7,50 +7,65 @@ import {
   useVideoConfig,
 } from 'remotion';
 
-// --- TRANVAS BRAND LOGO EMBLEM ---
-function TranvasEmblem({ watermark = '@tranvas' }) {
+// --- TRANVAS OFFICIAL BRAND EMBLEM ---
+function TranvasOfficialLogo({ watermark = 'tranvas.com' }) {
   const frame = useCurrentFrame();
-  const shimmer = interpolate(frame % 90, [0, 45, 90], [0.85, 1, 0.85]);
+  const shimmer = interpolate(frame % 120, [0, 60, 120], [0.85, 1, 0.85]);
 
   return (
     <div
       style={{
         position: 'absolute',
-        bottom: '120px',
+        bottom: '100px',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '12px',
+        gap: '14px',
         opacity: shimmer,
       }}
     >
-      {/* Tranvas Cyan-Indigo Modern Geometric Tech Monogram */}
-      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-        <rect width="56" height="56" rx="16" fill="url(#tranvasBg)" />
-        <path
-          d="M16 18H40V24H31V38H25V24H16V18Z"
-          fill="url(#tranvasGlow)"
-          style={{ filter: 'drop-shadow(0 0 10px rgba(56, 189, 248, 0.6))' }}
-        />
-        <defs>
-          <linearGradient id="tranvasBg" x1="0" y1="0" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#1e1e2d" />
-            <stop offset="100%" stopColor="#0f0f17" />
-          </linearGradient>
-          <linearGradient id="tranvasGlow" x1="16" y1="18" x2="40" y2="38" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#38bdf8" />
-            <stop offset="50%" stopColor="#818cf8" />
-            <stop offset="100%" stopColor="#c084fc" />
-          </linearGradient>
-        </defs>
-      </svg>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {/* Tranvas Electric Indigo Logo */}
+        <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+          <rect width="52" height="52" rx="16" fill="url(#tranvasOfficialBg)" />
+          <path
+            d="M14 16H38V22H29V36H23V22H14V16Z"
+            fill="url(#tranvasIndigoGrad)"
+            style={{ filter: 'drop-shadow(0 0 12px rgba(99, 102, 241, 0.7))' }}
+          />
+          <defs>
+            <linearGradient id="tranvasOfficialBg" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#1e1b4b" />
+              <stop offset="100%" stopColor="#0f172a" />
+            </linearGradient>
+            <linearGradient id="tranvasIndigoGrad" x1="14" y1="16" x2="38" y2="36" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#38bdf8" />
+              <stop offset="50%" stopColor="#6366f1" />
+              <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <span
+          style={{
+            color: '#ffffff',
+            fontSize: '32px',
+            fontWeight: 900,
+            letterSpacing: '-1px',
+            fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
+          }}
+        >
+          Tranvas<span style={{ color: '#6366f1' }}>.</span>
+        </span>
+      </div>
+
       <span
         style={{
-          color: 'rgba(255, 255, 255, 0.6)',
-          fontSize: '18px',
-          fontWeight: 700,
+          color: 'rgba(255, 255, 255, 0.45)',
+          fontSize: '16px',
+          fontWeight: 600,
           letterSpacing: '3px',
           textTransform: 'uppercase',
         }}
@@ -62,43 +77,62 @@ function TranvasEmblem({ watermark = '@tranvas' }) {
 }
 
 // =========================================================================
-// VARIANT 1: 3D FLIP TILES (CHAOS -> FOCUS or BUSY -> CALM)
+// VARIANT 1: 10-12s ULTRA-SMOOTH MULTI-PHASE 3D FLIP (BUSY -> CALM -> FLOW)
 // =========================================================================
-function FlipTile({ fromLetter, toLetter, flipStartFrame = 50 }) {
+function UltraSmoothFlipTile({
+  fromLetter,
+  midLetter,
+  toLetter,
+  flip1Frame = 60,
+  flip2Frame = 180,
+}) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const flipProgress = spring({
-    frame: frame - flipStartFrame,
+  // Phase 1 Flip
+  const progress1 = spring({
+    frame: frame - flip1Frame,
     fps,
-    config: { stiffness: 125, damping: 12 },
+    config: { mass: 1.1, stiffness: 65, damping: 14 },
   });
 
-  const rotX = interpolate(flipProgress, [0, 1], [0, 180], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
+  // Phase 2 Flip
+  const progress2 = spring({
+    frame: frame - flip2Frame,
+    fps,
+    config: { mass: 1.1, stiffness: 65, damping: 14 },
   });
 
-  const showFront = rotX < 90;
+  const rotX1 = interpolate(progress1, [0, 1], [0, 180], { extrapolateRight: 'clamp' });
+  const rotX2 = interpolate(progress2, [0, 1], [0, 180], { extrapolateRight: 'clamp' });
+
+  const totalRotX = rotX1 + rotX2;
+  const isPhase1 = totalRotX < 90;
+  const isPhase2 = totalRotX >= 90 && totalRotX < 270;
+
+  const currentLetter = isPhase1 ? fromLetter : isPhase2 ? midLetter : toLetter;
+  const letterRot = isPhase1 ? 'none' : isPhase2 ? 'rotateX(180deg)' : 'none';
 
   return (
-    <div style={{ width: '150px', height: '160px', perspective: '1200px' }}>
+    <div style={{ width: '150px', height: '165px', perspective: '1200px' }}>
       <div
         style={{
           position: 'relative',
           width: '100%',
           height: '100%',
           transformStyle: 'preserve-3d',
-          transform: `rotateX(${rotX}deg)`,
-          borderRadius: '22px',
-          background: 'linear-gradient(160deg, #1e2230 0%, #11131c 60%, #0a0b10 100%)',
-          border: '1.5px solid rgba(56, 189, 248, 0.25)',
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.9), inset 0 2px 2px rgba(255,255,255,0.15)',
+          transform: `rotateX(${totalRotX}deg)`,
+          borderRadius: '24px',
+          background: 'linear-gradient(160deg, #1e1e38 0%, #0f1123 60%, #080914 100%)',
+          border: '1.5px solid rgba(99, 102, 241, 0.35)',
+          boxShadow:
+            '0 30px 60px -15px rgba(0, 0, 0, 0.95), inset 0 2px 3px rgba(255, 255, 255, 0.15), 0 0 30px rgba(79, 70, 229, 0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
+        {/* Split flap seam */}
         <div
           style={{
             position: 'absolute',
@@ -106,207 +140,187 @@ function FlipTile({ fromLetter, toLetter, flipStartFrame = 50 }) {
             right: 0,
             top: '50%',
             height: '2px',
-            background: 'rgba(0,0,0,0.8)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            background: 'rgba(0, 0, 0, 0.8)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
             zIndex: 10,
           }}
         />
+
         <span
           style={{
-            color: '#38bdf8',
-            fontSize: '96px',
+            color: isPhase1 ? '#f87171' : isPhase2 ? '#38bdf8' : '#818cf8',
+            fontSize: '94px',
             fontWeight: 900,
+            fontFamily: '"Plus Jakarta Sans", "Montserrat", sans-serif',
             letterSpacing: '-2px',
-            transform: showFront ? 'none' : 'rotateX(180deg)',
-            textShadow: '0 0 30px rgba(56, 189, 248, 0.5)',
+            transform: letterRot,
+            textShadow: isPhase1
+              ? '0 0 25px rgba(248, 113, 113, 0.5)'
+              : '0 0 35px rgba(56, 189, 248, 0.6)',
           }}
         >
-          {showFront ? fromLetter : toLetter}
+          {currentLetter}
         </span>
       </div>
     </div>
   );
 }
 
-function BouncingCyanSphere({ startFrame = 20, bounce1Frame = 52, bounce2Frame = 78 }) {
-  const frame = useCurrentFrame();
-  let y = -260;
-  let scaleX = 1;
-  let scaleY = 1;
-  let opacity = 0;
-
-  if (frame >= startFrame) {
-    opacity = interpolate(frame, [startFrame, startFrame + 10], [0, 1], { extrapolateRight: 'clamp' });
-    if (frame < bounce1Frame) {
-      const t = (frame - startFrame) / (bounce1Frame - startFrame);
-      y = interpolate(t * t, [0, 1], [-260, -90]);
-    } else if (frame < bounce1Frame + 6) {
-      y = -90;
-      scaleX = 1.35;
-      scaleY = 0.75;
-    } else if (frame < bounce2Frame) {
-      const t = (frame - (bounce1Frame + 6)) / (bounce2Frame - (bounce1Frame + 6));
-      const arc = 4 * 140 * Math.pow(t - 0.5, 2) - 140;
-      y = -90 + arc;
-      scaleX = 0.9;
-      scaleY = 1.15;
-    } else if (frame < bounce2Frame + 6) {
-      y = -90;
-      scaleX = 1.35;
-      scaleY = 0.75;
-    } else {
-      const settleProgress = interpolate(frame - (bounce2Frame + 6), [0, 25], [0, 1], { extrapolateRight: 'clamp' });
-      y = interpolate(settleProgress, [0, 1], [-90, -170]);
-      scaleX = 1 + Math.sin(frame / 8) * 0.05;
-      scaleY = 1 - Math.sin(frame / 8) * 0.05;
-    }
-  }
-
-  let x = 80;
-  if (frame >= bounce1Frame + 6 && frame <= bounce2Frame) {
-    const t = (frame - (bounce1Frame + 6)) / (bounce2Frame - (bounce1Frame + 6));
-    x = interpolate(t, [0, 1], [80, 240]);
-  } else if (frame > bounce2Frame) {
-    x = interpolate(frame, [bounce2Frame, bounce2Frame + 30], [240, 0], { extrapolateRight: 'clamp' });
-  }
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${scaleX}, ${scaleY})`,
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
-        background: 'radial-gradient(circle at 35% 30%, #ffffff 0%, #7dd3fc 30%, #0284c7 70%, #0369a1 100%)',
-        boxShadow: '0 0 35px rgba(56, 189, 248, 0.9), 0 0 15px rgba(56, 189, 248, 0.9)',
-        opacity,
-        zIndex: 20,
-      }}
-    />
-  );
-}
-
 export function TranvasFlipVideo({
   fromWord = 'BUSY',
-  toWord = 'CALM',
-  watermark = '@tranvas',
+  midWord = 'CALM',
+  toWord = 'FLOW',
+  watermark = 'tranvas.com',
 }) {
-  const fromChars = fromWord.split('');
-  const toChars = toWord.split('');
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+
+  const pulse = 1 + Math.sin(frame / 20) * 0.03;
 
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: '#08090d',
+        backgroundColor: '#030712',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: '"Montserrat", "Inter", -apple-system, sans-serif',
+        fontFamily: '"Plus Jakarta Sans", -apple-system, sans-serif',
       }}
     >
-      {/* Background Radial Glow */}
+      {/* Tranvas Electric Indigo Ambient Lighting */}
       <div
         style={{
           position: 'absolute',
-          inset: 0,
-          background: 'radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.12) 0%, rgba(15, 17, 26, 0.6) 45%, #06070a 85%)',
+          top: '40%',
+          left: '50%',
+          width: '900px',
+          height: '900px',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(circle, rgba(79, 70, 229, 0.18) 0%, rgba(56, 189, 248, 0.08) 40%, transparent 70%)',
+          transform: `translate(-50%, -50%) scale(${pulse})`,
+          filter: 'blur(100px)',
         }}
       />
 
-      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <BouncingCyanSphere startFrame={20} bounce1Frame={52} bounce2Frame={78} />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {fromChars.map((ch, i) => (
-            <FlipTile
-              key={i}
-              fromLetter={ch}
-              toLetter={toChars[i] || ch}
-              flipStartFrame={50 + i * 14}
-            />
-          ))}
-        </div>
+      {/* Floating Category Pill */}
+      <div
+        style={{
+          background: 'rgba(255, 255, 255, 0.06)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          backdropFilter: 'blur(20px)',
+          padding: '10px 24px',
+          borderRadius: '100px',
+          marginBottom: '50px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}
+      >
+        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#6366f1' }} />
+        <span style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '18px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' }}>
+          All-in-One Life OS
+        </span>
       </div>
 
-      <TranvasEmblem watermark={watermark} />
+      {/* 4 3D Flip Tiles */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+        {fromWord.split('').map((ch, i) => (
+          <UltraSmoothFlipTile
+            key={i}
+            fromLetter={ch}
+            midLetter={midWord[i] || ch}
+            toLetter={toWord[i] || ch}
+            flip1Frame={60 + i * 12}
+            flip2Frame={180 + i * 12}
+          />
+        ))}
+      </div>
+
+      <TranvasOfficialLogo watermark={watermark} />
     </AbsoluteFill>
   );
 }
 
 // =========================================================================
-// VARIANT 2: CHAOS TO STRUCTURED SECOND BRAIN (Scattered nodes -> Clean Grid)
+// VARIANT 2: 10-12s SECOND BRAIN UNIFIED HUB (Chaos Nodes -> Single Platform)
 // =========================================================================
-export function TranvasChaosToStructureVideo({ watermark = '@tranvas' }) {
+export function TranvasChaosToStructureVideo({ watermark = 'tranvas.com' }) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
 
-  // Morph progress from Frame 30 to Frame 90
+  // Smooth easing from frame 40 to 140
   const progress = spring({
-    frame: frame - 30,
+    frame: frame - 40,
     fps,
-    config: { stiffness: 60, damping: 14 },
+    config: { mass: 1.4, stiffness: 45, damping: 16 },
   });
 
   const nodes = [
-    { id: 1, startX: -260, startY: -200, endX: -160, endY: -120, label: 'Tasks' },
-    { id: 2, startX: 240, startY: -160, endX: 0, endY: -120, label: 'Notes' },
-    { id: 3, startX: -180, startY: 180, endX: 160, endY: -120, label: 'Habits' },
-    { id: 4, startX: 200, startY: 140, endX: -160, endY: 80, label: 'Finance' },
-    { id: 5, startX: 0, startY: -280, endX: 0, endY: 80, label: 'Goals' },
-    { id: 6, startX: -20, startY: 260, endX: 160, endY: 80, label: 'Focus' },
+    { id: 1, startX: -260, startY: -220, endX: -180, endY: -110, label: 'Tasks & Projects', icon: '⚡' },
+    { id: 2, startX: 250, startY: -180, endX: 0, endY: -110, label: 'Daily Habits', icon: '🔥' },
+    { id: 3, startX: -220, startY: 180, endX: 180, endY: -110, label: 'Finance & Assets', icon: '📈' },
+    { id: 4, startX: 220, startY: 160, endX: -180, endY: 70, label: 'Knowledge Base', icon: '🧠' },
+    { id: 5, startX: 0, startY: -280, endX: 0, endY: 70, label: 'Calendar Sync', icon: '📅' },
+    { id: 6, startX: -20, startY: 260, endX: 180, endY: 70, label: 'Academic & Goals', icon: '🎯' },
   ];
 
-  const titleSpring = spring({ frame: frame - 10, fps, config: { damping: 14 } });
+  const titleSpring = spring({ frame: frame - 15, fps, config: { damping: 14 } });
 
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: '#07080c',
+        backgroundColor: '#030712',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: '"Montserrat", "Inter", -apple-system, sans-serif',
+        fontFamily: '"Plus Jakarta Sans", -apple-system, sans-serif',
       }}
     >
+      {/* Background Lighting */}
       <div
         style={{
           position: 'absolute',
-          inset: 0,
-          background: 'radial-gradient(circle at 50% 45%, rgba(99, 102, 241, 0.15) 0%, rgba(10, 12, 18, 0.7) 50%, #050608 90%)',
+          top: '40%',
+          left: '50%',
+          width: '950px',
+          height: '950px',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(circle, rgba(99, 102, 241, 0.16) 0%, rgba(56, 189, 248, 0.08) 50%, transparent 75%)',
+          transform: 'translate(-50%, -50%)',
+          filter: 'blur(100px)',
         }}
       />
 
-      {/* Top Title */}
+      {/* Dynamic Header */}
       <div
         style={{
           position: 'absolute',
-          top: '280px',
+          top: '240px',
           textAlign: 'center',
           transform: `scale(${titleSpring})`,
           opacity: titleSpring,
         }}
       >
-        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '20px', fontWeight: 700, letterSpacing: '4px', textTransform: 'uppercase' }}>
-          {progress < 0.5 ? 'Scattered Mind' : 'Structured Second Brain'}
+        <span style={{ color: '#818cf8', fontSize: '20px', fontWeight: 800, letterSpacing: '3px', textTransform: 'uppercase' }}>
+          {progress < 0.5 ? '5 Disconnected Apps' : 'One Unified Platform'}
         </span>
-        <h1 style={{ color: '#ffffff', fontSize: '54px', fontWeight: 900, letterSpacing: '-1px', margin: '10px 0 0 0' }}>
-          {progress < 0.5 ? 'Overwhelmed & Lost' : 'Clarity in One System'}
+        <h1 style={{ color: '#ffffff', fontSize: '58px', fontWeight: 900, letterSpacing: '-1.5px', margin: '12px 0 0 0' }}>
+          {progress < 0.5 ? 'Scattered Cognitive Load' : 'Total Mental Clarity'}
         </h1>
       </div>
 
-      {/* Central Node Visualizer */}
-      <div style={{ position: 'relative', width: '600px', height: '500px', marginTop: '60px' }}>
-        {/* Connecting Lines when Structured */}
+      {/* Central Interactive Grid */}
+      <div style={{ position: 'relative', width: '650px', height: '540px', marginTop: '70px' }}>
+        {/* Dynamic Glowing Data Links */}
         <svg
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-          viewBox="-300 -250 600 500"
+          viewBox="-325 -270 650 540"
         >
           {nodes.map((n, i) => {
             if (i >= nodes.length - 1) return null;
@@ -323,7 +337,7 @@ export function TranvasChaosToStructureVideo({ watermark = '@tranvas' }) {
                 y1={currY}
                 x2={nextX}
                 y2={nextY}
-                stroke={progress > 0.4 ? 'rgba(56, 189, 248, 0.4)' : 'rgba(255, 255, 255, 0.1)'}
+                stroke={progress > 0.4 ? 'rgba(99, 102, 241, 0.45)' : 'rgba(255, 255, 255, 0.08)'}
                 strokeWidth={progress > 0.4 ? 2.5 : 1}
                 strokeDasharray={progress > 0.4 ? 'none' : '4 4'}
               />
@@ -331,7 +345,7 @@ export function TranvasChaosToStructureVideo({ watermark = '@tranvas' }) {
           })}
         </svg>
 
-        {/* Nodes */}
+        {/* The 6 Feature Cards */}
         {nodes.map((n) => {
           const x = interpolate(progress, [0, 1], [n.startX, n.endX]);
           const y = interpolate(progress, [0, 1], [n.startY, n.endY]);
@@ -344,24 +358,28 @@ export function TranvasChaosToStructureVideo({ watermark = '@tranvas' }) {
                 top: '50%',
                 left: '50%',
                 transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-                background: progress > 0.5 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(239, 68, 68, 0.12)',
-                border: progress > 0.5 ? '2px solid #38bdf8' : '1.5px dashed rgba(239, 68, 68, 0.5)',
-                borderRadius: '16px',
-                padding: '16px 24px',
+                background: progress > 0.5 ? 'rgba(99, 102, 241, 0.12)' : 'rgba(239, 68, 68, 0.1)',
+                border: progress > 0.5 ? '1.5px solid rgba(99, 102, 241, 0.6)' : '1.5px dashed rgba(239, 68, 68, 0.4)',
+                borderRadius: '18px',
+                padding: '16px 22px',
                 color: '#ffffff',
-                fontSize: '22px',
+                fontSize: '20px',
                 fontWeight: 700,
-                boxShadow: progress > 0.5 ? '0 0 25px rgba(56, 189, 248, 0.35)' : 'none',
-                transition: 'border 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: progress > 0.5 ? '0 10px 30px rgba(79, 70, 229, 0.25)' : 'none',
+                backdropFilter: 'blur(16px)',
               }}
             >
-              {n.label}
+              <span>{n.icon}</span>
+              <span>{n.label}</span>
             </div>
           );
         })}
       </div>
 
-      <TranvasEmblem watermark={watermark} />
+      <TranvasOfficialLogo watermark={watermark} />
     </AbsoluteFill>
   );
 }

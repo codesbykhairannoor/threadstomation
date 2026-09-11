@@ -14,26 +14,27 @@ export const RemotionRoot = () => {
       <Composition
         id="TranvasFlipVideo"
         component={TranvasFlipVideo}
-        durationInFrames={190} // ~6.33 seconds
+        durationInFrames={330} // ~11.0 seconds (super smooth 10-12s sweet spot)
         fps={30}
         width={1080}
         height={1920}
         defaultProps={{
           fromWord: 'BUSY',
-          toWord: 'CALM',
-          watermark: '@tranvas',
+          midWord: 'CALM',
+          toWord: 'FLOW',
+          watermark: 'tranvas.com',
         }}
       />
 
       <Composition
         id="TranvasChaosToStructureVideo"
         component={TranvasChaosToStructureVideo}
-        durationInFrames={190} // ~6.33 seconds
+        durationInFrames={330} // ~11.0 seconds
         fps={30}
         width={1080}
         height={1920}
         defaultProps={{
-          watermark: '@tranvas',
+          watermark: 'tranvas.com',
         }}
       />
       <Composition
