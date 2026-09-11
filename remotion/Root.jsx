@@ -4,10 +4,32 @@ import { MotionGraphicDemo } from './MotionDemo.jsx';
 import { MindsetTherapyDemo } from './MindsetTherapyDemo.jsx';
 
 import { DynamicMindsetVideo } from './DynamicMindsetVideo.jsx';
+import { RiskToRichExact } from './RiskToRichExact.jsx';
+import { ConfidenceVsEgoExact } from './ConfidenceVsEgoExact.jsx';
 
 export const RemotionRoot = () => {
   return (
     <>
+      <Composition
+        id="RiskToRichExact"
+        component={RiskToRichExact}
+        durationInFrames={190} // ~6.33 seconds
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          watermark: '@adhlil.co',
+        }}
+      />
+
+      <Composition
+        id="ConfidenceVsEgoExact"
+        component={ConfidenceVsEgoExact}
+        durationInFrames={190} // ~6.33 seconds
+        fps={30}
+        width={1080}
+        height={1920}
+      />
       <Composition
         id="DynamicMindsetVideo"
         component={DynamicMindsetVideo}
