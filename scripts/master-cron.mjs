@@ -3,6 +3,7 @@ import { runThreadsCron } from '../api/index.mjs';
 import { runInstagramCron } from '../api/instagram.mjs';
 import { cleanupOldStorage } from '../lib/supabase_storage.js';
 import { runCommentReplier } from '../lib/comment_replier.js';
+import { runEngagementSeeder } from '../lib/engagement_seeder.js';
 
 async function main() {
     console.log('[Master-Cron] 🚀 Starting Native GitHub Actions Cron for Threads & Instagram (Imagecuan Architecture)...');
@@ -18,7 +19,7 @@ async function main() {
         await cleanupOldStorage().catch(e => console.warn('[Master-Cron] Storage cleanup note:', e.message));
 
         console.log('\n=========================================');
-        console.log('🤖📸 EXECUTING THREADS, INSTAGRAM & AI ENGAGEMENT REPLIER');
+        console.log('🤖📸 EXECUTING THREADS, INSTAGRAM, AI REPLIER & SEEDER');
         console.log('=========================================');
 
         // Run platforms and engagement agent concurrently. 
@@ -37,11 +38,16 @@ async function main() {
             console.warn('[Master-Cron] ⚠️ Comment replier note:', err.message);
         });
 
-        const results = await Promise.allSettled([threadsJob, igJob, replierJob]);
+        const seederJob = runEngagementSeeder().catch(err => {
+            console.warn('[Master-Cron] ⚠️ Engagement seeder note:', err.message);
+        });
+
+        const results = await Promise.allSettled([threadsJob, igJob, replierJob, seederJob]);
         
         console.log('[Master-Cron] Threads Result:', results[0].value || results[0].reason);
         console.log('[Master-Cron] Instagram Result:', results[1].value || results[1].reason);
         console.log('[Master-Cron] Engagement Replier Result:', results[2].value || results[2].reason);
+        console.log('[Master-Cron] Engagement Seeder Result:', results[3].value || results[3].reason);
 
     } catch (fatalErr) {
         console.error('[Master-Cron] ❌ FATAL ERROR:', fatalErr);
