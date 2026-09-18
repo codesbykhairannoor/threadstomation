@@ -259,6 +259,22 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
                 continue;
             }
 
+            // Anti-Spam Intelligent Pacing Guard: Enforce minimum 3-hour cooldown between posts
+            const lastPostRows = await sql`
+                SELECT created_at FROM post_history 
+                WHERE account_id = ${acc.id} AND status = 'success' 
+                ORDER BY created_at DESC LIMIT 1
+            `;
+            if (lastPostRows.length > 0 && !force) {
+                const lastPostTime = new Date(lastPostRows[0].created_at).getTime();
+                const hoursSinceLastPost = (Date.now() - lastPostTime) / (1000 * 60 * 60);
+                const minCooldownHours = 3.0;
+                if (hoursSinceLastPost < minCooldownHours) {
+                    console.log(`[Threads-Cron] ⏸️ ${acc.name}: Last post was ${hoursSinceLastPost.toFixed(1)}h ago (min cooldown ${minCooldownHours}h). Skipping to protect against Meta spam suppression.`);
+                    continue;
+                }
+            }
+
             const pending = await sql`
                 SELECT * FROM schedules 
                 WHERE account_id = ${acc.id} AND is_active = 1 AND (last_run_date IS NULL OR last_run_date != ${todayStr})
