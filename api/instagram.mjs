@@ -12,6 +12,7 @@ import { generateInstagramContent, generateVisualMetaphorSpec } from '../lib/gem
 import { generateInstagramSlideImages, generateReelTextOverlayBuffers } from '../lib/instagram_carousel.js';
 import { createVideoFromImages } from '../lib/video_generator.js';
 import { renderDynamicMindsetReel, renderTranvasMotionReel, renderGenerativeMetaphorReel } from '../lib/remotion_renderer.js';
+import { deleteMediaUrls, cleanupOldStorage } from '../lib/supabase_storage.js';
 
 const app = express();
 app.use(cors());
@@ -409,7 +410,18 @@ export async function runInstagramPost(accountId, customPrompt = null) {
   
   const { publishId, status } = await postToInstagram(mediaUrls, finalCaption, accountId);
 
-  // Step 5: (Facebook Crossposting Removed per user request)
+  // Step 5: Zero-Storage Auto-Purge Pipeline
+  // Meta finishes ingesting within 60s. After 3 minutes, we purge the source files from Supabase so storage remains 0 MB!
+  setTimeout(async () => {
+    try {
+      console.log(`[Storage-Zero] 🗑️ Auto-purging ${mediaUrls.length} media file(s) from Supabase after successful post...`);
+      await deleteMediaUrls(mediaUrls);
+      console.log(`[Storage-Zero] ✅ Supabase storage purged. 0 MB retained!`);
+    } catch (cleanErr) {
+      console.warn(`[Storage-Zero] Warning purging files:`, cleanErr.message);
+    }
+  }, 180000); // 3 minutes buffer
+
   // Step 6: Save success to history
   await sql`
     INSERT INTO instagram_history (account_id, caption, slide_count, image_urls, creation_id, status)
@@ -469,6 +481,9 @@ export async function runInstagramCron(force = false) {
   const intervalsLeft = Math.max(1, Math.floor(totalMinutesLeft / 15));
 
   try {
+    // Zero-Storage Guard: Keep Supabase clean of any orphaned files older than 30m
+    try { await cleanupOldStorage(); } catch (_) {}
+
     const globalStatus = await sql`SELECT value FROM instagram_settings WHERE key = 'instagram_automation_enabled'`;
     if (globalStatus[0]?.value === 'false') {
       return { success: true, status: 'Instagram automation disabled globally.' };

@@ -45,3 +45,5 @@ instagram-*.jpg
 
 .env*
 TOKENS_BACKUP.md
+cthvideo/
+*.mp4

@@ -13,10 +13,77 @@ import {
   TranvasFocusTimerVideo
 } from './TranvasVisualMetaphors.jsx';
 import { GenerativeVisualMetaphor } from './GenerativeVisualMetaphor.jsx';
+import { NewtonsCradleVideo, DominoCascadeVideo } from './PhysicalMetaphors.jsx';
+import { OpticalLensVideo, HourglassFlowVideo, IcebergMasteryVideo } from './MindsetVisualMetaphors.jsx';
 
 export const RemotionRoot = () => {
   return (
     <>
+      <Composition
+        id="OpticalLensVideo"
+        component={OpticalLensVideo}
+        durationInFrames={195} // 6.5s @ 30fps
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          headline: 'Scattered Energy = 0. Single Focus = Laser.',
+          watermark: 'tranvas.com',
+        }}
+      />
+
+      <Composition
+        id="HourglassFlowVideo"
+        component={HourglassFlowVideo}
+        durationInFrames={195} // 6.5s @ 30fps
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          headline: 'Time Sinks. Or Time Compounds.',
+          watermark: 'tranvas.com',
+        }}
+      />
+
+      <Composition
+        id="IcebergMasteryVideo"
+        component={IcebergMasteryVideo}
+        durationInFrames={195} // 6.5s @ 30fps
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          headline: 'They See 5% of The Work.',
+          watermark: 'tranvas.com',
+        }}
+      />
+
+      <Composition
+        id="NewtonsCradleVideo"
+        component={NewtonsCradleVideo}
+        durationInFrames={195} // 6.5s @ 30fps
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          headline: 'Small Action. Infinite Momentum.',
+          watermark: 'tranvas.com',
+        }}
+      />
+
+      <Composition
+        id="DominoCascadeVideo"
+        component={DominoCascadeVideo}
+        durationInFrames={195} // 6.5s @ 30fps
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          headline: 'Small Habits. Giant Outcomes.',
+          watermark: 'tranvas.com',
+        }}
+      />
+
       <Composition
         id="GenerativeVisualMetaphor"
         component={GenerativeVisualMetaphor}
