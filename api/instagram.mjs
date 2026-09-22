@@ -333,7 +333,7 @@ export async function runInstagramPost(accountId, customPrompt = null) {
   const accountName = account[0].name || "@instagram";
 
   // Step 1: Generate slide contents + caption
-  const { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
+  let { slides, caption, hashtags } = await generateInstagramContent(customPrompt, masterPrompt, visualTheme, accountName, accountId);
   console.log(`[Instagram-Post] ${slides.length} slides generated`);
 
   // Detect Affiliate Product for Dynamic Color Palette
