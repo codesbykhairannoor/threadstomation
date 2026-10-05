@@ -290,9 +290,9 @@ export async function runBlueskyCron(force = false) {
       const isOneformind = acc.identifier.toLowerCase().includes('oneformind');
       const dailyLimit = isKhaithisran ? 5 : (isOneformind ? 4 : 3);
 
-      // Active Daytime Window Guard: 07:00 WITA - 23:00 WITA (prevents burning quota at 3 AM)
-      if (!force && (currentHour < 7 || currentHour >= 23)) {
-        console.log(`[Bluesky-Cron] ${acc.identifier}: Current hour ${currentHour}:00 WITA is outside active daytime window (07:00 - 23:00 WITA). Sleeping.`);
+      // Active Daytime Window Guard: 07:30 WITA - 23:00 WITA (sleeps at night like a real human)
+      if (!force && (currentHour < 7 || (currentHour === 7 && witaTime.getMinutes() < 30) || currentHour >= 23)) {
+        console.log(`[Bluesky-Cron] ${acc.identifier}: Current hour ${currentHour}:${String(witaTime.getMinutes()).padStart(2, '0')} WITA is outside active daytime window (07:30 - 23:00 WITA). Sleeping.`);
         continue;
       }
 
@@ -307,19 +307,38 @@ export async function runBlueskyCron(force = false) {
         continue;
       }
 
-      // Anti-Spam Intelligent Pacing Guard: Enforce minimum cooldown between posts
+      // Anti-Spam Organic Jitter Guard: Randomized human timing between 1.5h and 3.2h
       const lastPostRows = await sql`
-        SELECT created_at FROM bluesky_history 
+        SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
+        FROM bluesky_history 
         WHERE account_id = ${acc.id} AND status = 'success' 
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY id DESC LIMIT 1
       `;
       if (lastPostRows.length > 0 && !force) {
-        const lastPostTime = new Date(lastPostRows[0].created_at).getTime();
-        const hoursSinceLastPost = (Date.now() - lastPostTime) / (1000 * 60 * 60);
-        // Khaithisran posts 5x across 16 daytime hours => ~1.8h cooldown (~108 mins)
-        const minCooldownHours = isKhaithisran ? 1.8 : 2.5;
-        if (hoursSinceLastPost < minCooldownHours) {
-          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: Last post was ${hoursSinceLastPost.toFixed(1)}h ago (min cooldown ${minCooldownHours}h). Skipping to maintain organic rhythm.`);
+        const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
+        
+        // Hard safety floor: never post closer than 1.5 hours (90 mins) to prevent rate limits
+        const hardFloorHours = isKhaithisran ? 1.5 : 2.2;
+        if (hoursSinceLastPost < hardFloorHours) {
+          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: In hard anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${hardFloorHours}h). Skipping.`);
+          continue;
+        }
+
+        // Dynamic human probability curve:
+        // As time advances from 1.5h to 3.2h, the chance to trigger rises organically from 20% to 100%.
+        // This ensures the posting minute is completely randomized and impossible for bot detectors to spot.
+        const windowSpread = isKhaithisran ? 1.6 : 1.8;
+        const postProgress = Math.min(1.0, (hoursSinceLastPost - hardFloorHours) / windowSpread);
+        let triggerProbability = 0.20 + (postProgress * 0.80);
+        
+        // Evening catch-up guarantee: 100% chance after 21:00 WITA to hit the daily 5-site quota
+        if (currentHour >= 21) triggerProbability = 1.0;
+
+        const jitterRoll = Math.random();
+        console.log(`[Bluesky-Cron] 🎲 ${acc.identifier}: hoursSinceLastPost=${hoursSinceLastPost.toFixed(2)}h, triggerChance=${(triggerProbability * 100).toFixed(1)}%, jitterRoll=${(jitterRoll * 100).toFixed(1)}%`);
+
+        if (jitterRoll > triggerProbability) {
+          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: Organic random jitter active. Waiting for next window.`);
           continue;
         }
       }
@@ -340,14 +359,9 @@ export async function runBlueskyCron(force = false) {
         pending = Array(dailyLimit).fill({ id: null, custom_prompt: "" });
       }
 
-      // Daytime confidence: cooldown already prevents spam, so 85% chance per trigger, 100% after 18:00 WITA
-      let chance = currentHour >= 18 ? 1.0 : 0.85;
-      if (force) chance = 1.0;
-      const roll = Math.random();
+      console.log(`[Bluesky-Cron] 🚀 Ready to post for ${acc.identifier}: postsToday=${postsToday}/${dailyLimit}, pending=${pending.length}`);
 
-      console.log(`[Bluesky-Cron] ${acc.identifier}: postsToday=${postsToday}/${dailyLimit}, pending=${pending.length}, roll=${roll.toFixed(3)}, chance=${chance}`);
-
-      if (roll <= chance) {
+      if (true) {
         // For Khaithisran, pick pending schedules sequentially or randomly from remaining unposted sites
         const chosen = pending[Math.floor(Math.random() * pending.length)];
         let finalPrompt = chosen.custom_prompt;
