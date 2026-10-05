@@ -3,8 +3,9 @@ import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { getMastodonUserInfo, postToMastodon, uploadMediaToMastodon } from '../lib/mastodon.js';
-import { generateTumblrContent } from '../lib/gemini_tumblr.js'; // Reuse the tumblr logic because it has text-only or 1 image + english aggressive marketing
+import { generateTumblrContent } from '../lib/gemini_tumblr.js';
 import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
+import { generateMastodonPost } from '../lib/mastodon_content.js';
 
 const app = express();
 app.use(cors());
@@ -113,7 +114,16 @@ async function runMastodonPost(accountId, customPrompt = null, forceNoImage = fa
 
   console.log(`[Mastodon-Post] Generating content for ${account.username}...`);
 
-  const accountName = "caridisinishop_mastodon";
+  // Specialized Fediverse copywriting for khaithisran (5 web ecosystem, CamelCase hashtags, anti-VC, technical depth)
+  if (account.username?.toLowerCase().includes('khaithisran') || account.name?.toLowerCase().includes('khaithisran')) {
+    console.log(`[Mastodon-Post] Using Khaithisran Fediverse copywriting engine...`);
+    const statusText = await generateMastodonPost(customPrompt);
+    const response = await postToMastodon(account.access_token, account.instance_url, statusText, []);
+    console.log(`[Mastodon-Post] Successfully posted to Mastodon: ${statusText.substring(0, 80)}...`);
+    return { publishId: response.id, status: 'success', text: statusText };
+  }
+
+  const accountName = account.username || account.name || "mastodon_user";
 
   // Allow 1 image for Mastodon Promo layout. Max Length 480 chars to avoid truncation.
   const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, forceNoImage, 480);
@@ -251,6 +261,159 @@ app.post('/api/mastodon/post-now', async (req, res) => {
 
 // ── CRON: AUTOMATION SCHEDULER ────────────────────────────────────────────────
 
+export async function runMastodonCron(force = false) {
+  const now = new Date();
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const witaTime = new Date(utcTime + (3600000 * 8)); 
+  
+  const currentHour = witaTime.getHours();
+  const currentMinutes = witaTime.getMinutes();
+  const todayStr = witaTime.toISOString().split('T')[0];
+
+  console.log(`[Mastodon-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
+
+  // Active daylight posting window: 07:30 - 23:00 WITA (organic human sleeping hours 23:00 - 07:30)
+  const isTooEarly = currentHour < 7 || (currentHour === 7 && currentMinutes < 30);
+  const isTooLate = currentHour >= 23;
+  if (!force && (isTooEarly || isTooLate)) {
+    console.log(`[Mastodon-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside active window (07:30 - 23:00 WITA). Sleeping.`);
+    return { success: true, status: 'Outside active daytime hours (07:30 - 23:00 WITA)' };
+  }
+
+  try {
+    const globalStatus = await sql`SELECT value FROM mastodon_settings WHERE key = 'mastodon_automation_enabled'`;
+    if (globalStatus[0]?.value === 'false') {
+      console.log('[Mastodon-Cron] Mastodon automation is disabled globally in settings.');
+      return { success: true, status: 'Mastodon automation disabled globally.' };
+    }
+
+    const accounts = await sql`SELECT id, name, username FROM mastodon_accounts WHERE is_active = 1`;
+    const executed = [];
+
+    for (const acc of accounts) {
+      const isKhaithisran = acc.username?.toLowerCase().includes('khaithisran') || acc.name?.toLowerCase().includes('khaithisran');
+      const isOneformind = acc.username?.toLowerCase().includes('oneformind') || acc.name?.toLowerCase().includes('oneformind');
+      const dailyLimit = isKhaithisran ? 5 : (isOneformind ? 4 : 5);
+
+      const ranToday = await sql`
+        SELECT COUNT(*) as count FROM mastodon_history
+        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
+      `;
+      const postsToday = parseInt(ranToday[0]?.count || 0, 10);
+
+      if (postsToday >= dailyLimit) {
+        console.log(`[Mastodon-Cron] Acc ${acc.username || acc.name}: hit ${dailyLimit}-post daily limit (${postsToday}/${dailyLimit}).`);
+        continue;
+      }
+
+      // Anti-Spam Organic Jitter Guard: Randomized human timing between 1.8h and 3.5h
+      const lastPostRows = await sql`
+        SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
+        FROM mastodon_history 
+        WHERE account_id = ${acc.id} AND status = 'success' 
+        ORDER BY id DESC LIMIT 1
+      `;
+      if (lastPostRows.length > 0 && !force) {
+        const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
+        
+        // Hard safety floor: never post closer than 1.8 hours (108 mins) on Mastodon / Fediverse
+        const hardFloorHours = isKhaithisran ? 1.8 : 2.0;
+        if (hoursSinceLastPost < hardFloorHours) {
+          console.log(`[Mastodon-Cron] ⏸️ ${acc.username || acc.name}: In hard anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${hardFloorHours}h). Skipping.`);
+          continue;
+        }
+
+        // Dynamic human probability curve:
+        // As time advances from 1.8h to 3.5h, the chance to trigger rises organically from 20% to 100%.
+        const windowSpread = 1.7; // 1.8h to 3.5h
+        const postProgress = Math.min(1.0, (hoursSinceLastPost - hardFloorHours) / windowSpread);
+        let triggerProbability = 0.20 + (postProgress * 0.80);
+        
+        // Evening catch-up guarantee: 100% chance after 21:00 WITA to hit the daily 5-site quota
+        if (currentHour >= 21) triggerProbability = 1.0;
+
+        const jitterRoll = Math.random();
+        console.log(`[Mastodon-Cron] 🎲 ${acc.username || acc.name}: hoursSinceLastPost=${hoursSinceLastPost.toFixed(2)}h, triggerChance=${(triggerProbability * 100).toFixed(1)}%, jitterRoll=${(jitterRoll * 100).toFixed(1)}%`);
+
+        if (jitterRoll > triggerProbability) {
+          console.log(`[Mastodon-Cron] ⏸️ ${acc.username || acc.name}: Organic random jitter active. Waiting for next window.`);
+          continue;
+        }
+      }
+
+      let pending = await sql`
+        SELECT * FROM mastodon_schedules
+        WHERE account_id = ${acc.id}
+          AND is_active = 1
+          AND (last_run_date IS NULL OR last_run_date != ${todayStr})
+        ORDER BY id ASC
+      `;
+
+      if (!pending.length) {
+        if (isKhaithisran) {
+          console.log(`[Mastodon-Cron] Acc ${acc.username || acc.name}: All 5 daily websites already posted for today.`);
+        } else {
+          console.log(`[Mastodon-Cron] Acc ${acc.username || acc.name}: No pending schedules for today.`);
+        }
+        continue;
+      }
+
+      console.log(`[Mastodon-Cron] 🚀 Ready to post for ${acc.username || acc.name}: postsToday=${postsToday}/${dailyLimit}, pending=${pending.length}`);
+
+      const chosen = pending[Math.floor(Math.random() * pending.length)];
+      let finalPrompt = chosen.custom_prompt;
+      let forceNoImage = isOneformind || isKhaithisran;
+
+      if (!finalPrompt || finalPrompt.trim() === '') {
+        if (isKhaithisran) {
+          finalPrompt = 'tranvas';
+        } else if (isOneformind) {
+          const oneformindTopics = [
+            "Share a powerful insight on deep work and achieving cognitive flow state for maximum productivity.",
+            "Write about the most effective time-blocking strategies that high-performers use.",
+            "Discuss how habit stacking can completely transform morning routines for ambitious people.",
+            "Share actionable tips on overcoming digital distractions and staying in deep focus.",
+            "Write about the psychology of productivity: why most people fail at being consistent."
+          ];
+          finalPrompt = oneformindTopics[postsToday % oneformindTopics.length];
+        } else {
+          finalPrompt = "tranvas";
+        }
+      }
+
+      try {
+        const pendingInsert = await sql`
+          INSERT INTO mastodon_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
+        `;
+        const historyId = pendingInsert[0].id;
+
+        const result = await runMastodonPost(acc.id, finalPrompt, forceNoImage);
+        if (chosen.id) {
+          await sql`UPDATE mastodon_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
+        }
+
+        await sql`
+          UPDATE mastodon_history SET status = 'success', post_id = ${String(result.publishId)}, caption = ${result.text || chosen.custom_prompt || 'Mastodon Post'} WHERE id = ${historyId}
+        `;
+
+        console.log(`[Mastodon-Cron] ✅ Successfully posted for ${acc.username || acc.name} (${chosen.custom_prompt})`);
+        executed.push({ account: acc.username || acc.name, scheduleId: chosen.id, ...result });
+      } catch (postErr) {
+        console.error(`[Mastodon-Cron] ❌ Post failed for ${acc.username || acc.name}:`, postErr.message);
+        await sql`
+          INSERT INTO mastodon_history (account_id, caption, status, error_message)
+          VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
+        `;
+      }
+    }
+
+    return { success: true, executed };
+  } catch (e) {
+    console.error('[Mastodon-Cron] Error:', e.message);
+    throw e;
+  }
+}
+
 app.get('/api/mastodon/cron', async (req, res) => {
   const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
   const authHeader = req.headers.authorization;
@@ -262,114 +425,11 @@ app.get('/api/mastodon/cron', async (req, res) => {
     }
   }
 
-  const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const witaTime = new Date(utcTime + (3600000 * 8)); 
-  
-  const currentHour = witaTime.getHours();
-  const todayStr = witaTime.toISOString().split('T')[0];
-  const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));
-
   try {
-    const globalStatus = await sql`SELECT value FROM mastodon_settings WHERE key = 'mastodon_automation_enabled'`;
-    if (globalStatus[0]?.value === 'false') {
-      return res.json({ success: true, status: 'Mastodon automation disabled globally.' });
-    }
-
-    const accounts = await sql`SELECT id, name FROM mastodon_accounts WHERE is_active = 1`;
-    const executed = [];
-
-    for (const acc of accounts) {
-      const ranToday = await sql`
-        SELECT COUNT(*) as count FROM mastodon_history
-        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
-      `;
-      const postsToday = parseInt(ranToday[0]?.count || 0, 10);
-
-      const dailyLimit = acc.name.toLowerCase().includes('oneformind') ? 4 : 5;
-
-      if (postsToday >= dailyLimit) {
-        console.log(`[Mastodon-Cron] Acc ${acc.name}: hit ${dailyLimit}-post daily limit.`);
-        continue;
-      }
-
-      let pending = await sql`
-        SELECT * FROM mastodon_schedules
-        WHERE account_id = ${acc.id}
-          AND is_active = 1
-          AND (last_run_date IS NULL OR last_run_date != ${todayStr})
-      `;
-
-      if (!pending.length) {
-        pending = Array(5).fill({ id: null, custom_prompt: "" });
-      }
-
-      const postsRemaining = 5 - postsToday;
-      const numToMake = Math.min(postsRemaining, pending.length);
-      // Simple probability to decide if we post this tick
-      const chance = (numToMake / totalMinutesLeft) * 3;
-      const roll = Math.random();
-
-      if (roll < chance) {
-        const chosen = pending[Math.floor(Math.random() * pending.length)];
-        let finalPrompt = chosen.custom_prompt;
-        const isOneformind = acc.name.toLowerCase().includes('oneformind');
-        let forceNoImage = isOneformind;
-
-        if (!finalPrompt || finalPrompt.trim() === '') {
-          // Affiliate prompts with clear "Sponsored" label for non-OneForMind accounts
-          if (!isOneformind) {
-            const affiliatePrompts = [
-              "Sponsored: Automate your workflow with Make.com – https://www.make.com/en/register?pc=airan",
-              "Sponsored: Boost your sales funnels with Systeme.io – https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5",
-              "Sponsored: Transfer money worldwide with ZERO fees – Wise – https://wise.com/invite/dic/khairannoorf"
-            ];
-            finalPrompt = affiliatePrompts[postsToday % affiliatePrompts.length];
-          } else {
-            // OneForMind: pure SaaS/productivity content, no affiliate
-            const oneformindTopics = [
-              "Share a powerful insight on deep work and achieving cognitive flow state for maximum productivity.",
-              "Write about the most effective time-blocking strategies that high-performers use.",
-              "Discuss how habit stacking can completely transform morning routines for ambitious people.",
-              "Share actionable tips on overcoming digital distractions and staying in deep focus.",
-              "Write about the psychology of productivity: why most people fail at being consistent."
-            ];
-            finalPrompt = oneformindTopics[postsToday % oneformindTopics.length];
-          }
-        }
-
-        try {
-          // --- SPAM PREVENTION LOCK ---
-          const pendingInsert = await sql`
-            INSERT INTO mastodon_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
-          `;
-          const historyId = pendingInsert[0].id;
-
-          const result = await runMastodonPost(acc.id, finalPrompt, forceNoImage);
-          
-          if (chosen.id) {
-            await sql`UPDATE mastodon_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
-          }
-          
-          // --- UPDATE LOCK TO SUCCESS ---
-          await sql`
-            UPDATE mastodon_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
-          `;
-
-          executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
-        } catch (postErr) {
-          console.error(`[Mastodon-Cron] Post failed for ${acc.name}:`, postErr.message);
-          await sql`
-            INSERT INTO mastodon_history (account_id, caption, status, error_message)
-            VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
-          `;
-        }
-      }
-    }
-
-    res.json({ success: true, executed });
+    const isForce = req.query.force === 'true';
+    const result = await runMastodonCron(isForce);
+    res.json(result);
   } catch (e) {
-    console.error('[Mastodon-Cron] Error:', e.message);
     res.status(200).json({ success: false, error: e.message });
   }
 });
