@@ -3,8 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { getDevtoUserInfo, postToDevto } from '../lib/devto.js';
-import { generateTumblrContent } from '../lib/gemini_tumblr.js'; 
-import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
+import { generateDevtoArticle } from '../lib/devto_content.js';
 
 const app = express();
 app.use(cors());
@@ -31,70 +30,39 @@ app.post('/api/devto/connect', async (req, res) => {
 
   try {
     const user = await getDevtoUserInfo(apiKey);
+    const existing = await sql`SELECT * FROM devto_accounts WHERE username = ${user.username}`;
     
-    // Check if account already exists
-    const existing = await sql`SELECT id FROM devto_accounts WHERE username = ${user.username}`;
+    let accountId;
     if (existing.length > 0) {
-      await sql`UPDATE devto_accounts SET api_key = ${apiKey}, is_active = 1 WHERE username = ${user.username}`;
-    } else {
       await sql`
+        UPDATE devto_accounts SET
+          name = ${user.name || user.username},
+          api_key = ${apiKey},
+          is_active = 1
+        WHERE id = ${existing[0].id}
+      `;
+      accountId = existing[0].id;
+    } else {
+      const inserted = await sql`
         INSERT INTO devto_accounts (name, username, api_key, is_active)
         VALUES (${user.name || user.username}, ${user.username}, ${apiKey}, 1)
+        RETURNING id
       `;
+      accountId = inserted[0].id;
     }
-    res.json({ success: true, username: user.username });
+
+    res.json({ success: true, accountId, username: user.username });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-app.get('/api/devto/status', async (req, res) => {
-  const accountId = req.query.accountId || 1;
+// ── SCHEDULES ────────────────────────────────────────────────────────────────
+
+app.get('/api/devto/schedules', async (req, res) => {
   try {
-    const [schedules, lastPost, tokenRow, autoRow] = await Promise.all([
-      sql`SELECT * FROM devto_schedules WHERE account_id = ${accountId} ORDER BY id ASC`,
-      sql`SELECT * FROM devto_history WHERE account_id = ${accountId} ORDER BY id DESC LIMIT 1`,
-      sql`SELECT api_key FROM devto_accounts WHERE id = ${accountId}`,
-      sql`SELECT value FROM devto_settings WHERE key = 'devto_automation_enabled'`,
-    ]);
-
-    const token = tokenRow[0];
-    const isTokenValid = !!(token?.api_key);
-
-    res.json({
-      schedules,
-      lastPost: lastPost[0] || null,
-      devtoToken: isTokenValid,
-      automation_enabled: autoRow[0]?.value || 'true',
-    });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ── SETTINGS & SCHEDULES ─────────────────────────────────────────────────────
-
-app.post('/api/devto/settings/toggle-automation', async (req, res) => {
-  try {
-    const current = await sql`SELECT value FROM devto_settings WHERE key = 'devto_automation_enabled'`;
-    const newValue = current[0]?.value === 'false' ? 'true' : 'false';
-    await sql`
-      INSERT INTO devto_settings (key, value) VALUES ('devto_automation_enabled', ${newValue})
-      ON CONFLICT (key) DO UPDATE SET value = ${newValue}
-    `;
-    res.json({ success: true, enabled: newValue === 'true' });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get('/api/devto/history', async (req, res) => {
-  const accountId = req.query.accountId;
-  try {
-    const history = accountId
-      ? await sql`SELECT * FROM devto_history WHERE account_id = ${accountId} ORDER BY created_at DESC LIMIT 15`
-      : await sql`SELECT * FROM devto_history ORDER BY created_at DESC LIMIT 15`;
-    res.json(history || []);
+    const schedules = await sql`SELECT * FROM devto_schedules ORDER BY id ASC`;
+    res.json(schedules);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -122,108 +90,33 @@ app.delete('/api/devto/schedules/:id', async (req, res) => {
   }
 });
 
-// ── CORE: POST TO DEV.TO ─────────────────────────────────────────────
+// ── CORE: POST TECHNICAL ARTICLE TO DEV.TO ───────────────────────────────────
 
-async function runDevtoPost(accountId, customPrompt = null, forceNoImage = false) {
+export async function runDevtoPost(accountId, customPrompt = null) {
   const accountRow = await sql`SELECT * FROM devto_accounts WHERE id = ${accountId}`;
   if (!accountRow.length) throw new Error(`Dev.to account ${accountId} not found`);
   const account = accountRow[0];
 
-  const masterPrompt = account.master_prompt || '';
-  const visualTheme = account.visual_theme || '';
-  const colorPalette = account.color_palette || null;
+  console.log(`[Devto-Post] Generating high-impact technical article for @${account.username}...`);
+  const { title, body_markdown, tags, cover_image, canonical_url } = await generateDevtoArticle(customPrompt);
 
-  console.log(`[Devto-Post] Generating content for ${account.username}...`);
+  console.log(`[Devto-Post] Publishing article "${title}" to DEV.TO with cover: ${cover_image}`);
+  const response = await postToDevto(
+    account.api_key,
+    title,
+    body_markdown,
+    tags,
+    cover_image,
+    canonical_url
+  );
 
-  const accountName = "caridisinishop_devto";
-
-  // Allow 1 image for Devto Promo layout
-  const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, forceNoImage);
-  const slides = content.slides || [];
-  const caption = content.caption || '';
-  const hashtags = content.hashtags || [];
-  const full_image_prompt = content.full_image_prompt || null;
-  console.log(`[DevTo-Post] Generated Content`);
-
-  let dynamicPalette = colorPalette;
-  if (customPrompt) {
-    const cp = customPrompt.toLowerCase();
-    if (cp.includes('make.com')) {
-      dynamicPalette = { name: 'make', bg1: '#ffffff', bg2: '#ffffff', accent: '#7b2cbf', text: '#000000' };
-    } else if (cp.includes('wise.com')) {
-      dynamicPalette = { name: 'wise', bg1: '#ffffff', bg2: '#ffffff', accent: '#9fe870', text: '#000000' };
-    } else if (cp.includes('systeme')) {
-      dynamicPalette = { name: 'systeme', bg1: '#ffffff', bg2: '#ffffff', accent: '#1778f2', text: '#000000' };
-    }
-  }
-
-  let imageUrls = [];
-  let imagePrompt = full_image_prompt;
-  if (!imagePrompt && slides && slides.length > 0) {
-    imagePrompt = slides[0].title_part1 || slides[0].text || null;
-  }
-
-  if (imagePrompt) {
-    const nativeImages = await generateNativeBannerImage(imagePrompt, caption, dynamicPalette);
-    if (nativeImages && nativeImages.length > 0) {
-      imageUrls = nativeImages;
-      console.log(`[Devto-Post] Native image generated and uploaded to Supabase`);
-    }
-  } 
-
-  if (imageUrls.length === 0 && !forceNoImage) {
-    console.log(`[Devto-Post] Native AI failed or no prompt, falling back to Satori layout.`);
-    let fallbackText = customPrompt ? customPrompt.substring(0, 50) : "Learn More";
-    if (caption) {
-      const cleaned = caption.replace(/<[^>]+>/g, '').trim();
-      const match = cleaned.match(/^([^\.\!\?]+[\.\!\?]?)/);
-      if (match) fallbackText = match[1];
-    }
-    const fallbackSlide = (slides && slides.length > 0) ? slides.slice(0, 1) : [{
-      layout_type: 'TextHeavy',
-      title_part1: fallbackText.substring(0, 60),
-      text: "Read more details below.",
-      foreground_subject_prompt: null
-    }];
-    imageUrls = await generateInstagramSlideImages(fallbackSlide, dynamicPalette, accountName);
-  } else if (forceNoImage) {
-    console.log(`[Devto-Post] TEXT-ONLY mode activated. No images generated.`);
-  }
-
-  // Construct Markdown Body
-  let markdownBody = "";
-  if (imageUrls.length > 0) {
-    if (imageUrls[0].isRawBuffer) {
-      console.warn(`[Devto-Post] Raw buffer returned (no Supabase). Dev.to needs a public URL. Skipping image.`);
-    } else {
-      markdownBody += `![Cover Image](${imageUrls[0]})\n\n`;
-    }
-  }
-  
-  // Dev.to markdown
-  // Assuming caption may contain HTML tags, let's convert HTML links to Markdown links first
-  // and convert simple <br> to \n
-  let cleanText = caption
-    .replace(/<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)')
-    .replace(/<br\s*\/?>/gi, '\n');
-  
-  // Extract a Title from the first sentence or use a generic one based on the prompt
-  let titleMatch = cleanText.match(/^([^\n]{10,60})(?:\n|$)/);
-  let articleTitle = titleMatch ? titleMatch[1] : (customPrompt || 'Amazing Tools You Need to Try');
-  articleTitle = articleTitle.replace(/<[^>]+>/g, '').replace(/[\*#]/g, '').trim();
-  if (articleTitle.length < 5) articleTitle = "Awesome Recommendations For You";
-
-  // Remove the title from the body if we extracted it from the beginning
-  if (cleanText.startsWith(articleTitle)) {
-      cleanText = cleanText.substring(articleTitle.length).trim();
-  }
-
-  markdownBody += cleanText;
-
-  const response = await postToDevto(account.api_key, articleTitle, markdownBody, hashtags);
-  console.log(`[Devto-Post] Successfully posted to Dev.to. Post ID: ${response.id}`);
-
-  return { publishId: response.id, status: 'success' };
+  console.log(`[Devto-Post] Successfully published to DEV.TO. Post ID: ${response.id} | URL: ${response.url}`);
+  return {
+    publishId: response.id,
+    url: response.url,
+    title,
+    status: 'success'
+  };
 }
 
 app.post('/api/devto/post-now', async (req, res) => {
@@ -244,10 +137,14 @@ app.post('/api/devto/post-now', async (req, res) => {
     `;
     const historyId = pendingInsert[0].id;
 
-    const result = await runDevtoPost(accountId, finalPrompt, false);
+    const result = await runDevtoPost(accountId, finalPrompt);
     
     await sql`
-      UPDATE devto_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
+      UPDATE devto_history SET
+        status = 'success',
+        post_id = ${String(result.publishId)},
+        caption = ${result.title}
+      WHERE id = ${historyId}
     `;
 
     res.json({ success: true, ...result });
@@ -263,7 +160,117 @@ app.post('/api/devto/post-now', async (req, res) => {
   }
 });
 
-// ── CRON: AUTOMATION SCHEDULER ────────────────────────────────────────────────
+// ── CRON ENGINE: SAFE 24-HOUR ANTI-BAN PACING ────────────────────────────────
+
+export async function runDevtoCron(force = false) {
+  const now = new Date();
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const witaTime = new Date(utcTime + (3600000 * 8)); 
+  const todayStr = witaTime.toISOString().split('T')[0];
+
+  console.log(`[Devto-Cron] Tick started at ${todayStr} ${witaTime.toLocaleTimeString()} WITA (Force: ${force})`);
+
+  const globalStatus = await sql`SELECT value FROM devto_settings WHERE key = 'devto_automation_enabled'`;
+  if (globalStatus[0]?.value === 'false' && !force) {
+    console.log('[Devto-Cron] Automation globally disabled in settings.');
+    return { success: true, status: 'Dev.to automation disabled globally.' };
+  }
+
+  const accounts = await sql`SELECT id, name, username FROM devto_accounts WHERE is_active = 1`;
+  const executed = [];
+
+  for (const acc of accounts) {
+    // 1. Strict Anti-Ban: Check last successful post timestamp
+    const lastSuccessRow = await sql`
+      SELECT created_at FROM devto_history
+      WHERE account_id = ${acc.id} AND status = 'success'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    if (!force && lastSuccessRow.length > 0) {
+      const lastPostTime = new Date(lastSuccessRow[0].created_at);
+      const hoursSinceLast = (now - lastPostTime) / (1000 * 60 * 60);
+
+      // DEV.TO golden rule: Maximum 1 post per 20-24 hours to avoid spam suppression
+      if (hoursSinceLast < 20) {
+        console.log(`[Devto-Cron] Cooldown active for @${acc.username}. Last post was ${hoursSinceLast.toFixed(1)}h ago (min 20h required). Skipping.`);
+        continue;
+      }
+    }
+
+    // 2. Daily Limit: Maximum 1 high-value article per day
+    const ranToday = await sql`
+      SELECT COUNT(*) as count FROM devto_history
+      WHERE account_id = ${acc.id} AND status IN ('success', 'pending')
+        AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
+    `;
+    const postsToday = parseInt(ranToday[0]?.count || 0, 10);
+
+    if (postsToday >= 1 && !force) {
+      console.log(`[Devto-Cron] @${acc.username}: Daily quota satisfied (1/1 articles posted today).`);
+      continue;
+    }
+
+    // 3. Find pending schedules that haven't run today
+    let pending = await sql`
+      SELECT * FROM devto_schedules
+      WHERE account_id = ${acc.id}
+        AND is_active = 1
+        AND (last_run_date IS NULL OR last_run_date != ${todayStr})
+      ORDER BY last_run_date ASC NULLS FIRST
+    `;
+
+    if (!pending.length) {
+      // If all ran, pick any active schedule
+      pending = await sql`
+        SELECT * FROM devto_schedules
+        WHERE account_id = ${acc.id} AND is_active = 1
+        ORDER BY last_run_date ASC NULLS FIRST
+      `;
+    }
+
+    if (!pending.length) {
+      console.log(`[Devto-Cron] No active schedules found for @${acc.username}.`);
+      continue;
+    }
+
+    const chosen = pending[0];
+    console.log(`[Devto-Cron] 🚀 Ready to post for @${acc.username}: Schedule ID ${chosen.id} (${chosen.custom_prompt})`);
+
+    try {
+      const pendingInsert = await sql`
+        INSERT INTO devto_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
+      `;
+      const historyId = pendingInsert[0].id;
+
+      const result = await runDevtoPost(acc.id, chosen.custom_prompt);
+
+      if (chosen.id) {
+        await sql`UPDATE devto_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
+      }
+
+      await sql`
+        UPDATE devto_history SET
+          status = 'success',
+          post_id = ${String(result.publishId)},
+          caption = ${result.title}
+        WHERE id = ${historyId}
+      `;
+
+      console.log(`[Devto-Cron] ✅ Successfully published for @${acc.username}: "${result.title}" -> ${result.url}`);
+      executed.push({ account: acc.username, scheduleId: chosen.id, ...result });
+    } catch (postErr) {
+      console.error(`[Devto-Cron] Post failed for @${acc.username}:`, postErr.message);
+      await sql`
+        INSERT INTO devto_history (account_id, caption, status, error_message)
+        VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
+      `;
+    }
+  }
+
+  return { success: true, executed };
+}
 
 app.get('/api/devto/cron', async (req, res) => {
   const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
@@ -276,99 +283,13 @@ app.get('/api/devto/cron', async (req, res) => {
     }
   }
 
-  const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const witaTime = new Date(utcTime + (3600000 * 8)); 
-  
-  const currentHour = witaTime.getHours();
-  const todayStr = witaTime.toISOString().split('T')[0];
-  const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));
-
   try {
-    const globalStatus = await sql`SELECT value FROM devto_settings WHERE key = 'devto_automation_enabled'`;
-    if (globalStatus[0]?.value === 'false') {
-      return res.json({ success: true, status: 'Dev.to automation disabled globally.' });
-    }
-
-    const accounts = await sql`SELECT id, name FROM devto_accounts WHERE is_active = 1`;
-    const executed = [];
-
-    for (const acc of accounts) {
-      const ranToday = await sql`
-        SELECT COUNT(*) as count FROM devto_history
-        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
-      `;
-      const postsToday = parseInt(ranToday[0]?.count || 0, 10);
-
-      if (postsToday >= 5) {
-        console.log(`[Devto-Cron] Acc ${acc.name}: hit 5-post daily limit.`);
-        continue;
-      }
-
-      let pending = await sql`
-        SELECT * FROM devto_schedules
-        WHERE account_id = ${acc.id}
-          AND is_active = 1
-          AND (last_run_date IS NULL OR last_run_date != ${todayStr})
-      `;
-
-      if (!pending.length) {
-        pending = Array(5).fill({ id: null, custom_prompt: "" });
-      }
-
-      const postsRemaining = 5 - postsToday;
-      const numToMake = Math.min(postsRemaining, pending.length);
-      const chance = (numToMake / totalMinutesLeft) * 3;
-      const roll = Math.random();
-
-      if (roll < chance) {
-        const chosen = pending[Math.floor(Math.random() * pending.length)];
-        let finalPrompt = chosen.custom_prompt;
-        
-        let forceNoImage = false;
-        if (!finalPrompt || finalPrompt.trim() === '') {
-          if (postsToday === 0 || postsToday === 2) {
-            finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
-            forceNoImage = true;
-          } else if (postsToday === 1) {
-            finalPrompt = "Enthusiastically recommend this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
-          } else if (postsToday === 3) {
-            finalPrompt = "Enthusiastically recommend this tool: https://www.make.com/en/register?pc=airan";
-          } else {
-            finalPrompt = "Enthusiastically recommend this tool: https://wise.com/invite/dic/khairannoorf";
-          }
-        }
-
-        try {
-          const pendingInsert = await sql`
-            INSERT INTO devto_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
-          `;
-          const historyId = pendingInsert[0].id;
-
-          const result = await runDevtoPost(acc.id, finalPrompt, forceNoImage);
-          if (chosen.id) {
-            await sql`UPDATE devto_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
-          }
-
-          await sql`
-            UPDATE devto_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
-          `;
-
-          executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
-        } catch (postErr) {
-          console.error(`[Devto-Cron] Post failed for ${acc.name}:`, postErr.message);
-          await sql`
-            INSERT INTO devto_history (account_id, caption, status, error_message)
-            VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
-          `;
-        }
-      }
-    }
-
-    res.json({ success: true, executed });
+    const isForce = req.query.force === 'true';
+    const result = await runDevtoCron(isForce);
+    res.json(result);
   } catch (e) {
-    console.error('[Devto-Cron] Error:', e.message);
-    res.status(200).json({ success: false, error: e.message });
+    console.error('[Devto-Cron] Route Error:', e.message);
+    res.status(500).json({ error: e.message });
   }
 });
 
