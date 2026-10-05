@@ -39,11 +39,14 @@ async function setup() {
 
   // 3. Insert 5 high-converting schedules for the 5 web platforms
   const schedules = [
-    { target: 'solvemymedia', prompt: 'SolveMyMedia: In-Browser WebAssembly Media Suite (Lossless Video Trimmer & Audio Converter)' },
+    { target: 'solvemymedia', prompt: 'SolveMyMedia: In-Browser Video Compressor via WebCodecs & WebGPU (No Cloud Limits)' },
     { target: 'handlemyfile', prompt: 'HandleMyFile: Client-Side Document & PDF Workstation via WASM and Web Workers' },
     { target: 'createmyqr', prompt: 'CreateMyQR: 37 Client-Side QR & Barcode Tools via HTML5 Canvas & Reed-Solomon Math' },
+    { target: 'solvemymedia', prompt: 'SolveMyMedia: Local Neural AI Speech-to-Text via WebAssembly (Zero Server Uploads)' },
     { target: 'helpmyimg', prompt: 'HelpMyIMG: In-Browser Image Suite & AI Background Removal with Zero Cloud Uploads' },
-    { target: 'tranvas', prompt: 'Tranvas: Unified Life OS Architecture (Planner, Habits, Finance, Calendar) Built on Next.js' }
+    { target: 'solvemymedia', prompt: 'SolveMyMedia: Screen & Camera Studio (Private In-Browser Recording)' },
+    { target: 'tranvas', prompt: 'Tranvas: Unified Life OS Architecture (Planner, Habits, Finance, Calendar) Built on Next.js' },
+    { target: 'solvemymedia', prompt: 'SolveMyMedia: Lossless 0.4s Video Trimmer in Browser RAM' }
   ];
 
   for (const s of schedules) {
