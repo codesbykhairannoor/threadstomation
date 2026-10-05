@@ -186,10 +186,31 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
   // Dedicated 7-Archetype narrative storytelling engine for airanfadh (or target web platforms)
   if (account.blog_name?.toLowerCase().includes('airanfadh') || account.name?.toLowerCase().includes('airanfadh') || customPrompt) {
     console.log(`[Tumblr-Post] Using airanfadh 7-Archetype storytelling engine...`);
-    const { caption, tags } = await generateTumblrPost(customPrompt);
-    const response = await postToTumblr(account.blog_name, accessToken, [], caption, tags);
-    console.log(`[Tumblr-Post] Successfully posted to Tumblr. Post ID: ${response.id}`);
-    return { publishId: response.id, status: 'success', text: caption.substring(0, 100) };
+    const { title, body, caption, tags } = await generateTumblrPost(customPrompt);
+    let response;
+    try {
+      response = await postToTumblr(account.blog_name, accessToken, [], body || caption, tags, title);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        console.warn(`[Tumblr-Post] 401 Unauthorized on post. Attempting forced token refresh...`);
+        const newTokens = await refreshTumblrToken(account.refresh_token);
+        const expiresAt = newTokens.expires_in ? new Date(Date.now() + newTokens.expires_in * 1000) : null;
+        await sql`
+          UPDATE tumblr_accounts SET
+            access_token = ${newTokens.access_token},
+            refresh_token = ${newTokens.refresh_token},
+            expires_at = ${expiresAt}
+          WHERE id = ${account.id}
+        `;
+        accessToken = newTokens.access_token;
+        console.log(`[Tumblr-Post] Token refreshed. Retrying post...`);
+        response = await postToTumblr(account.blog_name, accessToken, [], body || caption, tags, title);
+      } else {
+        throw err;
+      }
+    }
+    console.log(`[Tumblr-Post] Successfully posted to Tumblr with Title [${title}]. Post ID: ${response.id}`);
+    return { publishId: response.id, status: 'success', title, text: (body || caption).substring(0, 100) };
   }
 
   const accountName = "caridisinishop_tumblr"; // Force caridisinishop persona instead of Adhlil for Tumblr
