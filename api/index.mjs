@@ -246,7 +246,10 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
         try {
             const nName = acc.name ? acc.name.toLowerCase() : '';
             const isSpecial = nName.includes('adhlil') || nName.includes('caridisini');
-            const dailyLimit = isSpecial ? 4 : 2;
+            let dailyLimit = isSpecial ? 4 : 2;
+            if (nName.includes('tranvas') || nName.includes('sharesa')) {
+                dailyLimit = 1; // Strictly 1 post per day for Tranvas & Sharesa Space
+            }
 
             const [ranToday] = await sql`SELECT COUNT(*) as count FROM schedules WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}`;
             const postsToday = parseInt(ranToday?.count || 0);
