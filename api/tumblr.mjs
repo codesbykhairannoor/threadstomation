@@ -11,6 +11,7 @@ import {
 } from '../lib/tumblr.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js';
 import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
+import { generateTumblrPost } from '../lib/tumblr_content.js';
 
 const app = express();
 app.use(cors());
@@ -182,6 +183,15 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
 
   console.log(`[Tumblr-Post] Generating content for blog ${account.blog_name}...`);
 
+  // Dedicated 7-Archetype narrative storytelling engine for airanfadh (or target web platforms)
+  if (account.blog_name?.toLowerCase().includes('airanfadh') || account.name?.toLowerCase().includes('airanfadh') || customPrompt) {
+    console.log(`[Tumblr-Post] Using airanfadh 7-Archetype storytelling engine...`);
+    const { caption, tags } = await generateTumblrPost(customPrompt);
+    const response = await postToTumblr(account.blog_name, accessToken, [], caption, tags);
+    console.log(`[Tumblr-Post] Successfully posted to Tumblr. Post ID: ${response.id}`);
+    return { publishId: response.id, status: 'success', text: caption.substring(0, 100) };
+  }
+
   const accountName = "caridisinishop_tumblr"; // Force caridisinishop persona instead of Adhlil for Tumblr
 
   const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, forceNoImage);
@@ -312,6 +322,135 @@ app.post('/api/tumblr/post-now', async (req, res) => {
 
 // ── CRON: AUTOMATION SCHEDULER ────────────────────────────────────────────────
 
+export async function runTumblrCron(force = false) {
+  const now = new Date();
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const witaTime = new Date(utcTime + (3600000 * 8)); 
+  
+  const currentHour = witaTime.getHours();
+  const currentMinutes = witaTime.getMinutes();
+  const todayStr = witaTime.toISOString().split('T')[0];
+
+  console.log(`[Tumblr-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
+
+  // Active daylight posting window: 07:30 - 23:00 WITA (organic human sleeping hours 23:00 - 07:30)
+  const isTooEarly = currentHour < 7 || (currentHour === 7 && currentMinutes < 30);
+  const isTooLate = currentHour >= 23;
+  if (!force && (isTooEarly || isTooLate)) {
+    console.log(`[Tumblr-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside active window (07:30 - 23:00 WITA). Sleeping.`);
+    return { success: true, status: 'Outside active daytime hours (07:30 - 23:00 WITA)' };
+  }
+
+  try {
+    const globalStatus = await sql`SELECT value FROM tumblr_settings WHERE key = 'tumblr_automation_enabled'`;
+    if (globalStatus[0]?.value === 'false') {
+      console.log('[Tumblr-Cron] Tumblr automation is disabled globally in settings.');
+      return { success: true, status: 'Tumblr automation disabled globally.' };
+    }
+
+    const accounts = await sql`SELECT id, name, blog_name FROM tumblr_accounts WHERE is_active = 1`;
+    const executed = [];
+
+    for (const acc of accounts) {
+      const dailyLimit = 5;
+
+      const ranToday = await sql`
+        SELECT COUNT(*) as count FROM tumblr_history
+        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
+      `;
+      const postsToday = parseInt(ranToday[0]?.count || 0, 10);
+
+      if (postsToday >= dailyLimit) {
+        console.log(`[Tumblr-Cron] Acc ${acc.blog_name || acc.name}: hit ${dailyLimit}-post daily limit (${postsToday}/${dailyLimit}).`);
+        continue;
+      }
+
+      // Anti-Shadowban Organic Jitter Guard: Randomized human timing between 2.2h and 4.2h
+      const lastPostRows = await sql`
+        SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
+        FROM tumblr_history 
+        WHERE account_id = ${acc.id} AND status = 'success' 
+        ORDER BY id DESC LIMIT 1
+      `;
+      if (lastPostRows.length > 0 && !force) {
+        const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
+        
+        // Hard safety floor: never post closer than 2.2 hours (132 mins) on Tumblr to prevent shadowbans
+        const hardFloorHours = 2.2;
+        if (hoursSinceLastPost < hardFloorHours) {
+          console.log(`[Tumblr-Cron] ⏸️ ${acc.blog_name || acc.name}: In hard anti-shadowban cooldown (${hoursSinceLastPost.toFixed(2)}h / ${hardFloorHours}h). Skipping.`);
+          continue;
+        }
+
+        // Dynamic human probability curve:
+        // As time advances from 2.2h to 4.2h, the chance to trigger rises organically from 20% to 100%.
+        const windowSpread = 2.0; // 2.2h to 4.2h
+        const postProgress = Math.min(1.0, (hoursSinceLastPost - hardFloorHours) / windowSpread);
+        let triggerProbability = 0.20 + (postProgress * 0.80);
+        
+        // Evening catch-up guarantee: 100% chance after 21:00 WITA
+        if (currentHour >= 21) triggerProbability = 1.0;
+
+        const jitterRoll = Math.random();
+        console.log(`[Tumblr-Cron] 🎲 ${acc.blog_name || acc.name}: hoursSinceLastPost=${hoursSinceLastPost.toFixed(2)}h, triggerChance=${(triggerProbability * 100).toFixed(1)}%, jitterRoll=${(jitterRoll * 100).toFixed(1)}%`);
+
+        if (jitterRoll > triggerProbability) {
+          console.log(`[Tumblr-Cron] ⏸️ ${acc.blog_name || acc.name}: Organic random jitter active. Waiting for next window.`);
+          continue;
+        }
+      }
+
+      let pending = await sql`
+        SELECT * FROM tumblr_schedules
+        WHERE account_id = ${acc.id}
+          AND is_active = 1
+          AND (last_run_date IS NULL OR last_run_date != ${todayStr})
+        ORDER BY id ASC
+      `;
+
+      if (!pending.length) {
+        console.log(`[Tumblr-Cron] Acc ${acc.blog_name || acc.name}: All 5 daily websites already posted for today.`);
+        continue;
+      }
+
+      console.log(`[Tumblr-Cron] 🚀 Ready to post for ${acc.blog_name || acc.name}: postsToday=${postsToday}/${dailyLimit}, pending=${pending.length}`);
+
+      const chosen = pending[Math.floor(Math.random() * pending.length)];
+      let finalPrompt = chosen.custom_prompt || 'tranvas';
+
+      try {
+        const pendingInsert = await sql`
+          INSERT INTO tumblr_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
+        `;
+        const historyId = pendingInsert[0].id;
+
+        const result = await runTumblrPost(acc.id, finalPrompt, true);
+        if (chosen.id) {
+          await sql`UPDATE tumblr_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
+        }
+
+        await sql`
+          UPDATE tumblr_history SET status = 'success', post_id = ${String(result.publishId)}, caption = ${result.text || chosen.custom_prompt || 'Tumblr Post'} WHERE id = ${historyId}
+        `;
+
+        console.log(`[Tumblr-Cron] ✅ Successfully posted for ${acc.blog_name || acc.name} (${chosen.custom_prompt})`);
+        executed.push({ account: acc.blog_name || acc.name, scheduleId: chosen.id, ...result });
+      } catch (postErr) {
+        console.error(`[Tumblr-Cron] ❌ Post failed for ${acc.blog_name || acc.name}:`, postErr.message);
+        await sql`
+          INSERT INTO tumblr_history (account_id, caption, status, error_message)
+          VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
+        `;
+      }
+    }
+
+    return { success: true, executed };
+  } catch (e) {
+    console.error('[Tumblr-Cron] Error:', e.message);
+    throw e;
+  }
+}
+
 app.get('/api/tumblr/cron', async (req, res) => {
   const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
   const authHeader = req.headers.authorization;
@@ -323,98 +462,11 @@ app.get('/api/tumblr/cron', async (req, res) => {
     }
   }
 
-  const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const witaTime = new Date(utcTime + (3600000 * 8)); 
-  
-  const currentHour = witaTime.getHours();
-  const todayStr = witaTime.toISOString().split('T')[0];
-  const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));
-
   try {
-    const globalStatus = await sql`SELECT value FROM tumblr_settings WHERE key = 'tumblr_automation_enabled'`;
-    if (globalStatus[0]?.value === 'false') {
-      return res.json({ success: true, status: 'Tumblr automation disabled globally.' });
-    }
-
-    const accounts = await sql`SELECT id, name FROM tumblr_accounts WHERE is_active = 1`;
-    const executed = [];
-
-    for (const acc of accounts) {
-      const ranToday = await sql`
-        SELECT COUNT(*) as count FROM tumblr_history
-        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
-      `;
-      const postsToday = parseInt(ranToday[0]?.count || 0, 10);
-
-      if (postsToday >= 5) {
-        console.log(`[Tumblr-Cron] Acc ${acc.name}: hit 5-post daily limit.`);
-        continue;
-      }
-
-      let pending = await sql`
-        SELECT * FROM tumblr_schedules
-        WHERE account_id = ${acc.id}
-          AND is_active = 1
-          AND (last_run_date IS NULL OR last_run_date != ${todayStr})
-      `;
-
-      if (!pending.length) {
-        pending = Array(5).fill({ id: null, custom_prompt: "" });
-      }
-
-      const postsRemaining = 5 - postsToday;
-      const numToMake = Math.min(postsRemaining, pending.length);
-      const chance = (numToMake / totalMinutesLeft) * 3;
-      const roll = Math.random();
-
-      if (roll < chance) {
-        const chosen = pending[Math.floor(Math.random() * pending.length)];
-        let finalPrompt = chosen.custom_prompt;
-        
-        let forceNoImage = false;
-        if (!finalPrompt || finalPrompt.trim() === '') {
-          if (postsToday === 0 || postsToday === 2) {
-            finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
-            forceNoImage = true;
-          } else if (postsToday === 1) {
-            finalPrompt = "Enthusiastically recommend this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
-          } else if (postsToday === 3) {
-            finalPrompt = "Enthusiastically recommend this tool: https://www.make.com/en/register?pc=airan";
-          } else {
-            finalPrompt = "Enthusiastically recommend this tool: https://wise.com/invite/dic/khairannoorf";
-          }
-        }
-
-        try {
-          const pendingInsert = await sql`
-            INSERT INTO tumblr_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
-          `;
-          const historyId = pendingInsert[0].id;
-
-          const result = await runTumblrPost(acc.id, finalPrompt, forceNoImage);
-          if (chosen.id) {
-            await sql`UPDATE tumblr_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
-          }
-
-          await sql`
-            UPDATE tumblr_history SET status = 'success', post_id = ${String(result.publishId)} WHERE id = ${historyId}
-          `;
-
-          executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
-        } catch (postErr) {
-          console.error(`[Tumblr-Cron] Post failed for ${acc.name}:`, postErr.message);
-          await sql`
-            INSERT INTO tumblr_history (account_id, caption, status, error_message)
-            VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
-          `;
-        }
-      }
-    }
-
-    res.json({ success: true, executed });
+    const isForce = req.query.force === 'true';
+    const result = await runTumblrCron(isForce);
+    res.json(result);
   } catch (e) {
-    console.error('[Tumblr-Cron] Error:', e.message);
     res.status(200).json({ success: false, error: e.message });
   }
 });

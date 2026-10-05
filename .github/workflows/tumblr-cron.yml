@@ -1,0 +1,57 @@
+name: Tumblr Automation Cron
+
+on:
+  schedule:
+    # Staggered every 30 minutes (at :24, :54) to bypass top-of-hour congestion and run completely isolated
+    - cron: '24,54 * * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force run immediately (bypass cooldown)'
+        type: boolean
+        default: false
+
+jobs:
+  run-tumblr:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Dedicated Tumblr Cron
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+          GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+          GEMINI_API_KEY_4: ${{ secrets.GEMINI_API_KEY_4 }}
+          GEMINI_API_KEY_5: ${{ secrets.GEMINI_API_KEY_5 }}
+          GEMINI_API_KEY_6: ${{ secrets.GEMINI_API_KEY_6 }}
+          GEMINI_API_KEY_7: ${{ secrets.GEMINI_API_KEY_7 }}
+          GEMINI_API_KEY_8: ${{ secrets.GEMINI_API_KEY_8 }}
+          TUMBLR_CLIENT_ID: ${{ secrets.TUMBLR_CLIENT_ID }}
+          TUMBLR_CLIENT_SECRET: ${{ secrets.TUMBLR_CLIENT_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ "${{ inputs.force }}" = "true" ]; then
+            node scripts/tumblr-cron.mjs --force
+          else
+            node scripts/tumblr-cron.mjs
+          fi
