@@ -247,8 +247,10 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             const nName = acc.name ? acc.name.toLowerCase() : '';
             const isSpecial = nName.includes('adhlil') || nName.includes('caridisini');
             let dailyLimit = isSpecial ? 4 : 2;
-            if (nName.includes('tranvas') || nName.includes('sharesa')) {
-                dailyLimit = 1; // Strictly 1 post per day for Tranvas & Sharesa Space
+            if (nName.includes('tranvas')) {
+                dailyLimit = 1; // Strictly 1 post per day for Tranvas
+            } else if (nName.includes('sharesa')) {
+                dailyLimit = 5; // Exactly 5 posts per day for Sharesa Space (5 categories)
             }
 
             const [ranToday] = await sql`SELECT COUNT(*) as count FROM schedules WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}`;
@@ -262,7 +264,7 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
                 continue;
             }
 
-            // Anti-Spam Intelligent Pacing Guard: Enforce minimum 3-hour cooldown between posts
+            // Anti-Spam Intelligent Pacing Guard: Enforce minimum cooldown between posts
             const lastPostRows = await sql`
                 SELECT created_at FROM post_history 
                 WHERE account_id = ${acc.id} AND status = 'success' 
@@ -271,7 +273,7 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             if (lastPostRows.length > 0 && !force) {
                 const lastPostTime = new Date(lastPostRows[0].created_at).getTime();
                 const hoursSinceLastPost = (Date.now() - lastPostTime) / (1000 * 60 * 60);
-                const minCooldownHours = 3.0;
+                const minCooldownHours = nName.includes('sharesa') ? 2.0 : 3.0;
                 if (hoursSinceLastPost < minCooldownHours) {
                     console.log(`[Threads-Cron] ⏸️ ${acc.name}: Last post was ${hoursSinceLastPost.toFixed(1)}h ago (min cooldown ${minCooldownHours}h). Skipping to protect against Meta spam suppression.`);
                     continue;
