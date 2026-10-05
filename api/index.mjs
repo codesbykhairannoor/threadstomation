@@ -264,7 +264,7 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
                 continue;
             }
 
-            // Anti-Spam Intelligent Pacing Guard: Enforce minimum cooldown between posts
+            // Anti-Spam Intelligent Pacing Guard: Enforce minimum cooldown between posts with dynamic human jitter
             const lastPostRows = await sql`
                 SELECT created_at FROM post_history 
                 WHERE account_id = ${acc.id} AND status = 'success' 
@@ -273,9 +273,16 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             if (lastPostRows.length > 0 && !force) {
                 const lastPostTime = new Date(lastPostRows[0].created_at).getTime();
                 const hoursSinceLastPost = (Date.now() - lastPostTime) / (1000 * 60 * 60);
-                const minCooldownHours = nName.includes('sharesa') ? 2.0 : 3.0;
+                // Dynamic Jitter: Prevent robotic, predictable fixed intervals
+                // Sharesa Space (target 5 posts/day across 14 active hours): cooldown random antara 1.7 s/d 2.5 jam
+                // Akun lain: cooldown random antara 2.7 s/d 3.5 jam
+                const jitter = ((acc.id * 37 + postsToday * 19 + currentHour * 11) % 100) / 100;
+                const minCooldownHours = nName.includes('sharesa') 
+                    ? (1.7 + jitter * 0.8) 
+                    : (2.7 + jitter * 0.8);
+
                 if (hoursSinceLastPost < minCooldownHours) {
-                    console.log(`[Threads-Cron] ⏸️ ${acc.name}: Last post was ${hoursSinceLastPost.toFixed(1)}h ago (min cooldown ${minCooldownHours}h). Skipping to protect against Meta spam suppression.`);
+                    console.log(`[Threads-Cron] ⏸️ ${acc.name}: Last post was ${hoursSinceLastPost.toFixed(1)}h ago (dynamic cooldown ${minCooldownHours.toFixed(2)}h). Skipping to maintain organic human rhythm.`);
                     continue;
                 }
             }
@@ -287,15 +294,77 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             if (!pending.length) continue;
 
             const postsRemaining = dailyLimit - postsToday;
-            // Daytime high confidence: 65% chance per trigger, guaranteed 100% after 18:00 WITA
-            let chance = currentHour >= 18 ? 1.0 : 0.65;
+            const remainingDayMinutes = Math.max(1, (22 - currentHour) * 60 + (60 - currentMinute));
+            const remainingIntervals = Math.max(1, Math.floor(remainingDayMinutes / 15));
+
+            let chance;
+            if (nName.includes('tranvas')) {
+                // Tranvas (1 post/hari): Sebar peluang acak merata sepanjang hari (08:00 - 22:00 WITA)
+                // Tidak lagi selalu posting jam 08:00 pagi!
+                if (currentHour >= 20) {
+                    chance = 1.0; // Pastikan posting sebelum hari berakhir
+                } else {
+                    chance = Math.min(0.25, Math.max(0.08, postsRemaining / remainingIntervals));
+                }
+            } else if (nName.includes('sharesa')) {
+                // Sharesa Space (5 post/hari): Begitu jeda cooldown terpenuhi, beri peluang 65% per run
+                // Di malam hari jika sisa interval sempit, paksa 100% agar kuota 5 kategori lengkap
+                if (currentHour >= 20 || remainingIntervals <= postsRemaining * 5) {
+                    chance = 1.0;
+                } else {
+                    chance = 0.65;
+                }
+            } else {
+                chance = currentHour >= 18 ? 1.0 : 0.65;
+            }
             if (force) chance = 1.0;
 
             const roll = Math.random();
             console.log(`[Threads-Cron] ${acc.name}: postsToday=${postsToday}/${dailyLimit}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
 
             if (roll < chance) {
-                const sch = pending[Math.floor(Math.random() * pending.length)];
+                let sch = null;
+
+                if (nName.includes('sharesa')) {
+                    // ── 5 KATEGORI DYNAMIC SHUFFLE (SHARESA SPACE) ──────────────────
+                    // 1. Cek kategori apa saja dari 1-5 yang SUDAH jalan hari ini
+                    const ranTodaySchedules = await sql`
+                        SELECT custom_prompt FROM schedules 
+                        WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}
+                    `;
+                    const executedCategories = new Set();
+                    for (const r of ranTodaySchedules) {
+                        const match = (r.custom_prompt || '').match(/\[KATEGORI\s+(\d)/i);
+                        if (match) executedCategories.add(parseInt(match[1]));
+                    }
+
+                    // 2. Kategori yang BELUM jalan hari ini
+                    const remainingCategories = [1, 2, 3, 4, 5].filter(c => !executedCategories.has(c));
+                    
+                    // 3. Shuffle / pilih kategori acak dari yang belum terbit hari ini
+                    const targetCategory = remainingCategories.length > 0 
+                        ? remainingCategories[Math.floor(Math.random() * remainingCategories.length)]
+                        : null;
+
+                    if (targetCategory) {
+                        const catPending = pending.filter(s => {
+                            const m = (s.custom_prompt || '').match(/\[KATEGORI\s+(\d)/i);
+                            return m && parseInt(m[1]) === targetCategory;
+                        });
+                        if (catPending.length > 0) {
+                            // Pilih sudut pandang (angle) secara acak dari pool kategori tersebut
+                            sch = catPending[Math.floor(Math.random() * catPending.length)];
+                        }
+                    }
+
+                    // Fallback jika tidak terpetakan
+                    if (!sch) {
+                        sch = pending[Math.floor(Math.random() * pending.length)];
+                    }
+                } else {
+                    // Akun lain (termasuk Tranvas): Pilih acak dari pending
+                    sch = pending[Math.floor(Math.random() * pending.length)];
+                }
                 
                 const taskPromise = runScheduledTask(sch, todayStr)
                     .then(() => {
