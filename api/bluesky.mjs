@@ -5,6 +5,7 @@ import sql, { initDb } from '../lib/database.js';
 import { getBlueskyAgent, postToBluesky } from '../lib/bluesky.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js'; 
 import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
+import { generateKhaithisranPost } from '../lib/bluesky_content.js';
 
 const app = express();
 app.use(cors());
@@ -142,6 +143,15 @@ export async function runBlueskyPost(accountId, customPrompt = null, forceNoImag
 
   const accountName = account.identifier || account.name || "bluesky_account";
 
+  // Specialized dynamic copywriting for khaithisran (5 web ecosystem, 10 diverse frameworks, text-only)
+  if (account.identifier.toLowerCase().includes('khaithisran')) {
+    console.log(`[Bluesky-Post] Using Khaithisran dynamic copywriting engine for ${account.identifier}...`);
+    const statusText = await generateKhaithisranPost(customPrompt);
+    const response = await postToBluesky(account.identifier, account.app_password, statusText, null);
+    console.log(`[Bluesky-Post] Successfully posted to Bluesky for ${account.identifier}: ${statusText}`);
+    return { publishId: response.uri || 'success', status: 'success', text: statusText };
+  }
+
   // Allow 1 image for Bluesky Promo layout, or text-only if forceNoImage is true. Max Length 280 chars to avoid truncation.
   const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, forceNoImage, 280);
   const slides = content.slides || [];
@@ -240,7 +250,7 @@ app.post('/api/bluesky/post-now', async (req, res) => {
     const result = await runBlueskyPost(accountId, finalPrompt, false);
     
     await sql`
-      UPDATE bluesky_history SET status = 'success', publish_id = ${String(result.publishId)} WHERE id = ${historyId}
+      UPDATE bluesky_history SET status = 'success', publish_id = ${String(result.publishId)}, caption = ${result.text || finalPrompt || 'Bluesky Post'} WHERE id = ${historyId}
     `;
 
     res.json({ success: true, ...result });
@@ -258,46 +268,60 @@ app.post('/api/bluesky/post-now', async (req, res) => {
 
 // ── CRON: AUTOMATION SCHEDULER ────────────────────────────────────────────────
 
-app.get('/api/bluesky/cron', async (req, res) => {
-  const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
-  const authHeader = req.headers.authorization;
-  const secretParam = req.query.secret;
-
-  if (process.env.CRON_SECRET) {
-    if (authHeader !== `Bearer ${expectedSecret}` && secretParam !== expectedSecret) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  }
-
+export async function runBlueskyCron(force = false) {
   const now = new Date();
   const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
   const witaTime = new Date(utcTime + (3600000 * 8)); 
   
   const currentHour = witaTime.getHours();
   const todayStr = witaTime.toISOString().split('T')[0];
-  const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));
 
   try {
     const globalStatus = await sql`SELECT value FROM bluesky_settings WHERE key = 'bluesky_automation_enabled'`;
     if (globalStatus[0]?.value === 'false') {
-      return res.json({ success: true, status: 'Bluesky automation disabled globally.' });
+      return { success: true, status: 'Bluesky automation disabled globally.' };
     }
 
     const accounts = await sql`SELECT id, name, identifier FROM bluesky_accounts WHERE is_active = 1`;
     const executed = [];
 
     for (const acc of accounts) {
+      const isKhaithisran = acc.identifier.toLowerCase().includes('khaithisran');
+      const isOneformind = acc.identifier.toLowerCase().includes('oneformind');
+      const dailyLimit = isKhaithisran ? 5 : (isOneformind ? 4 : 3);
+
+      // Active Daytime Window Guard: 07:00 WITA - 23:00 WITA (prevents burning quota at 3 AM)
+      if (!force && (currentHour < 7 || currentHour >= 23)) {
+        console.log(`[Bluesky-Cron] ${acc.identifier}: Current hour ${currentHour}:00 WITA is outside active daytime window (07:00 - 23:00 WITA). Sleeping.`);
+        continue;
+      }
+
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM bluesky_history
         WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
-      const dailyLimit = acc.identifier.toLowerCase().includes('oneformind') ? 4 : 5;
-
       if (postsToday >= dailyLimit) {
-        console.log(`[Bluesky-Cron] Acc ${acc.identifier}: hit ${dailyLimit}-post daily limit.`);
+        console.log(`[Bluesky-Cron] Acc ${acc.identifier}: hit ${dailyLimit}-post daily limit (${postsToday}/${dailyLimit}).`);
         continue;
+      }
+
+      // Anti-Spam Intelligent Pacing Guard: Enforce minimum cooldown between posts
+      const lastPostRows = await sql`
+        SELECT created_at FROM bluesky_history 
+        WHERE account_id = ${acc.id} AND status = 'success' 
+        ORDER BY created_at DESC LIMIT 1
+      `;
+      if (lastPostRows.length > 0 && !force) {
+        const lastPostTime = new Date(lastPostRows[0].created_at).getTime();
+        const hoursSinceLastPost = (Date.now() - lastPostTime) / (1000 * 60 * 60);
+        // Khaithisran posts 5x across 16 daytime hours => ~1.8h cooldown (~108 mins)
+        const minCooldownHours = isKhaithisran ? 1.8 : 2.5;
+        if (hoursSinceLastPost < minCooldownHours) {
+          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: Last post was ${hoursSinceLastPost.toFixed(1)}h ago (min cooldown ${minCooldownHours}h). Skipping to maintain organic rhythm.`);
+          continue;
+        }
       }
 
       let pending = await sql`
@@ -305,27 +329,34 @@ app.get('/api/bluesky/cron', async (req, res) => {
         WHERE account_id = ${acc.id}
           AND is_active = 1
           AND (last_run_date IS NULL OR last_run_date != ${todayStr})
+        ORDER BY id ASC
       `;
 
       if (!pending.length) {
-        pending = Array(5).fill({ id: null, custom_prompt: "" });
+        if (isKhaithisran) {
+          console.log(`[Bluesky-Cron] Acc ${acc.identifier}: All 5 daily websites already posted for today.`);
+          continue;
+        }
+        pending = Array(dailyLimit).fill({ id: null, custom_prompt: "" });
       }
 
-      const postsRemaining = 5 - postsToday;
-      const numToMake = Math.min(postsRemaining, pending.length);
-      const chance = (numToMake / totalMinutesLeft) * 3;
+      // Daytime confidence: cooldown already prevents spam, so 85% chance per trigger, 100% after 18:00 WITA
+      let chance = currentHour >= 18 ? 1.0 : 0.85;
+      if (force) chance = 1.0;
       const roll = Math.random();
 
-      if (roll < chance) {
+      console.log(`[Bluesky-Cron] ${acc.identifier}: postsToday=${postsToday}/${dailyLimit}, pending=${pending.length}, roll=${roll.toFixed(3)}, chance=${chance}`);
+
+      if (roll <= chance) {
+        // For Khaithisran, pick pending schedules sequentially or randomly from remaining unposted sites
         const chosen = pending[Math.floor(Math.random() * pending.length)];
         let finalPrompt = chosen.custom_prompt;
-        
-        const isOneformind = acc.identifier.toLowerCase().includes('oneformind');
-        let forceNoImage = isOneformind;
+        let forceNoImage = isOneformind || isKhaithisran;
 
         if (!finalPrompt || finalPrompt.trim() === '') {
-          if (isOneformind) {
-            // OneForMind: always SaaS/productivity topics, NEVER affiliate
+          if (isKhaithisran) {
+            finalPrompt = 'tranvas';
+          } else if (isOneformind) {
             const oneformindTopics = [
               "Share a powerful insight on deep work and achieving cognitive flow state for maximum productivity.",
               "Write about the most effective time-blocking strategies that high-performers use.",
@@ -358,12 +389,13 @@ app.get('/api/bluesky/cron', async (req, res) => {
           }
 
           await sql`
-            UPDATE bluesky_history SET status = 'success', publish_id = ${String(result.publishId)} WHERE id = ${historyId}
+            UPDATE bluesky_history SET status = 'success', publish_id = ${String(result.publishId)}, caption = ${result.text || chosen.custom_prompt || 'Bluesky Post'} WHERE id = ${historyId}
           `;
 
+          console.log(`[Bluesky-Cron] ✅ Successfully posted for ${acc.identifier} (${chosen.custom_prompt})`);
           executed.push({ account: acc.identifier, scheduleId: chosen.id, ...result });
         } catch (postErr) {
-          console.error(`[Bluesky-Cron] Post failed for ${acc.identifier}:`, postErr.message);
+          console.error(`[Bluesky-Cron] ❌ Post failed for ${acc.identifier}:`, postErr.message);
           await sql`
             INSERT INTO bluesky_history (account_id, caption, status, error_message)
             VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
@@ -372,9 +404,28 @@ app.get('/api/bluesky/cron', async (req, res) => {
       }
     }
 
-    res.json({ success: true, executed });
+    return { success: true, executed };
   } catch (e) {
     console.error('[Bluesky-Cron] Error:', e.message);
+    throw e;
+  }
+}
+
+app.get('/api/bluesky/cron', async (req, res) => {
+  const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
+  const authHeader = req.headers.authorization;
+  const secretParam = req.query.secret;
+
+  if (process.env.CRON_SECRET) {
+    if (authHeader !== `Bearer ${expectedSecret}` && secretParam !== expectedSecret) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  }
+
+  try {
+    const result = await runBlueskyCron();
+    res.json(result);
+  } catch (e) {
     res.status(200).json({ success: false, error: e.message });
   }
 });

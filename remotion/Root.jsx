@@ -15,10 +15,64 @@ import {
 import { GenerativeVisualMetaphor } from './GenerativeVisualMetaphor.jsx';
 import { NewtonsCradleVideo, DominoCascadeVideo } from './PhysicalMetaphors.jsx';
 import { OpticalLensVideo, HourglassFlowVideo, IcebergMasteryVideo } from './MindsetVisualMetaphors.jsx';
+import { AdhlilStoryReel } from './AdhlilStoryReel.jsx';
 
 export const RemotionRoot = () => {
   return (
     <>
+      {/* ============================================================
+          ADHLIL STORY REEL — Viral split-zone IG Reels for @adhlil.co
+          Input: scenes[] JSON from Gemini
+          Visual: mock UI (top) + word-highlight caption (bottom)
+          ============================================================ */}
+      <Composition
+        id="AdhlilStoryReel"
+        component={AdhlilStoryReel}
+        durationInFrames={420} // fallback 14s, overridden by calculateMetadata
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          scenes: [],
+          badgeText: '@adhlil.co',
+        }}
+        calculateMetadata={async ({ props }) => {
+          const fps = 30;
+          const totalFrames = (props.scenes || []).reduce(
+            (acc, s) => acc + Math.round((s.duration || 3.5) * fps),
+            0
+          );
+          return {
+            durationInFrames: Math.max(60, totalFrames),
+            props,
+          };
+        }}
+      />
+
+      <Composition
+        id="StoryReel"
+        component={AdhlilStoryReel}
+        durationInFrames={420}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          scenes: [],
+          badgeText: '@tranvas',
+        }}
+        calculateMetadata={async ({ props }) => {
+          const fps = 30;
+          const totalFrames = (props.scenes || []).reduce(
+            (acc, s) => acc + Math.round((s.duration || 3.5) * fps),
+            0
+          );
+          return {
+            durationInFrames: Math.max(60, totalFrames),
+            props,
+          };
+        }}
+      />
+
       <Composition
         id="OpticalLensVideo"
         component={OpticalLensVideo}
