@@ -164,11 +164,30 @@ app.post('/api/devto/post-now', async (req, res) => {
 
 export async function runDevtoCron(force = false) {
   const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const witaTime = new Date(utcTime + (3600000 * 8)); 
-  const todayStr = witaTime.toISOString().split('T')[0];
+  const witaFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Makassar',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+  });
+  const parts = {};
+  witaFormatter.formatToParts(now).forEach(x => parts[x.type] = x.value);
+  const todayStr = `${parts.year}-${parts.month}-${parts.day}`;
+  const currentHour = parseInt(parts.hour === '24' ? '0' : parts.hour, 10);
+  const currentMinutes = parseInt(parts.minute, 10);
 
-  console.log(`[Devto-Cron] Tick started at ${todayStr} ${witaTime.toLocaleTimeString()} WITA (Force: ${force})`);
+  console.log(`[Devto-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
+
+  // Active daylight posting window: 07:30 - 23:00 WITA (sleeps at night like a real human)
+  const isTooEarly = currentHour < 7 || (currentHour === 7 && currentMinutes < 30);
+  const isTooLate = currentHour >= 23;
+  if (!force && (isTooEarly || isTooLate)) {
+    console.log(`[Devto-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside active window (07:30 - 23:00 WITA). Sleeping.`);
+    return { success: true, status: 'Outside active daytime hours (07:30 - 23:00 WITA)' };
+  }
 
   const globalStatus = await sql`SELECT value FROM devto_settings WHERE key = 'devto_automation_enabled'`;
   if (globalStatus[0]?.value === 'false' && !force) {
@@ -180,36 +199,42 @@ export async function runDevtoCron(force = false) {
   const executed = [];
 
   for (const acc of accounts) {
-    // 1. Strict Anti-Ban: Check last successful post timestamp
-    const lastSuccessRow = await sql`
-      SELECT created_at FROM devto_history
+    const dailyLimit = 5;
+
+    // 1. Daily Limit: Exactly 5 posts per day
+    const ranToday = await sql`
+      SELECT COUNT(*) as count FROM devto_history
       WHERE account_id = ${acc.id} AND status = 'success'
-      ORDER BY created_at DESC
+        AND TO_CHAR(created_at + INTERVAL '8 hours', 'YYYY-MM-DD') = ${todayStr}
+    `;
+    const postsToday = parseInt(ranToday[0]?.count || 0, 10);
+
+    if (postsToday >= dailyLimit && !force) {
+      console.log(`[Devto-Cron] @${acc.username}: Daily quota satisfied (${postsToday}/${dailyLimit} articles posted today).`);
+      continue;
+    }
+
+    const postsRemaining = dailyLimit - postsToday;
+    const hoursLeft = Math.max(0.5, 23 - currentHour);
+
+    // 2. Strict Anti-Ban: Dynamic adaptive cooldown (50-75 mins, down to 45 mins on catch-up)
+    const lastSuccessRow = await sql`
+      SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
+      FROM devto_history
+      WHERE account_id = ${acc.id} AND status = 'success'
+      ORDER BY id DESC
       LIMIT 1
     `;
 
     if (!force && lastSuccessRow.length > 0) {
-      const lastPostTime = new Date(lastSuccessRow[0].created_at);
-      const hoursSinceLast = (now - lastPostTime) / (1000 * 60 * 60);
+      const hoursSinceLast = parseFloat(lastSuccessRow[0].hours_since || 0);
+      const jitter = ((acc.id * 31 + postsToday * 17 + currentHour * 7) % 100) / 100;
+      const minCooldownHours = (hoursLeft <= postsRemaining * 2.0) ? 0.75 : (0.85 + jitter * 0.4);
 
-      // DEV.TO golden rule: Maximum 1 post per 20-24 hours to avoid spam suppression
-      if (hoursSinceLast < 20) {
-        console.log(`[Devto-Cron] Cooldown active for @${acc.username}. Last post was ${hoursSinceLast.toFixed(1)}h ago (min 20h required). Skipping.`);
+      if (hoursSinceLast < minCooldownHours) {
+        console.log(`[Devto-Cron] ⏸️ @${acc.username}: In cooldown (${hoursSinceLast.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
         continue;
       }
-    }
-
-    // 2. Daily Limit: Maximum 1 high-value article per day
-    const ranToday = await sql`
-      SELECT COUNT(*) as count FROM devto_history
-      WHERE account_id = ${acc.id} AND status IN ('success', 'pending')
-        AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
-    `;
-    const postsToday = parseInt(ranToday[0]?.count || 0, 10);
-
-    if (postsToday >= 1 && !force) {
-      console.log(`[Devto-Cron] @${acc.username}: Daily quota satisfied (1/1 articles posted today).`);
-      continue;
     }
 
     // 3. Find pending schedules that haven't run today

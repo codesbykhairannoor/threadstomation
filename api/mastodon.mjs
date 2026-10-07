@@ -263,12 +263,20 @@ app.post('/api/mastodon/post-now', async (req, res) => {
 
 export async function runMastodonCron(force = false) {
   const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const witaTime = new Date(utcTime + (3600000 * 8)); 
-  
-  const currentHour = witaTime.getHours();
-  const currentMinutes = witaTime.getMinutes();
-  const todayStr = witaTime.toISOString().split('T')[0];
+  const witaFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Makassar',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+  });
+  const parts = {};
+  witaFormatter.formatToParts(now).forEach(x => parts[x.type] = x.value);
+  const todayStr = `${parts.year}-${parts.month}-${parts.day}`;
+  const currentHour = parseInt(parts.hour === '24' ? '0' : parts.hour, 10);
+  const currentMinutes = parseInt(parts.minute, 10);
 
   console.log(`[Mastodon-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
 
@@ -297,7 +305,7 @@ export async function runMastodonCron(force = false) {
 
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM mastodon_history
-        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
+        WHERE account_id = ${acc.id} AND status = 'success' AND TO_CHAR(created_at + INTERVAL '8 hours', 'YYYY-MM-DD') = ${todayStr}
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
@@ -306,7 +314,10 @@ export async function runMastodonCron(force = false) {
         continue;
       }
 
-      // Anti-Spam Organic Jitter Guard: Randomized human timing between 1.8h and 3.5h
+      const postsRemaining = dailyLimit - postsToday;
+      const hoursLeft = Math.max(0.5, 23 - currentHour);
+
+      // Anti-Spam Organic Jitter Guard: Adaptive timing 50-75 mins to ensure all 5 posts publish reliably
       const lastPostRows = await sql`
         SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
         FROM mastodon_history 
@@ -315,28 +326,11 @@ export async function runMastodonCron(force = false) {
       `;
       if (lastPostRows.length > 0 && !force) {
         const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
-        
-        // Hard safety floor: never post closer than 1.8 hours (108 mins) on Mastodon / Fediverse
-        const hardFloorHours = isKhaithisran ? 1.8 : 2.0;
-        if (hoursSinceLastPost < hardFloorHours) {
-          console.log(`[Mastodon-Cron] ⏸️ ${acc.username || acc.name}: In hard anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${hardFloorHours}h). Skipping.`);
-          continue;
-        }
+        const jitter = ((acc.id * 31 + postsToday * 17 + currentHour * 7) % 100) / 100;
+        const minCooldownHours = (hoursLeft <= postsRemaining * 2.0) ? 0.75 : (0.85 + jitter * 0.4);
 
-        // Dynamic human probability curve:
-        // As time advances from 1.8h to 3.5h, the chance to trigger rises organically from 20% to 100%.
-        const windowSpread = 1.7; // 1.8h to 3.5h
-        const postProgress = Math.min(1.0, (hoursSinceLastPost - hardFloorHours) / windowSpread);
-        let triggerProbability = 0.20 + (postProgress * 0.80);
-        
-        // Evening catch-up guarantee: 100% chance after 21:00 WITA to hit the daily 5-site quota
-        if (currentHour >= 21) triggerProbability = 1.0;
-
-        const jitterRoll = Math.random();
-        console.log(`[Mastodon-Cron] 🎲 ${acc.username || acc.name}: hoursSinceLastPost=${hoursSinceLastPost.toFixed(2)}h, triggerChance=${(triggerProbability * 100).toFixed(1)}%, jitterRoll=${(jitterRoll * 100).toFixed(1)}%`);
-
-        if (jitterRoll > triggerProbability) {
-          console.log(`[Mastodon-Cron] ⏸️ ${acc.username || acc.name}: Organic random jitter active. Waiting for next window.`);
+        if (hoursSinceLastPost < minCooldownHours) {
+          console.log(`[Mastodon-Cron] ⏸️ ${acc.username || acc.name}: In hard anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
           continue;
         }
       }

@@ -275,13 +275,13 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
 
             // Anti-Spam Intelligent Adaptive Pacing Guard:
             const lastPostRows = await sql`
-                SELECT created_at FROM post_history 
+                SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
+                FROM post_history 
                 WHERE account_id = ${acc.id} AND status = 'success' 
                 ORDER BY created_at DESC LIMIT 1
             `;
             if (lastPostRows.length > 0 && !force) {
-                const lastPostTime = new Date(lastPostRows[0].created_at).getTime();
-                const hoursSinceLastPost = (Date.now() - lastPostTime) / (1000 * 60 * 60);
+                const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
 
                 // DYNAMIC ADAPTIVE COOLDOWN:
                 // Sharesa Space (5 post/hari di 14 jam aktif):

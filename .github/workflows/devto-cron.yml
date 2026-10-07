@@ -2,12 +2,12 @@ name: DEV.TO Automation Cron
 
 on:
   schedule:
-    # Runs once daily at 14:15 UTC (22:15 WITA / 10:15 AM EST - Peak US/EU Developer Active Hours)
-    - cron: '15 14 * * *'
+    # Staggered every 20 minutes (at :13, :33, :53) to reliably achieve 5 posts/day
+    - cron: '13,33,53 * * * *'
   workflow_dispatch:
     inputs:
       force:
-        description: 'Force run immediately (bypass 20h cooldown)'
+        description: 'Force run immediately (bypass cooldown)'
         type: boolean
         default: false
 

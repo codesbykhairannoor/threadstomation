@@ -270,11 +270,20 @@ app.post('/api/bluesky/post-now', async (req, res) => {
 
 export async function runBlueskyCron(force = false) {
   const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const witaTime = new Date(utcTime + (3600000 * 8)); 
-  
-  const currentHour = witaTime.getHours();
-  const todayStr = witaTime.toISOString().split('T')[0];
+  const witaFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Makassar',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+  });
+  const parts = {};
+  witaFormatter.formatToParts(now).forEach(x => parts[x.type] = x.value);
+  const todayStr = `${parts.year}-${parts.month}-${parts.day}`;
+  const currentHour = parseInt(parts.hour === '24' ? '0' : parts.hour, 10);
+  const currentMinute = parseInt(parts.minute, 10);
 
   try {
     const globalStatus = await sql`SELECT value FROM bluesky_settings WHERE key = 'bluesky_automation_enabled'`;
@@ -288,17 +297,17 @@ export async function runBlueskyCron(force = false) {
     for (const acc of accounts) {
       const isKhaithisran = acc.identifier.toLowerCase().includes('khaithisran');
       const isOneformind = acc.identifier.toLowerCase().includes('oneformind');
-      const dailyLimit = isKhaithisran ? 5 : (isOneformind ? 4 : 3);
+      const dailyLimit = isKhaithisran ? 5 : (isOneformind ? 4 : 5);
 
       // Active Daytime Window Guard: 07:30 WITA - 23:00 WITA (sleeps at night like a real human)
-      if (!force && (currentHour < 7 || (currentHour === 7 && witaTime.getMinutes() < 30) || currentHour >= 23)) {
-        console.log(`[Bluesky-Cron] ${acc.identifier}: Current hour ${currentHour}:${String(witaTime.getMinutes()).padStart(2, '0')} WITA is outside active daytime window (07:30 - 23:00 WITA). Sleeping.`);
+      if (!force && (currentHour < 7 || (currentHour === 7 && currentMinute < 30) || currentHour >= 23)) {
+        console.log(`[Bluesky-Cron] ${acc.identifier}: Current hour ${currentHour}:${String(currentMinute).padStart(2, '0')} WITA is outside active daytime window (07:30 - 23:00 WITA). Sleeping.`);
         continue;
       }
 
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM bluesky_history
-        WHERE account_id = ${acc.id} AND status IN ('success', 'pending') AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr}
+        WHERE account_id = ${acc.id} AND status = 'success' AND TO_CHAR(created_at + INTERVAL '8 hours', 'YYYY-MM-DD') = ${todayStr}
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
@@ -307,7 +316,10 @@ export async function runBlueskyCron(force = false) {
         continue;
       }
 
-      // Anti-Spam Organic Jitter Guard: Randomized human timing between 1.5h and 3.2h
+      const postsRemaining = dailyLimit - postsToday;
+      const hoursLeft = Math.max(0.5, 23 - currentHour);
+
+      // Anti-Spam Organic Jitter Guard: Adaptive timing 50-75 mins to ensure all 5 posts publish reliably
       const lastPostRows = await sql`
         SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
         FROM bluesky_history 
@@ -316,29 +328,11 @@ export async function runBlueskyCron(force = false) {
       `;
       if (lastPostRows.length > 0 && !force) {
         const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
-        
-        // Hard safety floor: never post closer than 1.5 hours (90 mins) to prevent rate limits
-        const hardFloorHours = isKhaithisran ? 1.5 : 2.2;
-        if (hoursSinceLastPost < hardFloorHours) {
-          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: In hard anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${hardFloorHours}h). Skipping.`);
-          continue;
-        }
+        const jitter = ((acc.id * 31 + postsToday * 17 + currentHour * 7) % 100) / 100;
+        const minCooldownHours = (hoursLeft <= postsRemaining * 2.0) ? 0.75 : (0.85 + jitter * 0.4);
 
-        // Dynamic human probability curve:
-        // As time advances from 1.5h to 3.2h, the chance to trigger rises organically from 20% to 100%.
-        // This ensures the posting minute is completely randomized and impossible for bot detectors to spot.
-        const windowSpread = isKhaithisran ? 1.6 : 1.8;
-        const postProgress = Math.min(1.0, (hoursSinceLastPost - hardFloorHours) / windowSpread);
-        let triggerProbability = 0.20 + (postProgress * 0.80);
-        
-        // Evening catch-up guarantee: 100% chance after 21:00 WITA to hit the daily 5-site quota
-        if (currentHour >= 21) triggerProbability = 1.0;
-
-        const jitterRoll = Math.random();
-        console.log(`[Bluesky-Cron] 🎲 ${acc.identifier}: hoursSinceLastPost=${hoursSinceLastPost.toFixed(2)}h, triggerChance=${(triggerProbability * 100).toFixed(1)}%, jitterRoll=${(jitterRoll * 100).toFixed(1)}%`);
-
-        if (jitterRoll > triggerProbability) {
-          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: Organic random jitter active. Waiting for next window.`);
+        if (hoursSinceLastPost < minCooldownHours) {
+          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: In anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
           continue;
         }
       }

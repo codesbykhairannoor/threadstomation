@@ -2,8 +2,8 @@ name: Tumblr Automation Cron
 
 on:
   schedule:
-    # Staggered every 30 minutes (at :24, :54) to bypass top-of-hour congestion and run completely isolated
-    - cron: '24,54 * * * *'
+    # Staggered every 20 minutes (at :14, :34, :54) to bypass congestion and reliably achieve 5 posts/day
+    - cron: '14,34,54 * * * *'
   workflow_dispatch:
     inputs:
       force:
