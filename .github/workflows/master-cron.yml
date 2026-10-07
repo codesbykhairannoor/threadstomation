@@ -2,9 +2,8 @@ name: Master Cron (Threads & IG)
 
 on:
   schedule:
-    # Staggered non-round cron schedules to bypass GitHub Actions top-of-hour congestion
-    - cron: '7,22,37,52 * * * *'
-    - cron: '14,29,44,59 * * * *'
+    # Single clean 15-minute schedule to ensure GitHub Actions scheduler does not drop queue
+    - cron: '5,20,35,50 * * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:

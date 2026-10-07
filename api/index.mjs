@@ -223,15 +223,21 @@ app.get('/api/cron', async (req, res) => {
 // ── ISOLATED THREADS CRON (FOR GITHUB ACTIONS) ─────────────────────────────────
 export async function runThreadsCron(awaitTasks = false, force = false) {
     const now = new Date();
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const witaTime = new Date(utcTime + (3600000 * 8)); 
-    
-    const todayStr = witaTime.toISOString().split('T')[0];
-    const currentHour = witaTime.getHours();
-    const currentMinute = witaTime.getMinutes();
-    
-    const totalMinutesLeft = Math.max(1, (24 * 60) - (currentHour * 60 + currentMinute));
-    const intervalsLeft = Math.max(1, Math.floor(totalMinutesLeft / 15));
+    // Gunakan Intl DateTimeFormat untuk penentuan waktu WITA (Asia/Makassar, UTC+8) yang 100% presisi di semua environment
+    const witaFormatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Makassar',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+    const parts = {};
+    witaFormatter.formatToParts(now).forEach(x => parts[x.type] = x.value);
+    const todayStr = `${parts.year}-${parts.month}-${parts.day}`;
+    const currentHour = parseInt(parts.hour === '24' ? '0' : parts.hour, 10);
+    const currentMinute = parseInt(parts.minute, 10);
 
     const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{value: 'true'}]);
     if (globalStatus[0]?.value === 'false') {
@@ -258,13 +264,16 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             if (postsToday >= dailyLimit) continue;
 
             // Strict Active Hours Guard: 08:00 WITA - 22:00 WITA
-            // Prevents burning daily quota at midnight/early morning (00:00 - 07:59 WITA)
+            // Mencegah post di tengah malam/subuh (00:00 - 07:59 WITA)
             if (!force && (currentHour < 8 || currentHour >= 22)) {
-                console.log(`[Threads-Cron] ${acc.name}: Current hour ${currentHour}:00 WITA is outside active daytime window (08:00 - 22:00 WITA). Sleeping.`);
+                console.log(`[Threads-Cron] ${acc.name}: Current hour ${currentHour}:${currentMinute.toString().padStart(2, '0')} WITA is outside active daytime window (08:00 - 22:00 WITA). Sleeping.`);
                 continue;
             }
 
-            // Anti-Spam Intelligent Pacing Guard: Enforce minimum cooldown between posts with dynamic human jitter
+            const postsRemaining = dailyLimit - postsToday;
+            const hoursLeft = Math.max(0.5, 22 - currentHour);
+
+            // Anti-Spam Intelligent Adaptive Pacing Guard:
             const lastPostRows = await sql`
                 SELECT created_at FROM post_history 
                 WHERE account_id = ${acc.id} AND status = 'success' 
@@ -273,13 +282,25 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             if (lastPostRows.length > 0 && !force) {
                 const lastPostTime = new Date(lastPostRows[0].created_at).getTime();
                 const hoursSinceLastPost = (Date.now() - lastPostTime) / (1000 * 60 * 60);
-                // Dynamic Jitter: Prevent robotic, predictable fixed intervals
-                // Sharesa Space (target 5 posts/day across 14 active hours): cooldown random antara 1.7 s/d 2.5 jam
-                // Akun lain: cooldown random antara 2.7 s/d 3.5 jam
+
+                // DYNAMIC ADAPTIVE COOLDOWN:
+                // Sharesa Space (5 post/hari di 14 jam aktif):
+                // Safe cooldown 50 - 75 menit (0.85h - 1.25h) dengan natural jitter.
+                // Jika waktu tersisa mepet (hoursLeft <= postsRemaining * 2.0), kompres ke 45 menit (0.75h) agar kuota 5 post PASTI tercapai!
                 const jitter = ((acc.id * 37 + postsToday * 19 + currentHour * 11) % 100) / 100;
-                const minCooldownHours = nName.includes('sharesa') 
-                    ? (1.7 + jitter * 0.8) 
-                    : (2.7 + jitter * 0.8);
+                let minCooldownHours;
+
+                if (nName.includes('sharesa')) {
+                    if (hoursLeft <= postsRemaining * 2.0) {
+                        minCooldownHours = 0.75; // 45 menit (adaptive catch-up)
+                    } else {
+                        minCooldownHours = 0.85 + (jitter * 0.4); // 51 - 75 menit (organic)
+                    }
+                } else if (nName.includes('tranvas')) {
+                    minCooldownHours = 3.0; // Tranvas cuma 1 post/hari
+                } else {
+                    minCooldownHours = 1.8 + (jitter * 0.6); // Akun lain (adhlil, dll)
+                }
 
                 if (hoursSinceLastPost < minCooldownHours) {
                     console.log(`[Threads-Cron] ⏸️ ${acc.name}: Last post was ${hoursSinceLastPost.toFixed(1)}h ago (dynamic cooldown ${minCooldownHours.toFixed(2)}h). Skipping to maintain organic human rhythm.`);
@@ -293,31 +314,15 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             `;
             if (!pending.length) continue;
 
-            const postsRemaining = dailyLimit - postsToday;
-            const remainingDayMinutes = Math.max(1, (22 - currentHour) * 60 + (60 - currentMinute));
-            const remainingIntervals = Math.max(1, Math.floor(remainingDayMinutes / 15));
-
-            let chance;
-            if (nName.includes('tranvas')) {
-                // Tranvas (1 post/hari): Sebar peluang acak merata sepanjang hari (08:00 - 22:00 WITA)
-                // Tidak lagi selalu posting jam 08:00 pagi!
-                if (currentHour >= 20) {
-                    chance = 1.0; // Pastikan posting sebelum hari berakhir
-                } else {
-                    chance = Math.min(0.25, Math.max(0.08, postsRemaining / remainingIntervals));
-                }
-            } else if (nName.includes('sharesa')) {
-                // Sharesa Space (5 post/hari): Begitu jeda cooldown terpenuhi, beri peluang 65% per run
-                // Di malam hari jika sisa interval sempit, paksa 100% agar kuota 5 kategori lengkap
-                if (currentHour >= 20 || remainingIntervals <= postsRemaining * 5) {
-                    chance = 1.0;
-                } else {
-                    chance = 0.65;
-                }
-            } else {
-                chance = currentHour >= 18 ? 1.0 : 0.65;
+            // RELIABLE CHANCE:
+            // Karena cooldown waktu (50-75 menit) + jeda trigger GitHub Actions sudah memberikan jeda acak alami,
+            // begitu cooldown lolos, jalankan 100% untuk Sharesa Space agar kuota 5 post tidak terbuang sia-sia!
+            let chance = 1.0;
+            if (nName.includes('tranvas') && !force) {
+                // Tranvas (1 post/hari): Sebelum jam 11:00 WITA beri chance 35% agar bisa terbit acak di pagi.
+                // Jika sudah jam 11:00 WITA ke atas dan belum post, langsung 100% agar terbit di siang/sore!
+                chance = currentHour < 11 ? 0.35 : 1.0;
             }
-            if (force) chance = 1.0;
 
             const roll = Math.random();
             console.log(`[Threads-Cron] ${acc.name}: postsToday=${postsToday}/${dailyLimit}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
