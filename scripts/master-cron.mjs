@@ -8,6 +8,7 @@ import { runMastodonCron } from '../api/mastodon.mjs';
 import { cleanupOldStorage } from '../lib/supabase_storage.js';
 import { runCommentReplier } from '../lib/comment_replier.js';
 import { runEngagementSeeder } from '../lib/engagement_seeder.js';
+import { humanJitter } from '../lib/stealth_reach_engine.js';
 
 async function main() {
     console.log('[Master-Cron] 🚀 Starting Comprehensive Master Automation Cron across all platforms...');
@@ -19,8 +20,12 @@ async function main() {
         await initDb();
         console.log('[Master-Cron] ✅ Database connected!');
 
+        // Introduce human jitter to break machine-clockwork predictability (Poisson cadence)
+        await humanJitter(2000, 8000);
+
         // Run automated storage cleanup to keep Supabase 100% free forever
         await cleanupOldStorage().catch(e => console.warn('[Master-Cron] Storage cleanup note:', e.message));
+
 
         console.log('\n===============================================================');
         console.log('🤖📱 EXECUTING THREADS, IG, BLUESKY, TUMBLR, DEV.TO & MASTODON');
