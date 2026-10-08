@@ -297,11 +297,20 @@ export async function runBlueskyCron(force = false) {
     for (const acc of accounts) {
       const isKhaithisran = acc.identifier.toLowerCase().includes('khaithisran');
       const isOneformind = acc.identifier.toLowerCase().includes('oneformind');
-      const dailyLimit = isKhaithisran ? 5 : (isOneformind ? 4 : 5);
+      // Algorithmic Growth & Anti-Ban Protocol (Bluesky 2026):
+      // Maximum 2 high-value posts per day across active accounts.
+      // Eliminates bot classification and lets each post accumulate reposts/likes across global feeds.
+      const dailyLimit = 2;
 
-      // Active Daytime Window Guard: 07:30 WITA - 23:00 WITA (sleeps at night like a real human)
-      if (!force && (currentHour < 7 || (currentHour === 7 && currentMinute < 30) || currentHour >= 23)) {
-        console.log(`[Bluesky-Cron] ${acc.identifier}: Current hour ${currentHour}:${String(currentMinute).padStart(2, '0')} WITA is outside active daytime window (07:30 - 23:00 WITA). Sleeping.`);
+      // ── DEDICATED STAGGERED WINDOWS FOR BLUESKY (WITA = UTC+8) ─────────────
+      // Staggered to ensure ZERO template/hour collisions with Threads, Tumblr, or DEV.TO:
+      // Session 1 (Pagi): 08:00 - 09:15 WITA (UTC 00:00 - 01:15) -> Reaches Asian morning scrollers & US West Coast night owls
+      // Session 2 (Malam): 21:45 - 23:00 WITA (UTC 13:45 - 15:00) -> Reaches US East Coast morning rush (09:45 - 11:00 EST) & Europe evening
+      const inSession1 = (currentHour === 8) || (currentHour === 9 && currentMinute <= 15);
+      const inSession2 = (currentHour === 21 && currentMinute >= 45) || (currentHour === 22) || (currentHour === 23 && currentMinute === 0);
+
+      if (!force && !inSession1 && !inSession2) {
+        console.log(`[Bluesky-Cron] ${acc.identifier}: Current time ${currentHour}:${String(currentMinute).padStart(2, '0')} WITA is outside staggered Bluesky sessions (08:00-09:15 WITA & 21:45-23:00 WITA). Sleeping.`);
         continue;
       }
 
@@ -312,14 +321,12 @@ export async function runBlueskyCron(force = false) {
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
       if (postsToday >= dailyLimit) {
-        console.log(`[Bluesky-Cron] Acc ${acc.identifier}: hit ${dailyLimit}-post daily limit (${postsToday}/${dailyLimit}).`);
+        console.log(`[Bluesky-Cron] Acc ${acc.identifier}: Daily quota satisfied (${postsToday}/${dailyLimit} posts today).`);
         continue;
       }
 
-      const postsRemaining = dailyLimit - postsToday;
-      const hoursLeft = Math.max(0.5, 23 - currentHour);
-
-      // Anti-Spam Organic Jitter Guard: Adaptive timing 50-75 mins to ensure all 5 posts publish reliably
+      // Strategic Inter-Session Cooldown Guard:
+      // Enforces an 8.5h to 11.0h cooldown gap between Session 1 (morning) and Session 2 (night).
       const lastPostRows = await sql`
         SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
         FROM bluesky_history 
@@ -328,26 +335,27 @@ export async function runBlueskyCron(force = false) {
       `;
       if (lastPostRows.length > 0 && !force) {
         const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
-        const jitter = ((acc.id * 31 + postsToday * 17 + currentHour * 7) % 100) / 100;
-        const minCooldownHours = (hoursLeft <= postsRemaining * 2.0) ? 0.75 : (0.85 + jitter * 0.4);
+        const jitter = ((acc.id * 71 + postsToday * 23 + currentHour * 13) % 100) / 100;
+        const minCooldownHours = 8.5 + (jitter * 2.5); // 8.5h - 11.0h gap
 
         if (hoursSinceLastPost < minCooldownHours) {
-          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: In anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
+          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: In strategic cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
           continue;
         }
       }
 
+      // Sequential FIFO Schedule Rotation (Oldest last_run_date first)
       let pending = await sql`
         SELECT * FROM bluesky_schedules
         WHERE account_id = ${acc.id}
           AND is_active = 1
           AND (last_run_date IS NULL OR last_run_date != ${todayStr})
-        ORDER BY id ASC
+        ORDER BY last_run_date ASC NULLS FIRST, id ASC
       `;
 
       if (!pending.length) {
         if (isKhaithisran) {
-          console.log(`[Bluesky-Cron] Acc ${acc.identifier}: All 5 daily websites already posted for today.`);
+          console.log(`[Bluesky-Cron] Acc ${acc.identifier}: All scheduled websites already posted for today.`);
           continue;
         }
         pending = Array(dailyLimit).fill({ id: null, custom_prompt: "" });
@@ -356,8 +364,8 @@ export async function runBlueskyCron(force = false) {
       console.log(`[Bluesky-Cron] 🚀 Ready to post for ${acc.identifier}: postsToday=${postsToday}/${dailyLimit}, pending=${pending.length}`);
 
       if (true) {
-        // For Khaithisran, pick pending schedules sequentially or randomly from remaining unposted sites
-        const chosen = pending[Math.floor(Math.random() * pending.length)];
+        // Pick pending schedules sequentially (FIFO: fair rotation through all web apps)
+        const chosen = pending[0];
         let finalPrompt = chosen.custom_prompt;
         let forceNoImage = isOneformind || isKhaithisran;
 
@@ -373,15 +381,11 @@ export async function runBlueskyCron(force = false) {
               "Write about the psychology of productivity: why most people fail at being consistent.",
             ];
             finalPrompt = oneformindTopics[postsToday % oneformindTopics.length];
-          } else if (postsToday === 0 || postsToday === 2) {
-            finalPrompt = "Research and discuss a highly engaging, current viral trending topic. DO NOT include any affiliate links. Just pure value and engagement.";
+          } else if (postsToday === 0) {
+            finalPrompt = "Research and discuss a highly engaging, current viral trending tech topic. DO NOT include any affiliate links. Just pure value and engagement.";
             forceNoImage = true;
-          } else if (postsToday === 1) {
-            finalPrompt = "Enthusiastically recommend this tool: https://systeme.io/id?sa=sa0273997437b3abacdd34bc2577d7ca935ac6d6a5";
-          } else if (postsToday === 3) {
-            finalPrompt = "Enthusiastically recommend this tool: https://www.make.com/en/register?pc=airan";
           } else {
-            finalPrompt = "Enthusiastically recommend this tool: https://wise.com/invite/dic/khairannoorf";
+            finalPrompt = "Enthusiastically recommend this tool: https://tranvas.com";
           }
         }
 
@@ -390,6 +394,11 @@ export async function runBlueskyCron(force = false) {
             INSERT INTO bluesky_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
           `;
           const historyId = pendingInsert[0].id;
+
+          // Randomized human micro-jitter delay (3s - 8s) to break clockwork request signatures
+          const humanDelayMs = 3000 + Math.floor(Math.random() * 5000);
+          console.log(`[Bluesky-Cron] Applying ${humanDelayMs}ms human jitter before dispatching to Bluesky...`);
+          await new Promise(r => setTimeout(r, humanDelayMs));
 
           const result = await runBlueskyPost(acc.id, finalPrompt, forceNoImage);
           if (chosen.id) {

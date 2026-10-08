@@ -362,13 +362,16 @@ export async function runTumblrCron(force = false) {
 
   console.log(`[Tumblr-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
 
-  // Active daylight posting window: 10:00 - 23:30 WITA (02:00 - 15:30 UTC)
-  // Reaches both Asian/European daytime reading and US East Coast morning waking hours
-  const isTooEarly = currentHour < 10;
-  const isTooLate = currentHour >= 24;
-  if (!force && (isTooEarly || isTooLate)) {
-    console.log(`[Tumblr-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside active hours (10:00 - 23:30 WITA). Sleeping.`);
-    return { success: true, status: 'Outside active daytime hours (10:00 - 23:30 WITA)' };
+  // ── DEDICATED STAGGERED WINDOWS FOR TUMBLR (WITA = UTC+8) ───────────────
+  // Staggered to ensure ZERO template/hour collisions with Threads, Bluesky, or DEV.TO:
+  // Session 1 (Siang/Sore): 13:30 - 15:00 WITA (UTC 05:30 - 07:00) -> European morning tech & design wake-up
+  // Session 2 (Larut Malam): 23:15 - 01:30 WITA (UTC 15:15 - 17:30) -> US East Coast peak midday scrollers (11:15 - 13:30 EST)
+  const inSession1 = (currentHour === 13 && currentMinutes >= 30) || (currentHour === 14) || (currentHour === 15 && currentMinutes === 0);
+  const inSession2 = (currentHour === 23 && currentMinutes >= 15) || (currentHour === 0) || (currentHour === 1 && currentMinutes <= 30);
+
+  if (!force && !inSession1 && !inSession2) {
+    console.log(`[Tumblr-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside Tumblr staggered windows (13:30-15:00 WITA & 23:15-01:30 WITA). Sleeping.`);
+    return { success: true, status: 'Outside Tumblr staggered windows (13:30-15:00 WITA & 23:15-01:30 WITA)' };
   }
 
   try {
@@ -398,8 +401,7 @@ export async function runTumblrCron(force = false) {
         continue;
       }
 
-      // 2. Anti-Spam Community Spacing: Minimum 5.5 to 7.0 hours gap between posts
-      // Spreads the 2 daily posts cleanly across the day (Midday & Evening sessions)
+      // 2. Anti-Spam Inter-Session Cooldown: 7.5 to 9.5 hours gap between Session 1 & Session 2
       const lastPostRows = await sql`
         SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
         FROM tumblr_history 
@@ -408,8 +410,8 @@ export async function runTumblrCron(force = false) {
       `;
       if (lastPostRows.length > 0 && !force) {
         const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
-        const jitter = ((acc.id * 31 + postsToday * 17 + currentHour * 7) % 100) / 100;
-        const minCooldownHours = 5.5 + jitter * 1.5; // 5.5 - 7.0 hours gap
+        const jitter = ((acc.id * 89 + postsToday * 29 + currentHour * 17) % 100) / 100;
+        const minCooldownHours = 7.5 + jitter * 2.0; // 7.5 - 9.5 hours gap
 
         if (hoursSinceLastPost < minCooldownHours) {
           console.log(`[Tumblr-Cron] ⏸️ ${acc.blog_name || acc.name}: In anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
@@ -449,6 +451,11 @@ export async function runTumblrCron(force = false) {
           INSERT INTO tumblr_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
         `;
         const historyId = pendingInsert[0].id;
+
+        // Randomized human micro-jitter delay (3s - 7s) to break clockwork request signatures
+        const humanDelayMs = 3000 + Math.floor(Math.random() * 4000);
+        console.log(`[Tumblr-Cron] Applying ${humanDelayMs}ms human jitter before dispatching to Tumblr...`);
+        await new Promise(r => setTimeout(r, humanDelayMs));
 
         const result = await runTumblrPost(acc.id, finalPrompt, false);
         if (chosen.id) {

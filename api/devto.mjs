@@ -181,14 +181,15 @@ export async function runDevtoCron(force = false) {
 
   console.log(`[Devto-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
 
-  // Golden Hour Window for Global Developer Traffic: 16:00 - 21:30 WITA (08:00 - 13:30 UTC)
-  // Reaches Europe during peak morning/midday tech reading (09:00 - 14:30 CET)
-  // and reaches US East Coast as developers begin their morning workday (04:00 - 09:30 EST).
-  const isTooEarly = currentHour < 16;
-  const isTooLate = currentHour >= 22;
-  if (!force && (isTooEarly || isTooLate)) {
-    console.log(`[Devto-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside golden window (16:00 - 21:30 WITA). Sleeping.`);
-    return { success: true, status: 'Outside DEV.TO global prime-time window (16:00 - 21:30 WITA)' };
+  // ── DEDICATED STAGGERED WINDOW FOR DEV.TO (WITA = UTC+8) ────────────────
+  // Golden Hour Window for Global Developer Traffic: 18:15 - 19:30 WITA (10:15 - 11:30 UTC)
+  // Reaches Europe during peak midday tech scrollers (12:15 - 13:30 CET)
+  // and reaches US East Coast as early tech risers wake up (06:15 - 07:30 EST).
+  // Zero collision with Threads (adhlil ends 18:15, Sharesa starts 19:45), Bluesky, or Tumblr!
+  const inDevtoWindow = (currentHour === 18 && currentMinutes >= 15) || (currentHour === 19 && currentMinutes <= 30);
+  if (!force && !inDevtoWindow) {
+    console.log(`[Devto-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside golden window (18:15 - 19:30 WITA). Sleeping.`);
+    return { success: true, status: 'Outside DEV.TO global prime-time window (18:15 - 19:30 WITA)' };
   }
 
   const globalStatus = await sql`SELECT value FROM devto_settings WHERE key = 'devto_automation_enabled'`;
@@ -270,6 +271,11 @@ export async function runDevtoCron(force = false) {
         INSERT INTO devto_history (account_id, status) VALUES (${acc.id}, 'pending') RETURNING id
       `;
       const historyId = pendingInsert[0].id;
+
+      // Randomized human micro-jitter delay (3s - 8s) to break clockwork request signatures
+      const humanDelayMs = 3000 + Math.floor(Math.random() * 5000);
+      console.log(`[Devto-Cron] Applying ${humanDelayMs}ms human jitter before dispatching to DEV.TO...`);
+      await new Promise(r => setTimeout(r, humanDelayMs));
 
       const result = await runDevtoPost(acc.id, chosen.custom_prompt);
 

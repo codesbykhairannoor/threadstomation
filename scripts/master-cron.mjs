@@ -31,28 +31,36 @@ async function main() {
         console.log('🤖📱 EXECUTING THREADS, IG, BLUESKY, TUMBLR, DEV.TO & MASTODON');
         console.log('===============================================================');
 
-        // Run platforms concurrently. Each platform has its own cooldown guard.
+        // Run platforms in staggered succession with non-overlapping execution gaps.
+        // Each platform has its own cooldown guard and dedicated hour window.
         // If one account/platform has an error or is in cooldown, it will NOT block the others!
+        const delay = ms => new Promise(r => setTimeout(r, ms));
+
         const threadsJob = runThreadsCron(false).catch(err => {
             console.error('[Master-Cron] ❌ Failed during Threads automation:', err);
         });
 
+        await delay(2500);
         const igJob = runInstagramCron().catch(err => {
             console.error('[Master-Cron] ❌ Failed during Instagram automation:', err);
         });
 
+        await delay(2500);
         const blueskyJob = runBlueskyCron(false).catch(err => {
             console.error('[Master-Cron] ❌ Failed during Bluesky automation:', err);
         });
 
+        await delay(2500);
         const tumblrJob = runTumblrCron(false).catch(err => {
             console.error('[Master-Cron] ❌ Failed during Tumblr automation:', err);
         });
 
+        await delay(2500);
         const devtoJob = runDevtoCron(false).catch(err => {
             console.error('[Master-Cron] ❌ Failed during Dev.to automation:', err);
         });
 
+        await delay(2500);
         const mastodonJob = runMastodonCron(false).catch(err => {
             console.error('[Master-Cron] ❌ Failed during Mastodon automation:', err);
         });

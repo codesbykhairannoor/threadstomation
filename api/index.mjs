@@ -263,15 +263,41 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             const postsToday = parseInt(ranToday?.count || 0);
             if (postsToday >= dailyLimit && !force) continue;
 
-            // Strict Active Hours Guard: 08:30 WITA - 22:30 WITA
-            // Mencegah post di tengah malam/subuh (22:30 - 08:29 WITA)
-            if (!force && (currentHour < 8 || (currentHour === 8 && currentMinute < 30) || currentHour >= 23)) {
-                console.log(`[Threads-Cron] ${acc.name}: Current hour ${currentHour}:${currentMinute.toString().padStart(2, '0')} WITA is outside active daytime window (08:30 - 22:30 WITA). Sleeping.`);
-                continue;
+            // ── ANTI-TEMPLATING ACCOUNT-SPECIFIC ACTIVE WINDOWS (WITA) ──────
+            // Menjamin setiap akun Threads memiliki slot waktu terpisah tanpa saling tabrakan:
+            // 1. adhlil.co (2x/hari):
+            //    - Session 1: 09:30 - 11:00 WITA (Design & Agency Morning Peak)
+            //    - Session 2: 16:45 - 18:15 WITA (Afternoon Commute Wrap-up)
+            // 2. Sharesa Space (2x/hari):
+            //    - Session 1: 11:15 - 13:15 WITA (Office Lunch Break Productivity Peak)
+            //    - Session 2: 19:45 - 21:30 WITA (Prime-Time Evening Leisure Peak)
+            // 3. Tranvas (1x/hari):
+            //    - Session 1: 15:15 - 16:30 WITA (Mid-Afternoon Coffee Break Focus)
+            let inAccountWindow = false;
+            let windowDesc = '';
+
+            if (nName.includes('adhlil')) {
+                const s1 = (currentHour === 9 && currentMinute >= 30) || (currentHour === 10) || (currentHour === 11 && currentMinute === 0);
+                const s2 = (currentHour === 16 && currentMinute >= 45) || (currentHour === 17) || (currentHour === 18 && currentMinute <= 15);
+                inAccountWindow = s1 || s2;
+                windowDesc = '09:30-11:00 WITA & 16:45-18:15 WITA';
+            } else if (nName.includes('sharesa')) {
+                const s1 = (currentHour === 11 && currentMinute >= 15) || (currentHour === 12) || (currentHour === 13 && currentMinute <= 15);
+                const s2 = (currentHour === 19 && currentMinute >= 45) || (currentHour === 20) || (currentHour === 21 && currentMinute <= 30);
+                inAccountWindow = s1 || s2;
+                windowDesc = '11:15-13:15 WITA & 19:45-21:30 WITA';
+            } else if (nName.includes('tranvas')) {
+                inAccountWindow = (currentHour === 15 && currentMinute >= 15) || (currentHour === 16 && currentMinute <= 30);
+                windowDesc = '15:15-16:30 WITA';
+            } else {
+                inAccountWindow = currentHour >= 9 && currentHour <= 21;
+                windowDesc = '09:00-21:00 WITA';
             }
 
-            const postsRemaining = dailyLimit - postsToday;
-            const hoursLeft = Math.max(0.5, 23 - currentHour);
+            if (!force && !inAccountWindow) {
+                console.log(`[Threads-Cron] ${acc.name}: Current time ${currentHour}:${currentMinute.toString().padStart(2, '0')} WITA is outside account-specific window (${windowDesc}). Sleeping.`);
+                continue;
+            }
 
             // Anti-Spam Intelligent Adaptive Pacing Guard:
             const lastPostRows = await sql`
@@ -283,13 +309,13 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             if (lastPostRows.length > 0 && !force) {
                 const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
 
-                // STRATEGIC COOLDOWN (Midday & Evening Sessions):
-                // Minimum 6.5 to 8.5 hours gap between the 2 daily posts
-                // Gives every post 7+ hours of uninterrupted distribution in Meta's "For You" test pool
-                const jitter = ((acc.id * 37 + postsToday * 19 + currentHour * 11) % 100) / 100;
-                let minCooldownHours = 6.5 + (jitter * 2.0); // 6.5 - 8.5 hours gap
+                // STRATEGIC COOLDOWN (Inter-Session Pacing):
+                // Minimum 6.0 to 7.5 hours gap between the 2 daily posts
+                // Tranvas (1x/hari): 18.0 to 20.0 hours gap
+                const jitter = ((acc.id * 53 + postsToday * 19 + currentHour * 11) % 100) / 100;
+                let minCooldownHours = 6.0 + (jitter * 1.5); // 6.0 - 7.5 hours gap
                 if (nName.includes('tranvas')) {
-                    minCooldownHours = 18.0; // Tranvas 1 post per day
+                    minCooldownHours = 18.0 + (jitter * 2.0); // Tranvas 1 post per day
                 }
 
                 if (hoursSinceLastPost < minCooldownHours) {
@@ -305,16 +331,7 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             `;
             if (!pending.length) continue;
 
-            // RELIABLE CHANCE:
-            // Karena cooldown waktu (50-75 menit) + jeda trigger GitHub Actions sudah memberikan jeda acak alami,
-            // begitu cooldown lolos, jalankan 100% untuk Sharesa Space agar kuota 5 post tidak terbuang sia-sia!
-            let chance = 1.0;
-            if (nName.includes('tranvas') && !force) {
-                // Tranvas (1 post/hari): Sebelum jam 11:00 WITA beri chance 35% agar bisa terbit acak di pagi.
-                // Jika sudah jam 11:00 WITA ke atas dan belum post, langsung 100% agar terbit di siang/sore!
-                chance = currentHour < 11 ? 0.35 : 1.0;
-            }
-
+            const chance = 1.0;
             const roll = Math.random();
             console.log(`[Threads-Cron] ${acc.name}: postsToday=${postsToday}/${dailyLimit}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
 
