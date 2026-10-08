@@ -181,12 +181,14 @@ export async function runDevtoCron(force = false) {
 
   console.log(`[Devto-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
 
-  // Active daylight posting window: 07:30 - 23:00 WITA (sleeps at night like a real human)
-  const isTooEarly = currentHour < 7 || (currentHour === 7 && currentMinutes < 30);
-  const isTooLate = currentHour >= 23;
+  // Golden Hour Window for Global Developer Traffic: 16:00 - 21:30 WITA (08:00 - 13:30 UTC)
+  // Reaches Europe during peak morning/midday tech reading (09:00 - 14:30 CET)
+  // and reaches US East Coast as developers begin their morning workday (04:00 - 09:30 EST).
+  const isTooEarly = currentHour < 16;
+  const isTooLate = currentHour >= 22;
   if (!force && (isTooEarly || isTooLate)) {
-    console.log(`[Devto-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside active window (07:30 - 23:00 WITA). Sleeping.`);
-    return { success: true, status: 'Outside active daytime hours (07:30 - 23:00 WITA)' };
+    console.log(`[Devto-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside golden window (16:00 - 21:30 WITA). Sleeping.`);
+    return { success: true, status: 'Outside DEV.TO global prime-time window (16:00 - 21:30 WITA)' };
   }
 
   const globalStatus = await sql`SELECT value FROM devto_settings WHERE key = 'devto_automation_enabled'`;
@@ -199,9 +201,10 @@ export async function runDevtoCron(force = false) {
   const executed = [];
 
   for (const acc of accounts) {
-    // 1. Safe Anti-Ban Daily Limit: Maximum 2 in-depth technical articles per day
-    // Prevents community abuse reports and shadowbans from flooding developer tags
-    const dailyLimit = 2;
+    // 1. Safe Anti-Ban Daily Limit: Maximum 1 high-impact technical article per day
+    // Community Best Practice: Eliminates feed self-cannibalization, avoids spam flags,
+    // and maximizes algorithmic dwell time so the article can accumulate reactions and rank in "Top of the Week".
+    const dailyLimit = 1;
 
     const ranToday = await sql`
       SELECT COUNT(*) as count FROM devto_history
@@ -211,11 +214,11 @@ export async function runDevtoCron(force = false) {
     const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
     if (postsToday >= dailyLimit && !force) {
-      console.log(`[Devto-Cron] @${acc.username}: Daily quota satisfied (${postsToday}/${dailyLimit} articles posted today).`);
+      console.log(`[Devto-Cron] @${acc.username}: Daily quota satisfied (${postsToday}/${dailyLimit} article posted today).`);
       continue;
     }
 
-    // 2. Strict Anti-Ban: Spaced 5.5 to 7.0 hours apart between articles (Morning & Evening sessions)
+    // 2. Strict Anti-Ban: Minimum 18 to 21 hours cooldown between successive articles
     const lastSuccessRow = await sql`
       SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
       FROM devto_history
@@ -226,8 +229,8 @@ export async function runDevtoCron(force = false) {
 
     if (!force && lastSuccessRow.length > 0) {
       const hoursSinceLast = parseFloat(lastSuccessRow[0].hours_since || 0);
-      const jitter = ((acc.id * 31 + postsToday * 17 + currentHour * 7) % 100) / 100;
-      const minCooldownHours = 5.5 + jitter * 1.5; // 5.5 - 7.0 hours gap
+      const jitter = ((acc.id * 31 + currentHour * 7) % 100) / 100;
+      const minCooldownHours = 18.0 + jitter * 3.0; // 18.0 - 21.0 hours gap
 
       if (hoursSinceLast < minCooldownHours) {
         console.log(`[Devto-Cron] ⏸️ @${acc.username}: In anti-spam cooldown (${hoursSinceLast.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
