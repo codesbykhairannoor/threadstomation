@@ -12,7 +12,7 @@ import {
 import { generateTumblrContent } from '../lib/gemini_tumblr.js';
 import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 import { generateTumblrPost } from '../lib/tumblr_content.js';
-import { getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
+import { evaluateStochasticPostTrigger } from '../lib/stealth_reach_engine.js';
 
 const app = express();
 app.use(cors());
@@ -363,33 +363,13 @@ export async function runTumblrCron(force = false) {
 
   console.log(`[Tumblr-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
 
-  // ── DEDICATED STAGGERED WINDOWS FOR TUMBLR (WITA = UTC+8) ───────────────
-  // Staggered to ensure ZERO template/hour collisions with Threads, Bluesky, or DEV.TO:
-  // Session 1 (Siang/Sore): 13:30 - 15:00 WITA (UTC 05:30 - 07:00) -> European morning tech & design wake-up
-  // Session 2 (Larut Malam): 23:15 - 01:30 WITA (UTC 15:15 - 17:30) -> US East Coast peak midday scrollers (11:15 - 13:30 EST)
-  let inSession = false;
-  let sessionConfig = null;
-
-  if ((currentHour === 13 && currentMinutes >= 30) || (currentHour === 14) || (currentHour === 15 && currentMinutes === 0)) {
-    inSession = true;
-    sessionConfig = { name: 'tumblr_s1', startH: 13, startM: 30, endH: 15, endM: 0 };
-  } else if ((currentHour === 23 && currentMinutes >= 15) || (currentHour === 0) || (currentHour === 1 && currentMinutes <= 30)) {
-    inSession = true;
-    sessionConfig = { name: 'tumblr_s2', startH: 23, startM: 15, endH: 25, endM: 30 };
-  }
-
-  if (!force && !inSession) {
-    console.log(`[Tumblr-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside Tumblr staggered windows (13:30-15:00 WITA & 23:15-01:30 WITA). Sleeping.`);
-    return { success: true, status: 'Outside Tumblr staggered windows (13:30-15:00 WITA & 23:15-01:30 WITA)' };
-  }
-
-  // DYNAMIC DAILY TARGET MINUTE: Menjamin menit posting Tumblr berbeda setiap hari secara alami
-  if (!force && sessionConfig) {
-    const slot = getDailyDynamicTargetSlot(todayStr, 'airanfadh', sessionConfig.name, sessionConfig.startH, sessionConfig.startM, sessionConfig.endH, sessionConfig.endM, currentHour, currentMinutes);
-    if (!slot.isDue) {
-      console.log(`[Tumblr-Cron] ⏳ airanfadh (${sessionConfig.name}): Waiting for today's dynamic slot (${slot.formatted} WITA, Current: ${currentHour}:${String(currentMinutes).padStart(2, '0')} WITA). Sleeping.`);
-      return { success: true, status: `Waiting for dynamic slot ${slot.formatted} WITA` };
-    }
+  // ── CIRCADIAN ACTIVE WINDOW FOR TUMBLR (08:00 - 01:30 WITA) ─────────────
+  // Tumblr aktif mulai pagi 08:00 hingga larut malam 01:30 WITA (menjangkau US peak daytime traffic).
+  // Tidur total di dini hari (02:00 - 07:59 WITA).
+  const isSleeping = currentHour >= 2 && currentHour < 8;
+  if (!force && isSleeping) {
+    console.log(`[Tumblr-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is sleeping hours (02:00 - 08:00 WITA). Sleeping.`);
+    return { success: true, status: 'Tumblr sleep hours (02:00 - 08:00 WITA)' };
   }
 
   try {
@@ -404,8 +384,6 @@ export async function runTumblrCron(force = false) {
 
     for (const acc of accounts) {
       // 1. Strict Community Anti-Spam Daily Limit: Maximum 2 high-impact posts per day
-      // Community consensus: Prevents "Dashboard Clogging", protects follower retention,
-      // and lets each post accumulate reblogs instead of burying it under a flood of posts.
       const dailyLimit = 2;
 
       const ranToday = await sql`
@@ -419,7 +397,7 @@ export async function runTumblrCron(force = false) {
         continue;
       }
 
-      // 2. Anti-Spam Inter-Session Cooldown: 7.5 to 9.5 hours gap between Session 1 & Session 2
+      // 2. Anti-Spam Inter-Post Biological Cooldown: 5.5 hingga 7.5 jam antar-post
       const lastPostRows = await sql`
         SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
         FROM tumblr_history 
@@ -429,10 +407,22 @@ export async function runTumblrCron(force = false) {
       if (lastPostRows.length > 0 && !force) {
         const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
         const jitter = ((acc.id * 89 + postsToday * 29 + currentHour * 17) % 100) / 100;
-        const minCooldownHours = 7.5 + jitter * 2.0; // 7.5 - 9.5 hours gap
+        const minCooldownHours = 5.5 + jitter * 2.0; // 5.5 - 7.5 hours gap
 
         if (hoursSinceLastPost < minCooldownHours) {
-          console.log(`[Tumblr-Cron] ⏸️ ${acc.blog_name || acc.name}: In anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
+          console.log(`[Tumblr-Cron] ⏸️ ${acc.blog_name || acc.name}: In biological cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
+          continue;
+        }
+      }
+
+      // 3. ADAPTIVE STOCHASTIC POISSON PACING (SUPER ACAK + JAMINAN KUOTA 100%)
+      // Melempar dadu acak tiap tick. Jam & menit terbit tersebar bebas sepanjang hari.
+      // Jika hari mulai larut malam dan kuota belum tuntas, probabilitas otomatis 100% sehingga target PASTI TERPENUHI!
+      if (!force) {
+        const normHour = currentHour < 2 ? currentHour + 24 : currentHour;
+        const stochastic = evaluateStochasticPostTrigger(postsToday, dailyLimit, normHour, 25, 0.28);
+        console.log(`[Tumblr-Cron] 🎲 ${acc.blog_name || acc.name}: postsToday=${postsToday}/${dailyLimit}, roll=${stochastic.roll}, chance=${stochastic.chance} (${stochastic.reason})`);
+        if (!stochastic.shouldPost) {
           continue;
         }
       }

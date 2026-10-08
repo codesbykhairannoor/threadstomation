@@ -4,7 +4,7 @@ import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { getDevtoUserInfo, postToDevto } from '../lib/devto.js';
 import { generateDevtoArticle } from '../lib/devto_content.js';
-import { getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
+import { evaluateStochasticPostTrigger } from '../lib/stealth_reach_engine.js';
 
 const app = express();
 app.use(cors());
@@ -182,24 +182,11 @@ export async function runDevtoCron(force = false) {
 
   console.log(`[Devto-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
 
-  // ── DEDICATED STAGGERED WINDOW FOR DEV.TO (WITA = UTC+8) ────────────────
-  // Golden Hour Window for Global Developer Traffic: 18:15 - 19:30 WITA (10:15 - 11:30 UTC)
-  // Reaches Europe during peak midday tech scrollers (12:15 - 13:30 CET)
-  // and reaches US East Coast as early tech risers wake up (06:15 - 07:30 EST).
-  // Zero collision with Threads (adhlil ends 18:15, Sharesa starts 19:45), Bluesky, or Tumblr!
-  const inDevtoWindow = (currentHour === 18 && currentMinutes >= 15) || (currentHour === 19 && currentMinutes <= 30);
-  if (!force && !inDevtoWindow) {
-    console.log(`[Devto-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside golden window (18:15 - 19:30 WITA). Sleeping.`);
-    return { success: true, status: 'Outside DEV.TO global prime-time window (18:15 - 19:30 WITA)' };
-  }
-
-  // DYNAMIC DAILY TARGET MINUTE: Menjamin menit posting DEV.TO berbeda setiap hari secara alami
-  if (!force) {
-    const slot = getDailyDynamicTargetSlot(todayStr, 'thisran', 'devto_s1', 18, 15, 19, 30, currentHour, currentMinutes);
-    if (!slot.isDue) {
-      console.log(`[Devto-Cron] ⏳ DEV.TO: Waiting for today's dynamic slot (${slot.formatted} WITA, Current: ${currentHour}:${String(currentMinutes).padStart(2, '0')} WITA). Sleeping.`);
-      return { success: true, status: `Waiting for dynamic slot ${slot.formatted} WITA` };
-    }
+  // ── CIRCADIAN GLOBAL DEVELOPER PRIME WINDOW (14:00 - 23:30 WITA = 06:00 - 15:30 UTC) ──
+  // Menjangkau jam produktif tech scroller di Eropa (08:00 - 17:30 CET) dan bangun pagi US East Coast (02:00 - 11:30 EST).
+  if (!force && (currentHour < 14 || currentHour >= 24)) {
+    console.log(`[Devto-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside global tech window (14:00 - 23:30 WITA). Sleeping.`);
+    return { success: true, status: 'Outside DEV.TO global tech window (14:00 - 23:30 WITA)' };
   }
 
   const globalStatus = await sql`SELECT value FROM devto_settings WHERE key = 'devto_automation_enabled'`;
@@ -213,8 +200,6 @@ export async function runDevtoCron(force = false) {
 
   for (const acc of accounts) {
     // 1. Safe Anti-Ban Daily Limit: Maximum 1 high-impact technical article per day
-    // Community Best Practice: Eliminates feed self-cannibalization, avoids spam flags,
-    // and maximizes algorithmic dwell time so the article can accumulate reactions and rank in "Top of the Week".
     const dailyLimit = 1;
 
     const ranToday = await sql`
@@ -229,7 +214,7 @@ export async function runDevtoCron(force = false) {
       continue;
     }
 
-    // 2. Strict Anti-Ban: Minimum 18 to 21 hours cooldown between successive articles
+    // 2. Strict Anti-Ban: Minimum 16 to 19 hours cooldown between successive articles
     const lastSuccessRow = await sql`
       SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
       FROM devto_history
@@ -240,11 +225,22 @@ export async function runDevtoCron(force = false) {
 
     if (!force && lastSuccessRow.length > 0) {
       const hoursSinceLast = parseFloat(lastSuccessRow[0].hours_since || 0);
-      const jitter = ((acc.id * 31 + currentHour * 7) % 100) / 100;
-      const minCooldownHours = 18.0 + jitter * 3.0; // 18.0 - 21.0 hours gap
+      const jitter = ((acc.id * 43 + currentHour * 7) % 100) / 100;
+      const minCooldownHours = 16.0 + jitter * 3.0; // 16.0 - 19.0 hours gap
 
       if (hoursSinceLast < minCooldownHours) {
         console.log(`[Devto-Cron] ⏸️ @${acc.username}: In anti-spam cooldown (${hoursSinceLast.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
+        continue;
+      }
+    }
+
+    // 3. ADAPTIVE STOCHASTIC POISSON PACING (SUPER ACAK + JAMINAN KUOTA 100%)
+    // Melempar dadu acak tiap tick (20 menit). Menit & jam terbit tersebar bebas.
+    // Jika waktu siang/sore mulai habis, probabilitas otomatis 100% sehingga target PASTI TERPENUHI!
+    if (!force) {
+      const stochastic = evaluateStochasticPostTrigger(postsToday, dailyLimit, currentHour, 23, 0.25);
+      console.log(`[Devto-Cron] 🎲 @${acc.username}: postsToday=${postsToday}/${dailyLimit}, roll=${stochastic.roll}, chance=${stochastic.chance} (${stochastic.reason})`);
+      if (!stochastic.shouldPost) {
         continue;
       }
     }

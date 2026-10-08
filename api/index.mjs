@@ -11,7 +11,7 @@ import sql, { initDb, cleanupOldHistory } from '../lib/database.js';
 import { generateThreadsContent } from '../lib/gemini.js';
 import { postToPlatforms } from '../lib/threads_service.js';
 import { refreshThreadsToken } from '../lib/threads.js';
-import { getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
+import { evaluateStochasticPostTrigger } from '../lib/stealth_reach_engine.js';
 import axios from 'axios';
 import fs from 'fs';
 import tiktokApp from './tiktok.mjs';
@@ -264,69 +264,15 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             const postsToday = parseInt(ranToday?.count || 0);
             if (postsToday >= dailyLimit && !force) continue;
 
-            // ── ANTI-TEMPLATING ACCOUNT-SPECIFIC ACTIVE WINDOWS (WITA) ──────
-            // Menjamin setiap akun Threads memiliki slot waktu terpisah tanpa saling tabrakan:
-            // 1. adhlil.co (2x/hari):
-            //    - Session 1: 09:30 - 11:00 WITA (Design & Agency Morning Peak)
-            //    - Session 2: 16:45 - 18:15 WITA (Afternoon Commute Wrap-up)
-            // 2. Sharesa Space (2x/hari):
-            //    - Session 1: 11:15 - 13:15 WITA (Office Lunch Break Productivity Peak)
-            //    - Session 2: 19:45 - 21:30 WITA (Prime-Time Evening Leisure Peak)
-            // 3. Tranvas (1x/hari):
-            //    - Session 1: 15:15 - 16:30 WITA (Mid-Afternoon Coffee Break Focus)
-            let inAccountWindow = false;
-            let currentSession = null;
-            let windowDesc = '';
-
-            if (nName.includes('adhlil')) {
-                const s1 = (currentHour === 9 && currentMinute >= 30) || (currentHour === 10) || (currentHour === 11 && currentMinute === 0);
-                const s2 = (currentHour === 16 && currentMinute >= 45) || (currentHour === 17) || (currentHour === 18 && currentMinute <= 15);
-                if (s1) {
-                    currentSession = { name: 's1', startH: 9, startM: 30, endH: 11, endM: 0 };
-                    inAccountWindow = true;
-                } else if (s2) {
-                    currentSession = { name: 's2', startH: 16, startM: 45, endH: 18, endM: 15 };
-                    inAccountWindow = true;
-                }
-                windowDesc = '09:30-11:00 WITA & 16:45-18:15 WITA';
-            } else if (nName.includes('sharesa')) {
-                const s1 = (currentHour === 11 && currentMinute >= 15) || (currentHour === 12) || (currentHour === 13 && currentMinute <= 15);
-                const s2 = (currentHour === 19 && currentMinute >= 45) || (currentHour === 20) || (currentHour === 21 && currentMinute <= 30);
-                if (s1) {
-                    currentSession = { name: 's1', startH: 11, startM: 15, endH: 13, endM: 15 };
-                    inAccountWindow = true;
-                } else if (s2) {
-                    currentSession = { name: 's2', startH: 19, startM: 45, endH: 21, endM: 30 };
-                    inAccountWindow = true;
-                }
-                windowDesc = '11:15-13:15 WITA & 19:45-21:30 WITA';
-            } else if (nName.includes('tranvas')) {
-                const s1 = (currentHour === 15 && currentMinute >= 15) || (currentHour === 16 && currentMinute <= 30);
-                if (s1) {
-                    currentSession = { name: 's1', startH: 15, startM: 15, endH: 16, endM: 30 };
-                    inAccountWindow = true;
-                }
-                windowDesc = '15:15-16:30 WITA';
-            } else {
-                inAccountWindow = currentHour >= 9 && currentHour <= 21;
-                windowDesc = '09:00-21:00 WITA';
-            }
-
-            if (!force && !inAccountWindow) {
-                console.log(`[Threads-Cron] ${acc.name}: Current time ${currentHour}:${currentMinute.toString().padStart(2, '0')} WITA is outside account-specific window (${windowDesc}). Sleeping.`);
+            // ── CIRCADIAN HUMAN GUARD (07:30 - 23:00 WITA) ─────────────────
+            // Akun aktif di jam sadar manusia. Tidur total di subuh/malam (23:00 - 07:30 WITA) untuk anti-bot security.
+            if (!force && (currentHour < 7 || (currentHour === 7 && currentMinute < 30) || currentHour >= 23)) {
+                console.log(`[Threads-Cron] ${acc.name}: Current time ${currentHour}:${String(currentMinute).padStart(2, '0')} WITA is sleeping hours (23:00 - 07:30 WITA). Sleeping.`);
                 continue;
             }
 
-            // DYNAMIC DAILY TARGET MINUTE: Menjamin jam & menit posting berbeda setiap hari secara alami
-            if (!force && currentSession) {
-                const slot = getDailyDynamicTargetSlot(todayStr, acc.name, currentSession.name, currentSession.startH, currentSession.startM, currentSession.endH, currentSession.endM, currentHour, currentMinute);
-                if (!slot.isDue) {
-                    console.log(`[Threads-Cron] ⏳ ${acc.name} (${currentSession.name}): Waiting for today's dynamic slot (${slot.formatted} WITA, Current: ${currentHour}:${currentMinute.toString().padStart(2, '0')} WITA). Sleeping.`);
-                    continue;
-                }
-            }
-
-            // Anti-Spam Intelligent Adaptive Pacing Guard:
+            // ── BIOLOGICAL INTER-POST COOLDOWN GUARD ───────────────────────
+            // Memberi jeda alami 5.5 hingga 7.5 jam antar-post agar feed tidak spamming dan tidak self-cannibalize
             const lastPostRows = await sql`
                 SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
                 FROM post_history 
@@ -335,18 +281,25 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             `;
             if (lastPostRows.length > 0 && !force) {
                 const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
-
-                // STRATEGIC COOLDOWN (Inter-Session Pacing):
-                // Minimum 6.0 to 7.5 hours gap between the 2 daily posts
-                // Tranvas (1x/hari): 18.0 to 20.0 hours gap
                 const jitter = ((acc.id * 53 + postsToday * 19 + currentHour * 11) % 100) / 100;
-                let minCooldownHours = 6.0 + (jitter * 1.5); // 6.0 - 7.5 hours gap
+                let minCooldownHours = 5.5 + (jitter * 2.0); // 5.5 - 7.5 hours gap
                 if (nName.includes('tranvas')) {
-                    minCooldownHours = 18.0 + (jitter * 2.0); // Tranvas 1 post per day
+                    minCooldownHours = 16.0 + (jitter * 3.0); // Tranvas 1 post per day
                 }
 
                 if (hoursSinceLastPost < minCooldownHours) {
-                    console.log(`[Threads-Cron] ⏸️ ${acc.name}: Last post was ${hoursSinceLastPost.toFixed(1)}h ago (strategic cooldown ${minCooldownHours.toFixed(2)}h). Skipping to let post accumulate organic engagement.`);
+                    console.log(`[Threads-Cron] ⏸️ ${acc.name}: In biological cooldown (${hoursSinceLastPost.toFixed(1)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
+                    continue;
+                }
+            }
+
+            // ── ADAPTIVE STOCHASTIC POISSON PACING (SUPER ACAK + JAMINAN KUOTA 100%) ──
+            // Melempar dadu acak tiap tick (15 menit). Jam posting tersebar bebas sepanjang hari.
+            // Jika hari mulai malam dan kuota belum tuntas, probabilitas otomatis 100% sehingga target PASTI TERPENUHI!
+            if (!force) {
+                const stochastic = evaluateStochasticPostTrigger(postsToday, dailyLimit, currentHour, 23, 0.28);
+                console.log(`[Threads-Cron] 🎲 ${acc.name}: postsToday=${postsToday}/${dailyLimit}, roll=${stochastic.roll}, chance=${stochastic.chance} (${stochastic.reason})`);
+                if (!stochastic.shouldPost) {
                     continue;
                 }
             }
@@ -358,11 +311,7 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             `;
             if (!pending.length) continue;
 
-            const chance = 1.0;
-            const roll = Math.random();
-            console.log(`[Threads-Cron] ${acc.name}: postsToday=${postsToday}/${dailyLimit}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
-
-            if (roll < chance) {
+            if (true) {
                 let sch = null;
 
                 if (nName.includes('sharesa')) {
@@ -459,6 +408,11 @@ async function runScheduledTask(schedule, todayStr = null) {
         
     const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
     if (content) {
+        // Randomized human micro-jitter delay (3s - 7s) to break clockwork request signatures
+        const humanDelayMs = 3000 + Math.floor(Math.random() * 4000);
+        console.log(`[Threads-Cron] Applying ${humanDelayMs}ms human jitter before dispatching to Threads...`);
+        await new Promise(r => setTimeout(r, humanDelayMs));
+
         const postResult = await postToPlatforms(content, ['threads'], imageUrl, accountId);
         if (todayStr && postResult) {
             await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${schedule.id}`;

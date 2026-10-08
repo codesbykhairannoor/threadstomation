@@ -6,7 +6,7 @@ import { getBlueskyAgent, postToBluesky } from '../lib/bluesky.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js'; 
 import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 import { generateKhaithisranPost } from '../lib/bluesky_content.js';
-import { getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
+import { evaluateStochasticPostTrigger } from '../lib/stealth_reach_engine.js';
 
 const app = express();
 app.use(cors());
@@ -303,33 +303,11 @@ export async function runBlueskyCron(force = false) {
       // Eliminates bot classification and lets each post accumulate reposts/likes across global feeds.
       const dailyLimit = 2;
 
-      // ── DEDICATED STAGGERED WINDOWS FOR BLUESKY (WITA = UTC+8) ─────────────
-      // Staggered to ensure ZERO template/hour collisions with Threads, Tumblr, or DEV.TO:
-      // Session 1 (Pagi): 08:00 - 09:15 WITA (UTC 00:00 - 01:15) -> Reaches Asian morning scrollers & US West Coast night owls
-      // Session 2 (Malam): 21:45 - 23:00 WITA (UTC 13:45 - 15:00) -> Reaches US East Coast morning rush (09:45 - 11:00 EST) & Europe evening
-      let inSession = false;
-      let sessionConfig = null;
-
-      if ((currentHour === 8) || (currentHour === 9 && currentMinute <= 15)) {
-        inSession = true;
-        sessionConfig = { name: 'bsky_s1', startH: 8, startM: 0, endH: 9, endM: 15 };
-      } else if ((currentHour === 21 && currentMinute >= 45) || (currentHour === 22) || (currentHour === 23 && currentMinute === 0)) {
-        inSession = true;
-        sessionConfig = { name: 'bsky_s2', startH: 21, startM: 45, endH: 23, endM: 0 };
-      }
-
-      if (!force && !inSession) {
-        console.log(`[Bluesky-Cron] ${acc.identifier}: Current time ${currentHour}:${String(currentMinute).padStart(2, '0')} WITA is outside staggered Bluesky sessions (08:00-09:15 WITA & 21:45-23:00 WITA). Sleeping.`);
+      // ── CIRCADIAN HUMAN GUARD (07:30 - 23:00 WITA) ─────────────────
+      // Waktu aktif manusia. Di luar jam ini (23:00 - 07:30 WITA) tidur total untuk keamanan anti-bot.
+      if (!force && (currentHour < 7 || (currentHour === 7 && currentMinute < 30) || currentHour >= 23)) {
+        console.log(`[Bluesky-Cron] ${acc.identifier}: Sleeping hours (23:00 - 07:30 WITA). Sleeping.`);
         continue;
-      }
-
-      // DYNAMIC DAILY TARGET MINUTE: Menjamin menit posting Bluesky berbeda setiap hari secara alami
-      if (!force && sessionConfig) {
-        const slot = getDailyDynamicTargetSlot(todayStr, acc.identifier, sessionConfig.name, sessionConfig.startH, sessionConfig.startM, sessionConfig.endH, sessionConfig.endM, currentHour, currentMinute);
-        if (!slot.isDue) {
-          console.log(`[Bluesky-Cron] ⏳ ${acc.identifier} (${sessionConfig.name}): Waiting for today's dynamic slot (${slot.formatted} WITA, Current: ${currentHour}:${String(currentMinute).padStart(2, '0')} WITA). Sleeping.`);
-          continue;
-        }
       }
 
       const ranToday = await sql`
@@ -338,13 +316,13 @@ export async function runBlueskyCron(force = false) {
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
-      if (postsToday >= dailyLimit) {
+      if (postsToday >= dailyLimit && !force) {
         console.log(`[Bluesky-Cron] Acc ${acc.identifier}: Daily quota satisfied (${postsToday}/${dailyLimit} posts today).`);
         continue;
       }
 
-      // Strategic Inter-Session Cooldown Guard:
-      // Enforces an 8.5h to 11.0h cooldown gap between Session 1 (morning) and Session 2 (night).
+      // ── BIOLOGICAL INTER-POST COOLDOWN GUARD ───────────────────────
+      // Memberi jeda alami 5.5 hingga 7.5 jam antar-post agar feed tidak spamming
       const lastPostRows = await sql`
         SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
         FROM bluesky_history 
@@ -354,10 +332,21 @@ export async function runBlueskyCron(force = false) {
       if (lastPostRows.length > 0 && !force) {
         const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
         const jitter = ((acc.id * 71 + postsToday * 23 + currentHour * 13) % 100) / 100;
-        const minCooldownHours = 8.5 + (jitter * 2.5); // 8.5h - 11.0h gap
+        const minCooldownHours = 5.5 + (jitter * 2.0); // 5.5h - 7.5h gap
 
         if (hoursSinceLastPost < minCooldownHours) {
-          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: In strategic cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
+          console.log(`[Bluesky-Cron] ⏸️ ${acc.identifier}: In biological cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
+          continue;
+        }
+      }
+
+      // ── ADAPTIVE STOCHASTIC POISSON PACING (SUPER ACAK + JAMINAN KUOTA 100%) ──
+      // Melempar dadu acak tiap tick (15-20 menit). Menit & jam terbit tersebar bebas sepanjang hari.
+      // Jika hari mulai malam dan kuota belum tuntas, probabilitas otomatis 100% sehingga target PASTI TERPENUHI!
+      if (!force) {
+        const stochastic = evaluateStochasticPostTrigger(postsToday, dailyLimit, currentHour, 23, 0.28);
+        console.log(`[Bluesky-Cron] 🎲 ${acc.identifier}: postsToday=${postsToday}/${dailyLimit}, roll=${stochastic.roll}, chance=${stochastic.chance} (${stochastic.reason})`);
+        if (!stochastic.shouldPost) {
           continue;
         }
       }
