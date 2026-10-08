@@ -186,10 +186,10 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
   // Dedicated 7-Archetype narrative storytelling engine for airanfadh (or target web platforms)
   if (account.blog_name?.toLowerCase().includes('airanfadh') || account.name?.toLowerCase().includes('airanfadh') || customPrompt) {
     console.log(`[Tumblr-Post] Using airanfadh 7-Archetype storytelling engine...`);
-    const { title, body, caption, tags } = await generateTumblrPost(customPrompt);
+    const { title, body, caption, tags, imageUrls = [] } = await generateTumblrPost(customPrompt);
     let response;
     try {
-      response = await postToTumblr(account.blog_name, accessToken, [], body || caption, tags, title);
+      response = await postToTumblr(account.blog_name, accessToken, imageUrls, body || caption, tags, title);
     } catch (err) {
       if (err.response?.status === 401) {
         console.warn(`[Tumblr-Post] 401 Unauthorized on post. Attempting forced token refresh...`);
@@ -204,7 +204,7 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
         `;
         accessToken = newTokens.access_token;
         console.log(`[Tumblr-Post] Token refreshed. Retrying post...`);
-        response = await postToTumblr(account.blog_name, accessToken, [], body || caption, tags, title);
+        response = await postToTumblr(account.blog_name, accessToken, imageUrls, body || caption, tags, title);
       } else {
         throw err;
       }
@@ -362,12 +362,13 @@ export async function runTumblrCron(force = false) {
 
   console.log(`[Tumblr-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
 
-  // Active daylight posting window: 07:30 - 23:00 WITA (organic human sleeping hours 23:00 - 07:30)
-  const isTooEarly = currentHour < 7 || (currentHour === 7 && currentMinutes < 30);
-  const isTooLate = currentHour >= 23;
+  // Active daylight posting window: 10:00 - 23:30 WITA (02:00 - 15:30 UTC)
+  // Reaches both Asian/European daytime reading and US East Coast morning waking hours
+  const isTooEarly = currentHour < 10;
+  const isTooLate = currentHour >= 24;
   if (!force && (isTooEarly || isTooLate)) {
-    console.log(`[Tumblr-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside active window (07:30 - 23:00 WITA). Sleeping.`);
-    return { success: true, status: 'Outside active daytime hours (07:30 - 23:00 WITA)' };
+    console.log(`[Tumblr-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside active hours (10:00 - 23:30 WITA). Sleeping.`);
+    return { success: true, status: 'Outside active daytime hours (10:00 - 23:30 WITA)' };
   }
 
   try {
@@ -381,7 +382,10 @@ export async function runTumblrCron(force = false) {
     const executed = [];
 
     for (const acc of accounts) {
-      const dailyLimit = 5;
+      // 1. Strict Community Anti-Spam Daily Limit: Maximum 2 high-impact posts per day
+      // Community consensus: Prevents "Dashboard Clogging", protects follower retention,
+      // and lets each post accumulate reblogs instead of burying it under a flood of posts.
+      const dailyLimit = 2;
 
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM tumblr_history
@@ -389,15 +393,13 @@ export async function runTumblrCron(force = false) {
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
-      if (postsToday >= dailyLimit) {
-        console.log(`[Tumblr-Cron] Acc ${acc.blog_name || acc.name}: hit ${dailyLimit}-post daily limit (${postsToday}/${dailyLimit}).`);
+      if (postsToday >= dailyLimit && !force) {
+        console.log(`[Tumblr-Cron] Acc ${acc.blog_name || acc.name}: Daily quota satisfied (${postsToday}/${dailyLimit} posts today).`);
         continue;
       }
 
-      const postsRemaining = dailyLimit - postsToday;
-      const hoursLeft = Math.max(0.5, 23 - currentHour);
-
-      // Anti-Spam Organic Jitter Guard: Adaptive timing 50-75 mins to ensure all 5 posts publish reliably
+      // 2. Anti-Spam Community Spacing: Minimum 5.5 to 7.0 hours gap between posts
+      // Spreads the 2 daily posts cleanly across the day (Midday & Evening sessions)
       const lastPostRows = await sql`
         SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
         FROM tumblr_history 
@@ -407,7 +409,7 @@ export async function runTumblrCron(force = false) {
       if (lastPostRows.length > 0 && !force) {
         const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
         const jitter = ((acc.id * 31 + postsToday * 17 + currentHour * 7) % 100) / 100;
-        const minCooldownHours = (hoursLeft <= postsRemaining * 2.0) ? 0.75 : (0.85 + jitter * 0.4);
+        const minCooldownHours = 5.5 + jitter * 1.5; // 5.5 - 7.0 hours gap
 
         if (hoursSinceLastPost < minCooldownHours) {
           console.log(`[Tumblr-Cron] ⏸️ ${acc.blog_name || acc.name}: In anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
@@ -415,23 +417,32 @@ export async function runTumblrCron(force = false) {
         }
       }
 
+      // 3. FIFO Schedule Rotation: Fair sequential cycle through all 5 web apps
       let pending = await sql`
         SELECT * FROM tumblr_schedules
         WHERE account_id = ${acc.id}
           AND is_active = 1
           AND (last_run_date IS NULL OR last_run_date != ${todayStr})
-        ORDER BY id ASC
+        ORDER BY last_run_date ASC NULLS FIRST, id ASC
       `;
 
       if (!pending.length) {
-        console.log(`[Tumblr-Cron] Acc ${acc.blog_name || acc.name}: All 5 daily websites already posted for today.`);
+        pending = await sql`
+          SELECT * FROM tumblr_schedules
+          WHERE account_id = ${acc.id} AND is_active = 1
+          ORDER BY last_run_date ASC NULLS FIRST, id ASC
+        `;
+      }
+
+      if (!pending.length) {
+        console.log(`[Tumblr-Cron] Acc ${acc.blog_name || acc.name}: No active schedules found.`);
         continue;
       }
 
-      console.log(`[Tumblr-Cron] 🚀 Ready to post for ${acc.blog_name || acc.name}: postsToday=${postsToday}/${dailyLimit}, pending=${pending.length}`);
-
-      const chosen = pending[Math.floor(Math.random() * pending.length)];
+      const chosen = pending[0];
       let finalPrompt = chosen.custom_prompt || 'tranvas';
+
+      console.log(`[Tumblr-Cron] 🚀 Ready to post for ${acc.blog_name || acc.name}: postsToday=${postsToday}/${dailyLimit}, prompt="${finalPrompt}" (Schedule ID ${chosen.id})`);
 
       try {
         const pendingInsert = await sql`
@@ -439,7 +450,7 @@ export async function runTumblrCron(force = false) {
         `;
         const historyId = pendingInsert[0].id;
 
-        const result = await runTumblrPost(acc.id, finalPrompt, true);
+        const result = await runTumblrPost(acc.id, finalPrompt, false);
         if (chosen.id) {
           await sql`UPDATE tumblr_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
         }
