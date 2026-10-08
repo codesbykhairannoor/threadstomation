@@ -453,8 +453,11 @@ export async function runTumblrCron(force = false) {
       } catch (postErr) {
         console.error(`[Tumblr-Cron] ❌ Post failed for ${acc.blog_name || acc.name}:`, postErr.message);
         await sql`
-          INSERT INTO tumblr_history (account_id, caption, status, error_message)
-          VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
+          UPDATE tumblr_history SET
+            status = 'failed',
+            caption = ${chosen.custom_prompt || 'Auto post'},
+            error_message = ${postErr.message || String(postErr)}
+          WHERE id = ${historyId}
         `;
       }
     }
