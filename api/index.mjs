@@ -251,27 +251,27 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
     for (const acc of accounts) {
         try {
             const nName = acc.name ? acc.name.toLowerCase() : '';
-            const isSpecial = nName.includes('adhlil') || nName.includes('caridisini');
-            let dailyLimit = isSpecial ? 4 : 2;
+            // Safe Anti-Ban & Algorithmic Growth Engine (2026 Meta Threads Protocol):
+            // Maximum 2 posts per day across all active accounts (Midday & Evening sessions).
+            // Eliminates "Content Mill / Broadcast Spammer" penalties and self-cannibalization.
+            let dailyLimit = 2;
             if (nName.includes('tranvas')) {
-                dailyLimit = 1; // Strictly 1 post per day for Tranvas
-            } else if (nName.includes('sharesa')) {
-                dailyLimit = 5; // Exactly 5 posts per day for Sharesa Space (5 categories)
+                dailyLimit = 1; // 1 curated post per day for Tranvas
             }
 
             const [ranToday] = await sql`SELECT COUNT(*) as count FROM schedules WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}`;
             const postsToday = parseInt(ranToday?.count || 0);
-            if (postsToday >= dailyLimit) continue;
+            if (postsToday >= dailyLimit && !force) continue;
 
-            // Strict Active Hours Guard: 08:00 WITA - 22:00 WITA
-            // Mencegah post di tengah malam/subuh (00:00 - 07:59 WITA)
-            if (!force && (currentHour < 8 || currentHour >= 22)) {
-                console.log(`[Threads-Cron] ${acc.name}: Current hour ${currentHour}:${currentMinute.toString().padStart(2, '0')} WITA is outside active daytime window (08:00 - 22:00 WITA). Sleeping.`);
+            // Strict Active Hours Guard: 08:30 WITA - 22:30 WITA
+            // Mencegah post di tengah malam/subuh (22:30 - 08:29 WITA)
+            if (!force && (currentHour < 8 || (currentHour === 8 && currentMinute < 30) || currentHour >= 23)) {
+                console.log(`[Threads-Cron] ${acc.name}: Current hour ${currentHour}:${currentMinute.toString().padStart(2, '0')} WITA is outside active daytime window (08:30 - 22:30 WITA). Sleeping.`);
                 continue;
             }
 
             const postsRemaining = dailyLimit - postsToday;
-            const hoursLeft = Math.max(0.5, 22 - currentHour);
+            const hoursLeft = Math.max(0.5, 23 - currentHour);
 
             // Anti-Spam Intelligent Adaptive Pacing Guard:
             const lastPostRows = await sql`
@@ -283,27 +283,17 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             if (lastPostRows.length > 0 && !force) {
                 const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
 
-                // DYNAMIC ADAPTIVE COOLDOWN:
-                // Sharesa Space (5 post/hari di 14 jam aktif):
-                // Safe cooldown 50 - 75 menit (0.85h - 1.25h) dengan natural jitter.
-                // Jika waktu tersisa mepet (hoursLeft <= postsRemaining * 2.0), kompres ke 45 menit (0.75h) agar kuota 5 post PASTI tercapai!
+                // STRATEGIC COOLDOWN (Midday & Evening Sessions):
+                // Minimum 6.5 to 8.5 hours gap between the 2 daily posts
+                // Gives every post 7+ hours of uninterrupted distribution in Meta's "For You" test pool
                 const jitter = ((acc.id * 37 + postsToday * 19 + currentHour * 11) % 100) / 100;
-                let minCooldownHours;
-
-                if (nName.includes('sharesa')) {
-                    if (hoursLeft <= postsRemaining * 2.0) {
-                        minCooldownHours = 0.75; // 45 menit (adaptive catch-up)
-                    } else {
-                        minCooldownHours = 0.85 + (jitter * 0.4); // 51 - 75 menit (organic)
-                    }
-                } else if (nName.includes('tranvas')) {
-                    minCooldownHours = 3.0; // Tranvas cuma 1 post/hari
-                } else {
-                    minCooldownHours = 1.8 + (jitter * 0.6); // Akun lain (adhlil, dll)
+                let minCooldownHours = 6.5 + (jitter * 2.0); // 6.5 - 8.5 hours gap
+                if (nName.includes('tranvas')) {
+                    minCooldownHours = 18.0; // Tranvas 1 post per day
                 }
 
                 if (hoursSinceLastPost < minCooldownHours) {
-                    console.log(`[Threads-Cron] ⏸️ ${acc.name}: Last post was ${hoursSinceLastPost.toFixed(1)}h ago (dynamic cooldown ${minCooldownHours.toFixed(2)}h). Skipping to maintain organic human rhythm.`);
+                    console.log(`[Threads-Cron] ⏸️ ${acc.name}: Last post was ${hoursSinceLastPost.toFixed(1)}h ago (strategic cooldown ${minCooldownHours.toFixed(2)}h). Skipping to let post accumulate organic engagement.`);
                     continue;
                 }
             }
@@ -311,6 +301,7 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             const pending = await sql`
                 SELECT * FROM schedules 
                 WHERE account_id = ${acc.id} AND is_active = 1 AND (last_run_date IS NULL OR last_run_date != ${todayStr})
+                ORDER BY last_run_date ASC NULLS FIRST, id ASC
             `;
             if (!pending.length) continue;
 
