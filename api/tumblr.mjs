@@ -12,6 +12,7 @@ import {
 import { generateTumblrContent } from '../lib/gemini_tumblr.js';
 import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 import { generateTumblrPost } from '../lib/tumblr_content.js';
+import { getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
 
 const app = express();
 app.use(cors());
@@ -366,12 +367,29 @@ export async function runTumblrCron(force = false) {
   // Staggered to ensure ZERO template/hour collisions with Threads, Bluesky, or DEV.TO:
   // Session 1 (Siang/Sore): 13:30 - 15:00 WITA (UTC 05:30 - 07:00) -> European morning tech & design wake-up
   // Session 2 (Larut Malam): 23:15 - 01:30 WITA (UTC 15:15 - 17:30) -> US East Coast peak midday scrollers (11:15 - 13:30 EST)
-  const inSession1 = (currentHour === 13 && currentMinutes >= 30) || (currentHour === 14) || (currentHour === 15 && currentMinutes === 0);
-  const inSession2 = (currentHour === 23 && currentMinutes >= 15) || (currentHour === 0) || (currentHour === 1 && currentMinutes <= 30);
+  let inSession = false;
+  let sessionConfig = null;
 
-  if (!force && !inSession1 && !inSession2) {
+  if ((currentHour === 13 && currentMinutes >= 30) || (currentHour === 14) || (currentHour === 15 && currentMinutes === 0)) {
+    inSession = true;
+    sessionConfig = { name: 'tumblr_s1', startH: 13, startM: 30, endH: 15, endM: 0 };
+  } else if ((currentHour === 23 && currentMinutes >= 15) || (currentHour === 0) || (currentHour === 1 && currentMinutes <= 30)) {
+    inSession = true;
+    sessionConfig = { name: 'tumblr_s2', startH: 23, startM: 15, endH: 25, endM: 30 };
+  }
+
+  if (!force && !inSession) {
     console.log(`[Tumblr-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside Tumblr staggered windows (13:30-15:00 WITA & 23:15-01:30 WITA). Sleeping.`);
     return { success: true, status: 'Outside Tumblr staggered windows (13:30-15:00 WITA & 23:15-01:30 WITA)' };
+  }
+
+  // DYNAMIC DAILY TARGET MINUTE: Menjamin menit posting Tumblr berbeda setiap hari secara alami
+  if (!force && sessionConfig) {
+    const slot = getDailyDynamicTargetSlot(todayStr, 'airanfadh', sessionConfig.name, sessionConfig.startH, sessionConfig.startM, sessionConfig.endH, sessionConfig.endM, currentHour, currentMinutes);
+    if (!slot.isDue) {
+      console.log(`[Tumblr-Cron] ⏳ airanfadh (${sessionConfig.name}): Waiting for today's dynamic slot (${slot.formatted} WITA, Current: ${currentHour}:${String(currentMinutes).padStart(2, '0')} WITA). Sleeping.`);
+      return { success: true, status: `Waiting for dynamic slot ${slot.formatted} WITA` };
+    }
   }
 
   try {

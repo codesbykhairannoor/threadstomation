@@ -6,6 +6,7 @@ import { getBlueskyAgent, postToBluesky } from '../lib/bluesky.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js'; 
 import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 import { generateKhaithisranPost } from '../lib/bluesky_content.js';
+import { getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
 
 const app = express();
 app.use(cors());
@@ -306,12 +307,29 @@ export async function runBlueskyCron(force = false) {
       // Staggered to ensure ZERO template/hour collisions with Threads, Tumblr, or DEV.TO:
       // Session 1 (Pagi): 08:00 - 09:15 WITA (UTC 00:00 - 01:15) -> Reaches Asian morning scrollers & US West Coast night owls
       // Session 2 (Malam): 21:45 - 23:00 WITA (UTC 13:45 - 15:00) -> Reaches US East Coast morning rush (09:45 - 11:00 EST) & Europe evening
-      const inSession1 = (currentHour === 8) || (currentHour === 9 && currentMinute <= 15);
-      const inSession2 = (currentHour === 21 && currentMinute >= 45) || (currentHour === 22) || (currentHour === 23 && currentMinute === 0);
+      let inSession = false;
+      let sessionConfig = null;
 
-      if (!force && !inSession1 && !inSession2) {
+      if ((currentHour === 8) || (currentHour === 9 && currentMinute <= 15)) {
+        inSession = true;
+        sessionConfig = { name: 'bsky_s1', startH: 8, startM: 0, endH: 9, endM: 15 };
+      } else if ((currentHour === 21 && currentMinute >= 45) || (currentHour === 22) || (currentHour === 23 && currentMinute === 0)) {
+        inSession = true;
+        sessionConfig = { name: 'bsky_s2', startH: 21, startM: 45, endH: 23, endM: 0 };
+      }
+
+      if (!force && !inSession) {
         console.log(`[Bluesky-Cron] ${acc.identifier}: Current time ${currentHour}:${String(currentMinute).padStart(2, '0')} WITA is outside staggered Bluesky sessions (08:00-09:15 WITA & 21:45-23:00 WITA). Sleeping.`);
         continue;
+      }
+
+      // DYNAMIC DAILY TARGET MINUTE: Menjamin menit posting Bluesky berbeda setiap hari secara alami
+      if (!force && sessionConfig) {
+        const slot = getDailyDynamicTargetSlot(todayStr, acc.identifier, sessionConfig.name, sessionConfig.startH, sessionConfig.startM, sessionConfig.endH, sessionConfig.endM, currentHour, currentMinute);
+        if (!slot.isDue) {
+          console.log(`[Bluesky-Cron] ⏳ ${acc.identifier} (${sessionConfig.name}): Waiting for today's dynamic slot (${slot.formatted} WITA, Current: ${currentHour}:${String(currentMinute).padStart(2, '0')} WITA). Sleeping.`);
+          continue;
+        }
       }
 
       const ranToday = await sql`

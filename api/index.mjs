@@ -11,6 +11,7 @@ import sql, { initDb, cleanupOldHistory } from '../lib/database.js';
 import { generateThreadsContent } from '../lib/gemini.js';
 import { postToPlatforms } from '../lib/threads_service.js';
 import { refreshThreadsToken } from '../lib/threads.js';
+import { getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
 import axios from 'axios';
 import fs from 'fs';
 import tiktokApp from './tiktok.mjs';
@@ -274,20 +275,37 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             // 3. Tranvas (1x/hari):
             //    - Session 1: 15:15 - 16:30 WITA (Mid-Afternoon Coffee Break Focus)
             let inAccountWindow = false;
+            let currentSession = null;
             let windowDesc = '';
 
             if (nName.includes('adhlil')) {
                 const s1 = (currentHour === 9 && currentMinute >= 30) || (currentHour === 10) || (currentHour === 11 && currentMinute === 0);
                 const s2 = (currentHour === 16 && currentMinute >= 45) || (currentHour === 17) || (currentHour === 18 && currentMinute <= 15);
-                inAccountWindow = s1 || s2;
+                if (s1) {
+                    currentSession = { name: 's1', startH: 9, startM: 30, endH: 11, endM: 0 };
+                    inAccountWindow = true;
+                } else if (s2) {
+                    currentSession = { name: 's2', startH: 16, startM: 45, endH: 18, endM: 15 };
+                    inAccountWindow = true;
+                }
                 windowDesc = '09:30-11:00 WITA & 16:45-18:15 WITA';
             } else if (nName.includes('sharesa')) {
                 const s1 = (currentHour === 11 && currentMinute >= 15) || (currentHour === 12) || (currentHour === 13 && currentMinute <= 15);
                 const s2 = (currentHour === 19 && currentMinute >= 45) || (currentHour === 20) || (currentHour === 21 && currentMinute <= 30);
-                inAccountWindow = s1 || s2;
+                if (s1) {
+                    currentSession = { name: 's1', startH: 11, startM: 15, endH: 13, endM: 15 };
+                    inAccountWindow = true;
+                } else if (s2) {
+                    currentSession = { name: 's2', startH: 19, startM: 45, endH: 21, endM: 30 };
+                    inAccountWindow = true;
+                }
                 windowDesc = '11:15-13:15 WITA & 19:45-21:30 WITA';
             } else if (nName.includes('tranvas')) {
-                inAccountWindow = (currentHour === 15 && currentMinute >= 15) || (currentHour === 16 && currentMinute <= 30);
+                const s1 = (currentHour === 15 && currentMinute >= 15) || (currentHour === 16 && currentMinute <= 30);
+                if (s1) {
+                    currentSession = { name: 's1', startH: 15, startM: 15, endH: 16, endM: 30 };
+                    inAccountWindow = true;
+                }
                 windowDesc = '15:15-16:30 WITA';
             } else {
                 inAccountWindow = currentHour >= 9 && currentHour <= 21;
@@ -297,6 +315,15 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
             if (!force && !inAccountWindow) {
                 console.log(`[Threads-Cron] ${acc.name}: Current time ${currentHour}:${currentMinute.toString().padStart(2, '0')} WITA is outside account-specific window (${windowDesc}). Sleeping.`);
                 continue;
+            }
+
+            // DYNAMIC DAILY TARGET MINUTE: Menjamin jam & menit posting berbeda setiap hari secara alami
+            if (!force && currentSession) {
+                const slot = getDailyDynamicTargetSlot(todayStr, acc.name, currentSession.name, currentSession.startH, currentSession.startM, currentSession.endH, currentSession.endM, currentHour, currentMinute);
+                if (!slot.isDue) {
+                    console.log(`[Threads-Cron] ⏳ ${acc.name} (${currentSession.name}): Waiting for today's dynamic slot (${slot.formatted} WITA, Current: ${currentHour}:${currentMinute.toString().padStart(2, '0')} WITA). Sleeping.`);
+                    continue;
+                }
             }
 
             // Anti-Spam Intelligent Adaptive Pacing Guard:

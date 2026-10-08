@@ -4,6 +4,7 @@ import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { getDevtoUserInfo, postToDevto } from '../lib/devto.js';
 import { generateDevtoArticle } from '../lib/devto_content.js';
+import { getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
 
 const app = express();
 app.use(cors());
@@ -190,6 +191,15 @@ export async function runDevtoCron(force = false) {
   if (!force && !inDevtoWindow) {
     console.log(`[Devto-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside golden window (18:15 - 19:30 WITA). Sleeping.`);
     return { success: true, status: 'Outside DEV.TO global prime-time window (18:15 - 19:30 WITA)' };
+  }
+
+  // DYNAMIC DAILY TARGET MINUTE: Menjamin menit posting DEV.TO berbeda setiap hari secara alami
+  if (!force) {
+    const slot = getDailyDynamicTargetSlot(todayStr, 'thisran', 'devto_s1', 18, 15, 19, 30, currentHour, currentMinutes);
+    if (!slot.isDue) {
+      console.log(`[Devto-Cron] ⏳ DEV.TO: Waiting for today's dynamic slot (${slot.formatted} WITA, Current: ${currentHour}:${String(currentMinutes).padStart(2, '0')} WITA). Sleeping.`);
+      return { success: true, status: `Waiting for dynamic slot ${slot.formatted} WITA` };
+    }
   }
 
   const globalStatus = await sql`SELECT value FROM devto_settings WHERE key = 'devto_automation_enabled'`;
