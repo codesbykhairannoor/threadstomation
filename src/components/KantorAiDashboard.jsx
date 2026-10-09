@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PixelOfficeGame from './PixelOfficeGame';
 import IsometricOfficeCanvas from './IsometricOfficeCanvas';
 import './KantorAiDashboard.css';
 
@@ -178,7 +179,7 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
   const [triggeringId, setTriggeringId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
   const [countdown, setCountdown] = useState(15);
-  const [viewMode, setViewMode] = useState('game'); // 'game' (Isometric 2.5D) or 'cards' (Grid)
+  const [viewMode, setViewMode] = useState('pixel'); // 'pixel' (Authentic Pixel Game), 'iso' (Isometric 2.5D), or 'cards' (Grid)
 
   const fetchOfficeStatus = async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -452,11 +453,18 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.2rem', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.7)', padding: '5px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
           <button 
-            className={`filter-pill ${viewMode === 'game' ? 'active' : ''}`}
-            onClick={() => setViewMode('game')}
+            className={`filter-pill ${viewMode === 'pixel' ? 'active' : ''}`}
+            onClick={() => setViewMode('pixel')}
             style={{ fontWeight: '700', padding: '0.45rem 1rem' }}
           >
-            🎮 Mode Game Isometric (2.5D)
+            🎮 Mode Game Pixel (Asli 16-Bit)
+          </button>
+          <button 
+            className={`filter-pill ${viewMode === 'iso' ? 'active' : ''}`}
+            onClick={() => setViewMode('iso')}
+            style={{ fontWeight: '700', padding: '0.45rem 1rem' }}
+          >
+            📐 Mode Blueprint 2.5D
           </button>
           <button 
             className={`filter-pill ${viewMode === 'cards' ? 'active' : ''}`}
@@ -467,7 +475,7 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
           </button>
         </div>
 
-        {viewMode === 'game' && (
+        {viewMode !== 'cards' && (
           <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span>💡</span>
             <span>Klik meja/karakter bot mana saja di denah game untuk buka detail & jalankan postingan.</span>
@@ -481,7 +489,15 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
           <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }} className="spin">⚙️</div>
           <p>Menghubungkan ke log database Supabase & Vercel...</p>
         </div>
-      ) : viewMode === 'game' ? (
+      ) : viewMode === 'pixel' ? (
+        <div style={{ marginBottom: '2.5rem' }}>
+          <PixelOfficeGame 
+            workers={data?.workers || []} 
+            onSelectWorker={setSelectedWorker}
+            activeWorkerId={selectedWorker?.id}
+          />
+        </div>
+      ) : viewMode === 'iso' ? (
         <div style={{ marginBottom: '2.5rem' }}>
           <IsometricOfficeCanvas 
             workers={data?.workers || []} 
