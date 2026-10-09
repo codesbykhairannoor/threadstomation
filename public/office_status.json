@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-09T12:58:26.425Z",
+  "generatedAt": "2026-10-09T13:21:09.382Z",
   "system": {
-    "totalWorkers": 10,
+    "totalWorkers": 11,
     "totalToday": 12,
     "activeToday": 8,
     "alertCount": 0,
-    "currentWitaTime": "20:58 WITA",
+    "currentWitaTime": "21:21 WITA",
     "dateStr": "2026-10-09",
     "health": "Optimal (100%)"
   },
@@ -30,7 +30,7 @@
         "text": "Ini bukan pasrah tanpa ikhtiar, tapi keyakinan penuh. Sudahkah tawakal kita sejati mengiringi setiap langkah di Jumat berkah ini? Mari saling merenung.",
         "status": "success",
         "time": "2026-10-09T00:02:09.727Z",
-        "relativeTime": "12j lalu",
+        "relativeTime": "13j lalu",
         "externalId": "17890256373455655"
       }
     },
@@ -54,7 +54,7 @@
         "text": "Mau gabung 5 PDF laporan kantor, malah dipalak langganan bulanan. Mau download software bajakan, taruhannya malware. Di HandleMyFile, tinggal seret file PDF, susun urutannya, dan gabungkan jadi satu berkas rapi dalam 3 detik langsung di browser tanpa upload data. Kalian biasanya pake software berbayar atau tools gratis",
         "status": "failed",
         "time": "2026-10-08T23:02:36.239Z",
-        "relativeTime": "13j lalu",
+        "relativeTime": "14j lalu",
         "externalId": null
       }
     },
@@ -78,7 +78,7 @@
         "text": "Passive income itu mitos kalau komisinya cuma sekali cair. Capek bikin konten dan sebar link, giliran ada yang beli cuma dapat 5-10% sekali putus. Bulan depan saldo balik nol lagi. Itu bukan bangun aset penghasilan. Itu kerja rodi versi digital yang dibungkus istilah afiliasi.,Matematika simpel yang jarang dibahas: Kom",
         "status": "failed",
         "time": "2026-10-08T23:03:58.838Z",
-        "relativeTime": "13j lalu",
+        "relativeTime": "14j lalu",
         "externalId": null
       }
     },
@@ -102,7 +102,7 @@
         "text": "**Lelahnya hidup, seringkali kita cari akhirnya di sini.** 😔 Padahal, dunia ini memang medan juang tak berkesudahan. Kita terus mengejar ketenangan fana, sampai kapan? Ketenangan hakiki itu investasi, bukan pencarian. Ada tempat di mana lelah tak lagi hadir, hanya damai abadi. Simpan ini buat pengingat dan bagikan ke ",
         "status": "success",
         "time": "2026-10-08T23:08:34.240Z",
-        "relativeTime": "13j lalu",
+        "relativeTime": "14j lalu",
         "externalId": "17994818607044025"
       }
     },
@@ -126,7 +126,7 @@
         "text": "Want to learn more about The hidden cost of context switching and how it drains your cognitive load daily.? Tap the link in our bio to check the details and get started immediately!",
         "status": "success",
         "time": "2026-10-08T23:03:50.542Z",
-        "relativeTime": "13j lalu",
+        "relativeTime": "14j lalu",
         "externalId": "18014831399969694"
       }
     },
@@ -150,7 +150,7 @@
         "text": "Want to learn more about Stop treating your branding as an afterthought. How cohesive visual identities drive customer trust and higher revenue.? Tap the link in our bio to check the details and get started immediately!",
         "status": "success",
         "time": "2026-10-08T23:05:34.162Z",
-        "relativeTime": "13j lalu",
+        "relativeTime": "14j lalu",
         "externalId": "18139642264612790"
       }
     },
@@ -174,7 +174,7 @@
         "text": "The modern web subscription model for basic single-purpose utilities is completely broken.\n\nScreen & Camera Recorder solves this cleanly: Private in-browser recording studio saving directly to your local drive. Runs 100% locally in your browser RAM with zero server uploads.\n\nDo you priorit",
         "status": "success",
         "time": "2026-10-09T00:02:20.947Z",
-        "relativeTime": "12j lalu",
+        "relativeTime": "13j lalu",
         "externalId": "at://did:plc:jr6aozuqr2ah3revtuumzazy/app.bsky.feed.post/3mxgfsaqcww2x"
       }
     },
@@ -246,8 +246,32 @@
         "text": "We traveled three hundred light-years across the Orion Arm to observe the apex species of Earth.\nWe ",
         "status": "success",
         "time": "2026-10-09T00:03:10.794Z",
-        "relativeTime": "12j lalu",
+        "relativeTime": "13j lalu",
         "externalId": "829978732397789184"
+      }
+    },
+    {
+      "id": "mastodon-3",
+      "platform": "mastodon",
+      "platformName": "Mastodon",
+      "platformIcon": "🐘",
+      "zone": "Fediverse Decentralized Commons",
+      "accountId": 3,
+      "accountName": "khaithisran",
+      "role": "Fediverse Protocol Advocate",
+      "avatar": "cyber_agent",
+      "status": "WAITING",
+      "todayCount": 0,
+      "dailyTarget": 1,
+      "nextSlot": "Slot 1: 13:09 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 13:09 WITA.",
+      "lastPost": {
+        "id": 5136,
+        "text": "createmyqr",
+        "status": "failed",
+        "time": "2026-10-08T05:16:43.316Z",
+        "relativeTime": "1h lalu",
+        "externalId": null
       }
     }
   ],
@@ -283,7 +307,7 @@
       "text": "We traveled three hundred light-years across the Orion Arm to observe the apex species of Earth.\nWe ",
       "status": "success",
       "time": "2026-10-09T00:03:10.794Z",
-      "relativeTime": "12j lalu"
+      "relativeTime": "13j lalu"
     },
     {
       "id": "bluesky-2779",
@@ -294,7 +318,7 @@
       "text": "The modern web subscription model for basic single-purpose utilities is completely broken.\n\nScreen & Camera Recorder solves this cleanly: Private in-browser recording studio saving directly to your local drive. Runs 100% locally in your bro",
       "status": "success",
       "time": "2026-10-09T00:02:20.947Z",
-      "relativeTime": "12j lalu"
+      "relativeTime": "13j lalu"
     },
     {
       "id": "threads-871",
@@ -305,7 +329,7 @@
       "text": "Ini bukan pasrah tanpa ikhtiar, tapi keyakinan penuh. Sudahkah tawakal kita sejati mengiringi setiap langkah di Jumat berkah ini? Mari saling merenung.",
       "status": "success",
       "time": "2026-10-09T00:02:09.727Z",
-      "relativeTime": "12j lalu"
+      "relativeTime": "13j lalu"
     },
     {
       "id": "threads-870",
@@ -316,7 +340,7 @@
       "text": "Padahal, Surah At-Talaq (65:3) jelas: Allah beri rezeki dari arah tak disangka. Ketenangan sejati itu saat kita benar-benar bertawakal pada-Nya.",
       "status": "success",
       "time": "2026-10-09T00:01:34.201Z",
-      "relativeTime": "12j lalu"
+      "relativeTime": "13j lalu"
     },
     {
       "id": "threads-869",
@@ -327,7 +351,7 @@
       "text": "Pengingat buat diri saya dan kita semua. Saat rezeki terasa sempit, kadang kita fokus berlebihan pada 'bagaimana' dan 'darimana' saja.",
       "status": "success",
       "time": "2026-10-09T00:00:57.006Z",
-      "relativeTime": "12j lalu"
+      "relativeTime": "13j lalu"
     },
     {
       "id": "threads-868",
@@ -338,7 +362,7 @@
       "text": "Gundah rezeki? Sering lupa sumber ketenangan hakiki.",
       "status": "success",
       "time": "2026-10-09T00:00:18.856Z",
-      "relativeTime": "12j lalu"
+      "relativeTime": "13j lalu"
     },
     {
       "id": "instagram-2488",
@@ -349,7 +373,7 @@
       "text": "**Lelahnya hidup, seringkali kita cari akhirnya di sini.** 😔 Padahal, dunia ini memang medan juang tak berkesudahan. Kita terus mengejar ketenangan fana, sampai kapan? Ketenangan hakiki itu investasi, bukan pencarian. Ada tempat di mana le",
       "status": "success",
       "time": "2026-10-08T23:08:34.240Z",
-      "relativeTime": "13j lalu"
+      "relativeTime": "14j lalu"
     },
     {
       "id": "instagram-2487",
@@ -360,7 +384,7 @@
       "text": "Want to learn more about Stop treating your branding as an afterthought. How cohesive visual identities drive customer trust and higher revenue.? Tap the link in our bio to check the details and get started immediately!",
       "status": "success",
       "time": "2026-10-08T23:05:34.162Z",
-      "relativeTime": "13j lalu"
+      "relativeTime": "14j lalu"
     },
     {
       "id": "threads-867",
@@ -371,7 +395,7 @@
       "text": "Passive income itu mitos kalau komisinya cuma sekali cair. Capek bikin konten dan sebar link, giliran ada yang beli cuma dapat 5-10% sekali putus. Bulan depan saldo balik nol lagi. Itu bukan bangun aset penghasilan. Itu kerja rodi versi dig",
       "status": "failed",
       "time": "2026-10-08T23:03:58.838Z",
-      "relativeTime": "13j lalu"
+      "relativeTime": "14j lalu"
     },
     {
       "id": "instagram-2486",
@@ -382,7 +406,7 @@
       "text": "Want to learn more about The hidden cost of context switching and how it drains your cognitive load daily.? Tap the link in our bio to check the details and get started immediately!",
       "status": "success",
       "time": "2026-10-08T23:03:50.542Z",
-      "relativeTime": "13j lalu"
+      "relativeTime": "14j lalu"
     },
     {
       "id": "threads-866",
@@ -393,7 +417,7 @@
       "text": "Amalan 5 detik ini menghasilkan miliaran pahala nyata. Sering kali kita merasa nggak punya waktu luang untuk ibadah panjang di sela kerjaan yang padat. Padahal ada amalan super ringan yang bobot pahalanya melampaui logika hitungan waktu kit",
       "status": "failed",
       "time": "2026-10-08T23:02:44.517Z",
-      "relativeTime": "13j lalu"
+      "relativeTime": "14j lalu"
     },
     {
       "id": "threads-865",
@@ -404,7 +428,7 @@
       "text": "Mau gabung 5 PDF laporan kantor, malah dipalak langganan bulanan. Mau download software bajakan, taruhannya malware. Di HandleMyFile, tinggal seret file PDF, susun urutannya, dan gabungkan jadi satu berkas rapi dalam 3 detik langsung di bro",
       "status": "failed",
       "time": "2026-10-08T23:02:36.239Z",
-      "relativeTime": "13j lalu"
+      "relativeTime": "14j lalu"
     },
     {
       "id": "bluesky-2778",
@@ -415,7 +439,7 @@
       "text": "Nothing is more frustrating than a \"free\" web tool hitting you with a paywall at 99% progress.\n\nYour device hardware is plenty powerful. tranvas.com does Fast, unified life OS that actually works without corporate bloatware, AI wrappers, an",
       "status": "success",
       "time": "2026-10-08T23:00:21.082Z",
-      "relativeTime": "13j lalu"
+      "relativeTime": "14j lalu"
     },
     {
       "id": "bluesky-2777",

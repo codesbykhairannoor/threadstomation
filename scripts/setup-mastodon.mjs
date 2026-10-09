@@ -47,8 +47,19 @@ async function main() {
   }
   console.log(`[Setup-Mastodon] Created 5 target website schedules for account ID ${accountId}.`);
 
-  const schedules = await sql`SELECT id, custom_prompt FROM mastodon_schedules WHERE account_id = ${accountId}`;
-  console.log('[Setup-Mastodon] Current schedules:', schedules);
+  // Purge any old test accounts
+  await sql`DELETE FROM mastodon_accounts WHERE id != ${accountId}`;
+  console.log('[Setup-Mastodon] Purged old inactive test accounts.');
+
+  // Ensure global automation setting is enabled
+  await sql`
+    INSERT INTO mastodon_settings (key, value) VALUES ('mastodon_automation_enabled', 'true')
+    ON CONFLICT (key) DO UPDATE SET value = 'true'
+  `;
+
+  // Display active status
+  const finalAccs = await sql`SELECT id, name, username, instance_url, is_active FROM mastodon_accounts`;
+  console.log('[Setup-Mastodon] Active Mastodon Accounts in DB:', finalAccs);
 
   process.exit(0);
 }

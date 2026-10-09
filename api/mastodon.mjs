@@ -2,7 +2,7 @@ export const maxDuration = 60;
 import express from 'express';
 import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
-import { getMastodonUserInfo, postToMastodon, uploadMediaToMastodon } from '../lib/mastodon.js';
+import { getMastodonUserInfo, postToMastodon, uploadMediaToMastodon, setMastodonBotAccount } from '../lib/mastodon.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js';
 import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 import { generateMastodonPost } from '../lib/mastodon_content.js';
@@ -111,6 +111,9 @@ async function runMastodonPost(accountId, customPrompt = null, forceNoImage = fa
   const masterPrompt = account.master_prompt || '';
   const visualTheme = account.visual_theme || '';
   const colorPalette = account.color_palette || null;
+
+  // Auto-flag account as bot if not already set (mastodon.social rule compliance)
+  setMastodonBotAccount(account.access_token, account.instance_url).catch(() => {});
 
   console.log(`[Mastodon-Post] Generating content for ${account.username}...`);
 
@@ -301,7 +304,7 @@ export async function runMastodonCron(force = false) {
     for (const acc of accounts) {
       const isKhaithisran = acc.username?.toLowerCase().includes('khaithisran') || acc.name?.toLowerCase().includes('khaithisran');
       const isOneformind = acc.username?.toLowerCase().includes('oneformind') || acc.name?.toLowerCase().includes('oneformind');
-      const dailyLimit = isKhaithisran ? 5 : (isOneformind ? 4 : 5);
+      const dailyLimit = 1; // Strict 1 post per day per user request ("sehari sekali")
 
       const ranToday = await sql`
         SELECT COUNT(*) as count FROM mastodon_history
@@ -310,51 +313,27 @@ export async function runMastodonCron(force = false) {
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
       if (postsToday >= dailyLimit) {
-        console.log(`[Mastodon-Cron] Acc ${acc.username || acc.name}: hit ${dailyLimit}-post daily limit (${postsToday}/${dailyLimit}).`);
+        console.log(`[Mastodon-Cron] Acc ${acc.username || acc.name}: Already completed daily limit (${postsToday}/${dailyLimit}) for ${todayStr}. Skipping.`);
         continue;
       }
 
-      const postsRemaining = dailyLimit - postsToday;
-      const hoursLeft = Math.max(0.5, 23 - currentHour);
-
-      // Anti-Spam Organic Jitter Guard: Adaptive timing 50-75 mins to ensure all 5 posts publish reliably
-      const lastPostRows = await sql`
-        SELECT EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS hours_since
-        FROM mastodon_history 
-        WHERE account_id = ${acc.id} AND status = 'success' 
-        ORDER BY id DESC LIMIT 1
-      `;
-      if (lastPostRows.length > 0 && !force) {
-        const hoursSinceLastPost = parseFloat(lastPostRows[0].hours_since || 0);
-        const jitter = ((acc.id * 31 + postsToday * 17 + currentHour * 7) % 100) / 100;
-        const minCooldownHours = (hoursLeft <= postsRemaining * 2.0) ? 0.75 : (0.85 + jitter * 0.4);
-
-        if (hoursSinceLastPost < minCooldownHours) {
-          console.log(`[Mastodon-Cron] ⏸️ ${acc.username || acc.name}: In hard anti-spam cooldown (${hoursSinceLastPost.toFixed(2)}h / ${minCooldownHours.toFixed(2)}h). Skipping.`);
-          continue;
-        }
-      }
-
+      // Round-robin selection: pick the schedule with the oldest last_run_date (or never run)
+      // This guarantees an exact daily rotation across all 5 target websites without repeating.
       let pending = await sql`
         SELECT * FROM mastodon_schedules
         WHERE account_id = ${acc.id}
           AND is_active = 1
-          AND (last_run_date IS NULL OR last_run_date != ${todayStr})
-        ORDER BY id ASC
+        ORDER BY last_run_date ASC NULLS FIRST, id ASC
       `;
 
       if (!pending.length) {
-        if (isKhaithisran) {
-          console.log(`[Mastodon-Cron] Acc ${acc.username || acc.name}: All 5 daily websites already posted for today.`);
-        } else {
-          console.log(`[Mastodon-Cron] Acc ${acc.username || acc.name}: No pending schedules for today.`);
-        }
+        console.log(`[Mastodon-Cron] Acc ${acc.username || acc.name}: No active schedules found.`);
         continue;
       }
 
-      console.log(`[Mastodon-Cron] 🚀 Ready to post for ${acc.username || acc.name}: postsToday=${postsToday}/${dailyLimit}, pending=${pending.length}`);
+      console.log(`[Mastodon-Cron] 🚀 Ready to post daily website for ${acc.username || acc.name}: postsToday=${postsToday}/${dailyLimit}, rotating among ${pending.length} sites`);
 
-      const chosen = pending[Math.floor(Math.random() * pending.length)];
+      const chosen = pending[0];
       let finalPrompt = chosen.custom_prompt;
       let forceNoImage = isOneformind || isKhaithisran;
 

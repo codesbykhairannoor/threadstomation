@@ -48,6 +48,7 @@ function getRoleTitle(platform, name) {
   if (platform === 'instagram') return 'Visual Carousel Studio';
   if (platform === 'bluesky') return 'AT-Proto Social Streamer';
   if (platform === 'tumblr') return 'Aesthetic Microblogger';
+  if (platform === 'mastodon') return 'Fediverse Protocol Advocate';
   return 'AI Social Content Specialist';
 }
 
@@ -68,7 +69,8 @@ app.get('/api/office/status', async (req, res) => {
       bskyAccs, bskyHistory, bskySchedules,
       nostrAccs, nostrHistory, nostrSchedules,
       devtoAccs, devtoHistory, devtoSchedules,
-      tumblrAccs, tumblrHistory, tumblrSchedules
+      tumblrAccs, tumblrHistory, tumblrSchedules,
+      mastodonAccs, mastodonHistory, mastodonSchedules
     ] = await Promise.all([
       sql`SELECT id, name, is_active FROM accounts WHERE is_active = 1 ORDER BY id ASC`,
       sql`SELECT id, account_id, content as text, status, created_at, error_message, threads_id as external_id FROM post_history ORDER BY id DESC LIMIT 50`,
@@ -93,6 +95,10 @@ app.get('/api/office/status', async (req, res) => {
       sql`SELECT id, name, blog_name, is_active FROM tumblr_accounts WHERE is_active = 1 ORDER BY id ASC`,
       sql`SELECT id, account_id, caption as text, status, created_at, error_message, post_id as external_id FROM tumblr_history ORDER BY id DESC LIMIT 50`,
       sql`SELECT id, account_id, is_active, last_run_date FROM tumblr_schedules WHERE is_active = 1`,
+
+      sql`SELECT id, name, username, is_active FROM mastodon_accounts WHERE is_active = 1 ORDER BY id ASC`,
+      sql`SELECT id, account_id, caption as text, status, created_at, error_message, post_id as external_id FROM mastodon_history ORDER BY id DESC LIMIT 50`,
+      sql`SELECT id, account_id, is_active, last_run_date FROM mastodon_schedules WHERE is_active = 1`,
     ]);
 
     const workers = [];
@@ -196,6 +202,7 @@ app.get('/api/office/status', async (req, res) => {
     processPlatform('nostr', 'Nostr', '⚡', nostrAccs, nostrHistory, nostrSchedules, 1, 'Decentralized Sovereign Node');
     processPlatform('devto', 'DEV.TO', '👩‍💻', devtoAccs, devtoHistory, devtoSchedules, 1, 'Developer Content Lab');
     processPlatform('tumblr', 'Tumblr', '📝', tumblrAccs, tumblrHistory, tumblrSchedules, 2, 'Microblogging Suite');
+    processPlatform('mastodon', 'Mastodon', '🐘', mastodonAccs, mastodonHistory, mastodonSchedules, 1, 'Fediverse Decentralized Commons');
 
     allRecentActivity.sort((a, b) => new Date(b.time) - new Date(a.time));
 
