@@ -62,29 +62,29 @@ async function generateSnapshot() {
     devtoAccs, devtoHistory, devtoSchedules,
     tumblrAccs, tumblrHistory, tumblrSchedules
   ] = await Promise.all([
-    sql`SELECT id, name, is_active FROM accounts ORDER BY id ASC`,
+    sql`SELECT id, name, is_active FROM accounts WHERE is_active = 1 ORDER BY id ASC`,
     sql`SELECT id, account_id, content as text, status, created_at, error_message, threads_id as external_id FROM post_history ORDER BY id DESC LIMIT 50`,
-    sql`SELECT id, account_id, time, is_active, last_run_date FROM schedules`,
+    sql`SELECT id, account_id, time, is_active, last_run_date FROM schedules WHERE is_active = 1`,
 
-    sql`SELECT id, name, is_active FROM instagram_accounts ORDER BY id ASC`,
+    sql`SELECT id, name, is_active FROM instagram_accounts WHERE is_active = 1 ORDER BY id ASC`,
     sql`SELECT id, account_id, caption as text, status, created_at, error_message, creation_id as external_id, image_urls FROM instagram_history ORDER BY id DESC LIMIT 50`,
-    sql`SELECT id, account_id, is_active, last_run_date FROM instagram_schedules`,
+    sql`SELECT id, account_id, is_active, last_run_date FROM instagram_schedules WHERE is_active = 1`,
 
-    sql`SELECT id, name, identifier, is_active FROM bluesky_accounts ORDER BY id ASC`,
+    sql`SELECT id, name, identifier, is_active FROM bluesky_accounts WHERE is_active = 1 ORDER BY id ASC`,
     sql`SELECT id, account_id, caption as text, status, created_at, error_message, publish_id as external_id FROM bluesky_history ORDER BY id DESC LIMIT 50`,
-    sql`SELECT id, account_id, is_active, last_run_date FROM bluesky_schedules`,
+    sql`SELECT id, account_id, is_active, last_run_date FROM bluesky_schedules WHERE is_active = 1`,
 
-    sql`SELECT id, name, username, npub, is_active FROM nostr_accounts ORDER BY id ASC`,
+    sql`SELECT id, name, username, npub, is_active FROM nostr_accounts WHERE is_active = 1 ORDER BY id ASC`,
     sql`SELECT id, account_id, content as text, status, created_at, error_message, note_id as external_id FROM nostr_history ORDER BY id DESC LIMIT 50`,
-    sql`SELECT id, account_id, is_active, last_run_date FROM nostr_schedules`,
+    sql`SELECT id, account_id, is_active, last_run_date FROM nostr_schedules WHERE is_active = 1`,
 
-    sql`SELECT id, name, username, is_active FROM devto_accounts ORDER BY id ASC`,
+    sql`SELECT id, name, username, is_active FROM devto_accounts WHERE is_active = 1 ORDER BY id ASC`,
     sql`SELECT id, account_id, caption as text, status, created_at, error_message, post_id as external_id FROM devto_history ORDER BY id DESC LIMIT 50`,
-    sql`SELECT id, account_id, is_active, last_run_date FROM devto_schedules`,
+    sql`SELECT id, account_id, is_active, last_run_date FROM devto_schedules WHERE is_active = 1`,
 
-    sql`SELECT id, name, blog_name, is_active FROM tumblr_accounts ORDER BY id ASC`,
+    sql`SELECT id, name, blog_name, is_active FROM tumblr_accounts WHERE is_active = 1 ORDER BY id ASC`,
     sql`SELECT id, account_id, caption as text, status, created_at, error_message, post_id as external_id FROM tumblr_history ORDER BY id DESC LIMIT 50`,
-    sql`SELECT id, account_id, is_active, last_run_date FROM tumblr_schedules`,
+    sql`SELECT id, account_id, is_active, last_run_date FROM tumblr_schedules WHERE is_active = 1`,
   ]);
 
   const workers = [];
