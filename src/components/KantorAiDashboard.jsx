@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import IsometricOfficeCanvas from './IsometricOfficeCanvas';
 import './KantorAiDashboard.css';
 
 // ── PIXEL / ISOMETRIC AVATAR SVGs ─────────────────────────────────────────────
@@ -177,6 +178,7 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
   const [triggeringId, setTriggeringId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
   const [countdown, setCountdown] = useState(15);
+  const [viewMode, setViewMode] = useState('game'); // 'game' (Isometric 2.5D) or 'cards' (Grid)
 
   const fetchOfficeStatus = async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -446,11 +448,46 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
         </div>
       </div>
 
-      {/* ── WAR ROOM DESKS GRID ── */}
+      {/* ── VIEW SWITCHER BAR ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.2rem', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.7)', padding: '5px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <button 
+            className={`filter-pill ${viewMode === 'game' ? 'active' : ''}`}
+            onClick={() => setViewMode('game')}
+            style={{ fontWeight: '700', padding: '0.45rem 1rem' }}
+          >
+            🎮 Mode Game Isometric (2.5D)
+          </button>
+          <button 
+            className={`filter-pill ${viewMode === 'cards' ? 'active' : ''}`}
+            onClick={() => setViewMode('cards')}
+            style={{ fontWeight: '700', padding: '0.45rem 1rem' }}
+          >
+            📋 Mode Kartu Meja (Grid)
+          </button>
+        </div>
+
+        {viewMode === 'game' && (
+          <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>💡</span>
+            <span>Klik meja/karakter bot mana saja di denah game untuk buka detail & jalankan postingan.</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── WAR ROOM CONTENT ── */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '5rem 0', color: '#94a3b8' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }} className="spin">⚙️</div>
           <p>Menghubungkan ke log database Supabase & Vercel...</p>
+        </div>
+      ) : viewMode === 'game' ? (
+        <div style={{ marginBottom: '2.5rem' }}>
+          <IsometricOfficeCanvas 
+            workers={data?.workers || []} 
+            onSelectWorker={setSelectedWorker}
+            activeWorkerId={selectedWorker?.id}
+          />
         </div>
       ) : (
         <div className="warroom-office-grid">
