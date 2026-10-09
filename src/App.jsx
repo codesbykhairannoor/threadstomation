@@ -13,6 +13,7 @@ import MastodonApp from './components/MastodonApp';
 import DevtoApp from './components/DevtoApp';
 import BlueskyApp from './components/BlueskyApp';
 import NostrApp from './components/NostrApp';
+import KantorAiDashboard from './components/KantorAiDashboard';
 import './App.css';
 
 const API_BASE = '';
@@ -183,6 +184,14 @@ function App() {
   }
   if (pathname === '/nostr') {
     return <NostrApp onBack={() => navigate('/')} />;
+  }
+  if (pathname === '/kantor' || pathname === '/office' || pathname === '/warroom') {
+    return (
+      <KantorAiDashboard 
+        onBack={() => navigate('/')} 
+        onNavigatePlatform={(p) => navigate(`/${p}`)}
+      />
+    );
   }
 
   // Home → Platform Selector

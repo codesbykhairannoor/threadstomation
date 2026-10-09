@@ -5,6 +5,17 @@ const PlatformSelector = ({ onSelect }) => {
 
   const platforms = [
     {
+      id: 'kantor',
+      icon: '🏢',
+      name: 'Kantor AI (War Room)',
+      description: 'Pusat komando visual & ruang kerja interaktif seluruh bot AI. Pantau status kerja, jadwal, dialog bot, dan trigger posting tanpa cek log manual.',
+      features: ['Live Visual Desks', 'Multi-Platform Sync', 'Real-time Dialogs', 'Instant Run Now'],
+      gradient: 'linear-gradient(135deg, #0284c7 0%, #7c3aed 100%)',
+      glowColor: 'rgba(56, 189, 248, 0.35)',
+      available: true,
+      isFeatured: true,
+    },
+    {
       id: 'threads',
       icon: '🧵',
       name: 'Threads Publisher',
@@ -121,6 +132,23 @@ const PlatformSelector = ({ onSelect }) => {
               ))}
             </div>
 
+            {p.isFeatured && (
+              <div style={{ position: 'absolute', top: '15px', right: '20px' }}>
+                <span style={{ 
+                  background: 'linear-gradient(135deg, #0284c7, #7c3aed)', 
+                  color: '#fff', 
+                  border: '1px solid rgba(255,255,255,0.3)', 
+                  padding: '4px 10px', 
+                  borderRadius: '8px', 
+                  fontSize: '0.72rem', 
+                  fontWeight: '800',
+                  letterSpacing: '0.05em',
+                  boxShadow: '0 0 12px rgba(56, 189, 248, 0.4)'
+                }}>
+                  ⭐ PUSAT MONITOR
+                </span>
+              </div>
+            )}
             {!p.available && (
               <div style={{ position: 'absolute', top: '15px', right: '20px' }}>
                 <span className="badge badge-error">Coming Soon</span>

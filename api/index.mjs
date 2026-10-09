@@ -19,6 +19,8 @@ import tumblrApp from './tumblr.mjs';
 import mastodonApp from './mastodon.mjs';
 import devtoApp from './devto.mjs';
 import blueskyApp from './bluesky.mjs';
+import nostrApp from './nostr.mjs';
+import officeApp from './office.mjs';
 
 const app = express();
 app.use(cors());
@@ -33,6 +35,8 @@ app.use(tumblrApp);
 app.use(mastodonApp);
 app.use(devtoApp);
 app.use(blueskyApp);
+app.use(nostrApp);
+app.use(officeApp);
 
 // Global DB Init Middleware
 app.use(async (req, res, next) => {
