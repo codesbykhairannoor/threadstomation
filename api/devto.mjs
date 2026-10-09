@@ -4,7 +4,7 @@ import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { getDevtoUserInfo, postToDevto } from '../lib/devto.js';
 import { generateDevtoArticle } from '../lib/devto_content.js';
-import { evaluateStochasticPostTrigger } from '../lib/stealth_reach_engine.js';
+import { evaluateStochasticPostTrigger, getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
 
 const app = express();
 app.use(cors());
@@ -178,15 +178,15 @@ export async function runDevtoCron(force = false) {
   witaFormatter.formatToParts(now).forEach(x => parts[x.type] = x.value);
   const todayStr = `${parts.year}-${parts.month}-${parts.day}`;
   const currentHour = parseInt(parts.hour === '24' ? '0' : parts.hour, 10);
-  const currentMinutes = parseInt(parts.minute, 10);
+  const currentMinute = parseInt(parts.minute, 10);
 
-  console.log(`[Devto-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA (Force: ${force})`);
+  console.log(`[Devto-Cron] Tick started at ${todayStr} ${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')} WITA (Force: ${force})`);
 
-  // ── CIRCADIAN GLOBAL DEVELOPER PRIME WINDOW (14:00 - 23:30 WITA = 06:00 - 15:30 UTC) ──
-  // Menjangkau jam produktif tech scroller di Eropa (08:00 - 17:30 CET) dan bangun pagi US East Coast (02:00 - 11:30 EST).
-  if (!force && (currentHour < 14 || currentHour >= 24)) {
-    console.log(`[Devto-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')} WITA is outside global tech window (14:00 - 23:30 WITA). Sleeping.`);
-    return { success: true, status: 'Outside DEV.TO global tech window (14:00 - 23:30 WITA)' };
+  // ── CIRCADIAN GLOBAL DEVELOPER PRIME WINDOW (13:00 - 23:30 WITA = 05:00 - 15:30 UTC) ──
+  // Menjangkau jam produktif tech scroller di Eropa (07:00 - 17:30 CET) dan bangun pagi US East Coast (01:00 - 11:30 EST).
+  if (!force && (currentHour < 13 || currentHour >= 24)) {
+    console.log(`[Devto-Cron] 🌙 Current time ${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')} WITA is outside global tech window (13:00 - 23:30 WITA). Sleeping.`);
+    return { success: true, status: 'Outside DEV.TO global tech window (13:00 - 23:30 WITA)' };
   }
 
   const globalStatus = await sql`SELECT value FROM devto_settings WHERE key = 'devto_automation_enabled'`;
@@ -234,15 +234,20 @@ export async function runDevtoCron(force = false) {
       }
     }
 
-    // 3. ADAPTIVE STOCHASTIC POISSON PACING (SUPER ACAK + JAMINAN KUOTA 100%)
-    // Melempar dadu acak tiap tick (20 menit). Menit & jam terbit tersebar bebas.
-    // Jika waktu siang/sore mulai habis, probabilitas otomatis 100% sehingga target PASTI TERPENUHI!
-    if (!force) {
-      const stochastic = evaluateStochasticPostTrigger(postsToday, dailyLimit, currentHour, 23, 0.25);
-      console.log(`[Devto-Cron] 🎲 @${acc.username}: postsToday=${postsToday}/${dailyLimit}, roll=${stochastic.roll}, chance=${stochastic.chance} (${stochastic.reason})`);
-      if (!stochastic.shouldPost) {
-        continue;
-      }
+    // ── DETERMINISTIC STAGGERED QUEUE SLOTS ARCHITECTURE (ALA BUFFER/POSTIZ) ──
+    // Prime developer reading slot: 13:00 - 18:00 WITA
+    const targetSlot = getDailyDynamicTargetSlot(
+      todayStr,
+      `devto-${acc.username || acc.id}`,
+      's1',
+      13, 0, 18, 0,
+      currentHour, currentMinute
+    );
+
+    console.log(`[Devto-Cron] 🎯 @${acc.username}: Slot 1/1 target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2,'0')}:${String(currentMinute).padStart(2,'0')}, isDue: ${targetSlot.isDue})`);
+
+    if (!force && !targetSlot.isDue) {
+      continue;
     }
 
 
@@ -297,8 +302,11 @@ export async function runDevtoCron(force = false) {
         WHERE id = ${historyId}
       `;
 
-      console.log(`[Devto-Cron] ✅ Successfully published for @${acc.username}: "${result.title}" -> ${result.url}`);
       executed.push({ account: acc.username, scheduleId: chosen.id, ...result });
+
+      // ── SINGLE-ACCOUNT EXECUTION LOCK PER CRON RUN ──
+      console.log(`[Devto-Cron] 🔒 Dispatched post for @${acc.username}. Locking out other DEV.TO accounts for this 15-minute cycle.`);
+      break;
     } catch (postErr) {
       console.error(`[Devto-Cron] Post failed for @${acc.username}:`, postErr.message);
       await sql`

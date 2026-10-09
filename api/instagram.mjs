@@ -13,6 +13,7 @@ import { generateInstagramSlideImages, generateReelTextOverlayBuffers } from '..
 import { createVideoFromImages } from '../lib/video_generator.js';
 import { renderDynamicMindsetReel, renderTranvasMotionReel, renderGenerativeMetaphorReel } from '../lib/remotion_renderer.js';
 import { deleteMediaUrls, cleanupOldStorage } from '../lib/supabase_storage.js';
+import { getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
 
 const app = express();
 app.use(cors());
@@ -506,10 +507,33 @@ export async function runInstagramCron(force = false) {
         continue;
       }
 
-      // Strict Active Hours Guard: 08:00 WITA - 22:00 WITA
-      // Prevents burning daily quota at midnight/early morning (00:00 - 07:59 WITA)
-      if (!force && (currentHour < 8 || currentHour >= 22)) {
-        console.log(`[Instagram-Cron] ${acc.name}: Current hour ${currentHour}:00 WITA is outside active daytime window (08:00 - 22:00 WITA). Sleeping.`);
+      // ── DETERMINISTIC STAGGERED QUEUE SLOTS ARCHITECTURE (ALA BUFFER/POSTIZ) ──
+      // Dedicated, non-overlapping windows for each of the 3 Instagram accounts!
+      // Adhlil: Morning/Noon (09:00 - 13:00 WITA)
+      // Tranvas: Afternoon (13:30 - 17:30 WITA)
+      // Sharesa Space: Evening (18:00 - 22:00 WITA)
+      let windowConfig;
+      const nName = (acc.name || '').toLowerCase();
+      if (nName.includes('adhlil') || acc.id === 1) {
+        windowConfig = [9, 0, 13, 0];
+      } else if (nName.includes('tranvas') || acc.id === 2) {
+        windowConfig = [13, 30, 17, 30];
+      } else {
+        windowConfig = [18, 0, 22, 0];
+      }
+
+      const [startH, startM, endH, endM] = windowConfig;
+      const targetSlot = getDailyDynamicTargetSlot(
+        todayStr,
+        `ig-${acc.name || acc.id}`,
+        's1',
+        startH, startM, endH, endM,
+        currentHour, currentMinute
+      );
+
+      console.log(`[Instagram-Cron] 🎯 ${acc.name}: Slot 1/1 target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2,'0')}:${String(currentMinute).padStart(2,'0')}, isDue: ${targetSlot.isDue})`);
+
+      if (!force && !targetSlot.isDue) {
         continue;
       }
 
@@ -522,30 +546,24 @@ export async function runInstagramCron(force = false) {
 
       if (!pending.length) continue;
 
-      // Daytime high confidence: 65% chance per trigger, guaranteed 100% after 17:00 WITA
-      let chance = currentHour >= 17 ? 1.0 : 0.65;
-      if (force) chance = 1.0;
+      const chosen = pending[Math.floor(Math.random() * pending.length)];
+      try {
+        const result = await runInstagramPost(acc.id, chosen.custom_prompt);
+        // Only mark as ran today if it actually succeeded
+        await sql`UPDATE instagram_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
+        
+        executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
+        console.log(`[Instagram-Cron] ✅ Posted for ${acc.name}`);
 
-      const roll = Math.random();
-
-      console.log(`[Instagram-Cron] ${acc.name}: postsToday=${postsToday}/${dailyLimit}, pending=${pending.length}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
-
-      if (roll < chance) {
-        const chosen = pending[Math.floor(Math.random() * pending.length)];
-        try {
-          const result = await runInstagramPost(acc.id, chosen.custom_prompt);
-          // Only mark as ran today if it actually succeeded
-          await sql`UPDATE instagram_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
-          
-          executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
-          console.log(`[Instagram-Cron] ✅ Posted for ${acc.name}`);
-        } catch (postErr) {
-          console.error(`[Instagram-Cron] Post failed for ${acc.name}:`, postErr.message);
-          await sql`
-            INSERT INTO instagram_history (account_id, caption, status, error_message)
-            VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
-          `;
-        }
+        // ── SINGLE-ACCOUNT EXECUTION LOCK PER CRON RUN ──
+        console.log(`[Instagram-Cron] 🔒 Dispatched post for ${acc.name}. Locking out other Instagram accounts for this 15-minute cycle.`);
+        break;
+      } catch (postErr) {
+        console.error(`[Instagram-Cron] Post failed for ${acc.name}:`, postErr.message);
+        await sql`
+          INSERT INTO instagram_history (account_id, caption, status, error_message)
+          VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
+        `;
       }
     }
 

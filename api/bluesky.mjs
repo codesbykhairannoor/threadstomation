@@ -4,9 +4,8 @@ import cors from 'cors';
 import sql, { initDb } from '../lib/database.js';
 import { getBlueskyAgent, postToBluesky } from '../lib/bluesky.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js'; 
-import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 import { generateKhaithisranPost } from '../lib/bluesky_content.js';
-import { evaluateStochasticPostTrigger } from '../lib/stealth_reach_engine.js';
+import { evaluateStochasticPostTrigger, getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
 
 const app = express();
 app.use(cors());
@@ -340,15 +339,23 @@ export async function runBlueskyCron(force = false) {
         }
       }
 
-      // ── ADAPTIVE STOCHASTIC POISSON PACING (SUPER ACAK + JAMINAN KUOTA 100%) ──
-      // Melempar dadu acak tiap tick (15-20 menit). Menit & jam terbit tersebar bebas sepanjang hari.
-      // Jika hari mulai malam dan kuota belum tuntas, probabilitas otomatis 100% sehingga target PASTI TERPENUHI!
-      if (!force) {
-        const stochastic = evaluateStochasticPostTrigger(postsToday, dailyLimit, currentHour, 23, 0.28);
-        console.log(`[Bluesky-Cron] 🎲 ${acc.identifier}: postsToday=${postsToday}/${dailyLimit}, roll=${stochastic.roll}, chance=${stochastic.chance} (${stochastic.reason})`);
-        if (!stochastic.shouldPost) {
-          continue;
-        }
+      // ── DETERMINISTIC STAGGERED QUEUE SLOTS ARCHITECTURE (ALA BUFFER/POSTIZ) ──
+      // Slot 1 (Morning/Noon): 10:00 - 14:00 WITA
+      // Slot 2 (Evening/Night): 17:00 - 21:30 WITA
+      const windowConfig = (postsToday === 0) ? [10, 0, 14, 0] : [17, 0, 21, 30];
+      const [startH, startM, endH, endM] = windowConfig;
+      const targetSlot = getDailyDynamicTargetSlot(
+        todayStr,
+        `bsky-${acc.identifier || acc.id}`,
+        `slot-${postsToday + 1}`,
+        startH, startM, endH, endM,
+        currentHour, currentMinute
+      );
+
+      console.log(`[Bluesky-Cron] 🎯 ${acc.identifier}: Slot ${postsToday + 1}/${dailyLimit} target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2,'0')}:${String(currentMinute).padStart(2,'0')}, isDue: ${targetSlot.isDue})`);
+
+      if (!force && !targetSlot.isDue) {
+        continue;
       }
 
       // Sequential FIFO Schedule Rotation (Oldest last_run_date first)
@@ -418,12 +425,17 @@ export async function runBlueskyCron(force = false) {
 
           console.log(`[Bluesky-Cron] ✅ Successfully posted for ${acc.identifier} (${chosen.custom_prompt})`);
           executed.push({ account: acc.identifier, scheduleId: chosen.id, ...result });
+
+          // ── SINGLE-ACCOUNT EXECUTION LOCK PER CRON RUN ──
+          console.log(`[Bluesky-Cron] 🔒 Dispatched post for ${acc.identifier}. Locking out other Bluesky accounts for this 15-minute cycle.`);
+          break;
         } catch (postErr) {
           console.error(`[Bluesky-Cron] ❌ Post failed for ${acc.identifier}:`, postErr.message);
           await sql`
             INSERT INTO bluesky_history (account_id, caption, status, error_message)
             VALUES (${acc.id}, ${chosen.custom_prompt || 'Auto post'}, 'failed', ${postErr.message || String(postErr)})
           `;
+          break;
         }
       }
     }

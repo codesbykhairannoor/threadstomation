@@ -10,9 +10,7 @@ import cors from 'cors';
 import sql, { initDb, cleanupOldHistory } from '../lib/database.js';
 import { generateThreadsContent } from '../lib/gemini.js';
 import { postToPlatforms } from '../lib/threads_service.js';
-import { refreshThreadsToken } from '../lib/threads.js';
-import { evaluateStochasticPostTrigger } from '../lib/stealth_reach_engine.js';
-import axios from 'axios';
+import { evaluateStochasticPostTrigger, getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
 import fs from 'fs';
 import tiktokApp from './tiktok.mjs';
 import instagramApp from './instagram.mjs';
@@ -293,15 +291,34 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
                 }
             }
 
-            // ── ADAPTIVE STOCHASTIC POISSON PACING (SUPER ACAK + JAMINAN KUOTA 100%) ──
-            // Melempar dadu acak tiap tick (15 menit). Jam posting tersebar bebas sepanjang hari.
-            // Jika hari mulai malam dan kuota belum tuntas, probabilitas otomatis 100% sehingga target PASTI TERPENUHI!
-            if (!force) {
-                const stochastic = evaluateStochasticPostTrigger(postsToday, dailyLimit, currentHour, 23, 0.28);
-                console.log(`[Threads-Cron] 🎲 ${acc.name}: postsToday=${postsToday}/${dailyLimit}, roll=${stochastic.roll}, chance=${stochastic.chance} (${stochastic.reason})`);
-                if (!stochastic.shouldPost) {
-                    continue;
-                }
+            // ── DETERMINISTIC STAGGERED QUEUE SLOTS ARCHITECTURE (ALA BUFFER/POSTIZ) ──
+            // Each account has dedicated non-overlapping windows across the day with dynamic daily jitter.
+            // Guarantees that accounts NEVER post at the same time or minute, and changes every single day!
+            let windowConfig;
+            if (nName.includes('adhlil')) {
+                // adhlil.co: Slot 1 (08:30 - 12:30), Slot 2 (18:30 - 20:30)
+                windowConfig = (postsToday === 0) ? [8, 30, 12, 30] : [18, 30, 20, 30];
+            } else if (nName.includes('sharesa')) {
+                // Sharesa Space: Slot 1 (12:45 - 15:45), Slot 2 (20:30 - 23:00)
+                windowConfig = (postsToday === 0) ? [12, 45, 15, 45] : [20, 30, 23, 0];
+            } else {
+                // Tranvas (1 post/day): Slot 1 (15:45 - 18:30)
+                windowConfig = [15, 45, 18, 30];
+            }
+
+            const [startH, startM, endH, endM] = windowConfig;
+            const targetSlot = getDailyDynamicTargetSlot(
+                todayStr,
+                `threads-${acc.name}`,
+                `slot-${postsToday + 1}`,
+                startH, startM, endH, endM,
+                currentHour, currentMinute
+            );
+
+            console.log(`[Threads-Cron] 🎯 ${acc.name}: Slot ${postsToday + 1}/${dailyLimit} target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2,'0')}:${String(currentMinute).padStart(2,'0')}, isDue: ${targetSlot.isDue})`);
+
+            if (!force && !targetSlot.isDue) {
+                continue;
             }
 
             const pending = await sql`
@@ -316,7 +333,6 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
 
                 if (nName.includes('sharesa')) {
                     // ── 5 KATEGORI DYNAMIC SHUFFLE (SHARESA SPACE) ──────────────────
-                    // 1. Cek kategori apa saja dari 1-5 yang SUDAH jalan hari ini
                     const ranTodaySchedules = await sql`
                         SELECT custom_prompt FROM schedules 
                         WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}
@@ -327,10 +343,7 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
                         if (match) executedCategories.add(parseInt(match[1]));
                     }
 
-                    // 2. Kategori yang BELUM jalan hari ini
                     const remainingCategories = [1, 2, 3, 4, 5].filter(c => !executedCategories.has(c));
-                    
-                    // 3. Shuffle / pilih kategori acak dari yang belum terbit hari ini
                     const targetCategory = remainingCategories.length > 0 
                         ? remainingCategories[Math.floor(Math.random() * remainingCategories.length)]
                         : null;
@@ -341,17 +354,14 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
                             return m && parseInt(m[1]) === targetCategory;
                         });
                         if (catPending.length > 0) {
-                            // Pilih sudut pandang (angle) secara acak dari pool kategori tersebut
                             sch = catPending[Math.floor(Math.random() * catPending.length)];
                         }
                     }
 
-                    // Fallback jika tidak terpetakan
                     if (!sch) {
                         sch = pending[Math.floor(Math.random() * pending.length)];
                     }
                 } else {
-                    // Akun lain (termasuk Tranvas): Pilih acak dari pending
                     sch = pending[Math.floor(Math.random() * pending.length)];
                 }
                 
@@ -364,6 +374,12 @@ export async function runThreadsCron(awaitTasks = false, force = false) {
                 if (awaitTasks) {
                     pendingTasks.push(taskPromise);
                 }
+
+                // ── SINGLE-ACCOUNT EXECUTION LOCK PER CRON RUN ──
+                // Enforce maximum 1 Threads account posting per 15-minute cron cycle.
+                // Prevents simultaneous burst posting across multiple accounts!
+                console.log(`[Threads-Cron] 🔒 Dispatched post for ${acc.name}. Locking out other Threads accounts for this 15-minute cycle.`);
+                break;
             }
         } catch (accErr) { console.error(`[Cron-Acc] ${acc.name}:`, accErr.message); }
     }

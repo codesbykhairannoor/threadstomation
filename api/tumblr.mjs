@@ -10,9 +10,8 @@ import {
   postToTumblr
 } from '../lib/tumblr.js';
 import { generateTumblrContent } from '../lib/gemini_tumblr.js';
-import { generateInstagramSlideImages, generateNativeBannerImage } from '../lib/instagram_carousel.js';
 import { generateTumblrPost } from '../lib/tumblr_content.js';
-import { evaluateStochasticPostTrigger } from '../lib/stealth_reach_engine.js';
+import { evaluateStochasticPostTrigger, getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
 
 const app = express();
 app.use(cors());
@@ -415,16 +414,23 @@ export async function runTumblrCron(force = false) {
         }
       }
 
-      // 3. ADAPTIVE STOCHASTIC POISSON PACING (SUPER ACAK + JAMINAN KUOTA 100%)
-      // Melempar dadu acak tiap tick. Jam & menit terbit tersebar bebas sepanjang hari.
-      // Jika hari mulai larut malam dan kuota belum tuntas, probabilitas otomatis 100% sehingga target PASTI TERPENUHI!
-      if (!force) {
-        const normHour = currentHour < 2 ? currentHour + 24 : currentHour;
-        const stochastic = evaluateStochasticPostTrigger(postsToday, dailyLimit, normHour, 25, 0.28);
-        console.log(`[Tumblr-Cron] 🎲 ${acc.blog_name || acc.name}: postsToday=${postsToday}/${dailyLimit}, roll=${stochastic.roll}, chance=${stochastic.chance} (${stochastic.reason})`);
-        if (!stochastic.shouldPost) {
-          continue;
-        }
+      // ── DETERMINISTIC STAGGERED QUEUE SLOTS ARCHITECTURE (ALA BUFFER/POSTIZ) ──
+      // Slot 1 (Midday/Afternoon): 11:00 - 16:00 WITA
+      // Slot 2 (Night/Late): 20:00 - 25:00 WITA (crosses midnight until 01:00)
+      const windowConfig = (postsToday === 0) ? [11, 0, 16, 0] : [20, 0, 25, 0];
+      const [startH, startM, endH, endM] = windowConfig;
+      const targetSlot = getDailyDynamicTargetSlot(
+        todayStr,
+        `tumblr-${acc.blog_name || acc.id}`,
+        `slot-${postsToday + 1}`,
+        startH, startM, endH, endM,
+        currentHour, currentMinutes
+      );
+
+      console.log(`[Tumblr-Cron] 🎯 ${acc.blog_name || acc.name}: Slot ${postsToday + 1}/${dailyLimit} target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2,'0')}:${String(currentMinutes).padStart(2,'0')}, isDue: ${targetSlot.isDue})`);
+
+      if (!force && !targetSlot.isDue) {
+        continue;
       }
 
       // 3. FIFO Schedule Rotation: Fair sequential cycle through all 5 web apps
@@ -474,8 +480,11 @@ export async function runTumblrCron(force = false) {
           UPDATE tumblr_history SET status = 'success', post_id = ${String(result.publishId)}, caption = ${result.text || chosen.custom_prompt || 'Tumblr Post'} WHERE id = ${historyId}
         `;
 
-        console.log(`[Tumblr-Cron] ✅ Successfully posted for ${acc.blog_name || acc.name} (${chosen.custom_prompt})`);
         executed.push({ account: acc.blog_name || acc.name, scheduleId: chosen.id, ...result });
+
+        // ── SINGLE-ACCOUNT EXECUTION LOCK PER CRON RUN ──
+        console.log(`[Tumblr-Cron] 🔒 Dispatched post for ${acc.blog_name || acc.name}. Locking out other Tumblr accounts for this 15-minute cycle.`);
+        break;
       } catch (postErr) {
         console.error(`[Tumblr-Cron] ❌ Post failed for ${acc.blog_name || acc.name}:`, postErr.message);
         await sql`
