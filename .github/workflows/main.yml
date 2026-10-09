@@ -1,19 +1,31 @@
-name: CI/CD Pipeline
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-    - name: Use Node.js
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
@@ -22,8 +34,31 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Build
+    - name: Generate Office Data Snapshot
+      run: node scripts/generate_office_snapshot.mjs || true
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    - name: Build with Vite
       run: npm run build
       env:
+        GITHUB_ACTIONS: 'true'
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+    - name: Setup SPA 404 fallback for GitHub Pages routing
+      run: cp dist/index.html dist/404.html
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './dist'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

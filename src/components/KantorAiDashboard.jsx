@@ -180,19 +180,41 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
 
   const fetchOfficeStatus = async (isManual = false) => {
     if (isManual) setRefreshing(true);
+    let loaded = false;
+
+    // 1. Try local or serverless API
     try {
       const res = await fetch('/api/office/status');
       if (res.ok) {
         const json = await res.json();
-        setData(json);
+        if (json && json.workers) {
+          setData(json);
+          loaded = true;
+        }
       }
-    } catch (e) {
-      console.error('Failed to fetch office status:', e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setCountdown(15);
+    } catch (_) {}
+
+    // 2. If API fails (e.g. running on GitHub Pages static host), fallback to static snapshot
+    if (!loaded) {
+      try {
+        const baseUrl = import.meta.env.BASE_URL || '/';
+        const snapshotUrl = `${baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'}office_status.json`;
+        const res = await fetch(snapshotUrl);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.workers) {
+            setData(json);
+            loaded = true;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load office snapshot:', e);
+      }
     }
+
+    setLoading(false);
+    setRefreshing(false);
+    setCountdown(15);
   };
 
   useEffect(() => {

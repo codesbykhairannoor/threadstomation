@@ -18,9 +18,19 @@ import './App.css';
 
 const API_BASE = '';
 
+const getNormalizedPath = () => {
+  const raw = window.location.pathname;
+  const stripped = raw.replace(/^\/threadstomation\/?/, '/');
+  return stripped === '' ? '/' : stripped;
+};
+
+const getBasePath = () => {
+  return window.location.pathname.startsWith('/threadstomation') ? '/threadstomation' : '';
+};
+
 function App() {
-  // URL-based routing — pathname IS the source of truth
-  const [pathname, setPathname] = useState(window.location.pathname);
+  // URL-based routing — pathname normalized for both root domain and GitHub Pages subpath
+  const [pathname, setPathname] = useState(getNormalizedPath());
 
   // Dashboard state
   const [activeTab, setActiveTab] = useState('threads');
@@ -38,15 +48,17 @@ function App() {
 
   // Listen to browser back/forward buttons
   useEffect(() => {
-    const handlePopState = () => setPathname(window.location.pathname);
+    const handlePopState = () => setPathname(getNormalizedPath());
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Navigate helper — updates URL AND React state
+  // Navigate helper — updates URL AND React state with GitHub Pages subpath support
   const navigate = (path) => {
-    window.history.pushState({}, '', path);
-    setPathname(path);
+    const target = path.startsWith('/') ? path : '/' + path;
+    const full = `${getBasePath()}${target}`;
+    window.history.pushState({}, '', full);
+    setPathname(target);
   };
 
   // Fetch accounts when entering a platform dashboard
