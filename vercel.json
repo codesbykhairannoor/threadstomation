@@ -78,6 +78,14 @@
       "destination": "/api/bluesky.mjs"
     },
     {
+      "source": "/api/nostr",
+      "destination": "/api/nostr.mjs"
+    },
+    {
+      "source": "/api/nostr/(.*)",
+      "destination": "/api/nostr.mjs"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.mjs"
     },

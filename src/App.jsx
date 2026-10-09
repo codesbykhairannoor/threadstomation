@@ -12,6 +12,7 @@ import TumblrApp from './components/TumblrApp';
 import MastodonApp from './components/MastodonApp';
 import DevtoApp from './components/DevtoApp';
 import BlueskyApp from './components/BlueskyApp';
+import NostrApp from './components/NostrApp';
 import './App.css';
 
 const API_BASE = '';
@@ -179,6 +180,9 @@ function App() {
   }
   if (pathname === '/bluesky') {
     return <BlueskyApp onBack={() => navigate('/')} />;
+  }
+  if (pathname === '/nostr') {
+    return <NostrApp onBack={() => navigate('/')} />;
   }
 
   // Home → Platform Selector

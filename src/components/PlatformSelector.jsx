@@ -84,6 +84,16 @@ const PlatformSelector = ({ onSelect }) => {
       glowColor: 'rgba(0, 133, 255, 0.25)',
       available: true,
     },
+    {
+      id: 'nostr',
+      icon: '⚡',
+      name: 'Nostr Sovereign',
+      description: 'Decentralized notes broadcasted across relays. 1x/day promotion of 5 sovereign web tools.',
+      features: ['NIP-01 Protocol', 'Multi-Relay Broadcast', 'Zero Censorship', 'Client-side WASM'],
+      gradient: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)',
+      glowColor: 'rgba(124, 58, 237, 0.25)',
+      available: true,
+    },
   ];
 
   return (

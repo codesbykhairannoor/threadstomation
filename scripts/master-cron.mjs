@@ -5,6 +5,7 @@ import { runBlueskyCron } from '../api/bluesky.mjs';
 import { runTumblrCron } from '../api/tumblr.mjs';
 import { runDevtoCron } from '../api/devto.mjs';
 import { runMastodonCron } from '../api/mastodon.mjs';
+import { runNostrCron } from '../api/nostr.mjs';
 import { cleanupOldStorage } from '../lib/supabase_storage.js';
 import { runCommentReplier } from '../lib/comment_replier.js';
 import { runEngagementSeeder } from '../lib/engagement_seeder.js';
@@ -65,6 +66,11 @@ async function main() {
             console.error('[Master-Cron] ❌ Failed during Mastodon automation:', err);
         });
 
+        await delay(2500);
+        const nostrJob = runNostrCron(false).catch(err => {
+            console.error('[Master-Cron] ❌ Failed during Nostr automation:', err);
+        });
+
         const replierJob = runCommentReplier().catch(err => {
             console.warn('[Master-Cron] ⚠️ Comment replier note:', err.message);
         });
@@ -80,6 +86,7 @@ async function main() {
             tumblrJob,
             devtoJob,
             mastodonJob,
+            nostrJob,
             replierJob,
             seederJob
         ]);
@@ -90,8 +97,9 @@ async function main() {
         console.log('[Master-Cron] Tumblr Result:', results[3].value || results[3].reason);
         console.log('[Master-Cron] Dev.to Result:', results[4].value || results[4].reason);
         console.log('[Master-Cron] Mastodon Result:', results[5].value || results[5].reason);
-        console.log('[Master-Cron] Engagement Replier Result:', results[6].value || results[6].reason);
-        console.log('[Master-Cron] Engagement Seeder Result:', results[7].value || results[7].reason);
+        console.log('[Master-Cron] Nostr Result:', results[6].value || results[6].reason);
+        console.log('[Master-Cron] Engagement Replier Result:', results[7].value || results[7].reason);
+        console.log('[Master-Cron] Engagement Seeder Result:', results[8].value || results[8].reason);
 
     } catch (fatalErr) {
         console.error('[Master-Cron] ❌ FATAL ERROR:', fatalErr);
