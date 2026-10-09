@@ -179,7 +179,7 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
   const [triggeringId, setTriggeringId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
   const [countdown, setCountdown] = useState(15);
-  const [viewMode, setViewMode] = useState('pixel'); // 'pixel' (Authentic Pixel Game), 'iso' (Isometric 2.5D), or 'cards' (Grid)
+  const [viewMode, setViewMode] = useState('simple'); // 'simple' (Ringkas & Cepat), 'cards' (Grid), 'pixel' (Game 16-Bit), 'iso' (2.5D)
 
   const fetchOfficeStatus = async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -451,20 +451,13 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
 
       {/* ── VIEW SWITCHER BAR ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.2rem', gap: '1rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.7)', padding: '5px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.7)', padding: '5px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap' }}>
           <button 
-            className={`filter-pill ${viewMode === 'pixel' ? 'active' : ''}`}
-            onClick={() => setViewMode('pixel')}
+            className={`filter-pill ${viewMode === 'simple' ? 'active' : ''}`}
+            onClick={() => setViewMode('simple')}
             style={{ fontWeight: '700', padding: '0.45rem 1rem' }}
           >
-            🎮 Mode Game Pixel (Asli 16-Bit)
-          </button>
-          <button 
-            className={`filter-pill ${viewMode === 'iso' ? 'active' : ''}`}
-            onClick={() => setViewMode('iso')}
-            style={{ fontWeight: '700', padding: '0.45rem 1rem' }}
-          >
-            📐 Mode Blueprint 2.5D
+            ⚡ Mode Simpel (Ringkas & Cepat)
           </button>
           <button 
             className={`filter-pill ${viewMode === 'cards' ? 'active' : ''}`}
@@ -473,14 +466,36 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
           >
             📋 Mode Kartu Meja (Grid)
           </button>
+          <button 
+            className={`filter-pill ${viewMode === 'pixel' ? 'active' : ''}`}
+            onClick={() => setViewMode('pixel')}
+            style={{ fontWeight: '700', padding: '0.45rem 1rem' }}
+          >
+            🎮 Mode Game Pixel (16-Bit Asli)
+          </button>
+          <button 
+            className={`filter-pill ${viewMode === 'iso' ? 'active' : ''}`}
+            onClick={() => setViewMode('iso')}
+            style={{ fontWeight: '700', padding: '0.45rem 1rem' }}
+          >
+            📐 Mode Blueprint 2.5D
+          </button>
         </div>
 
-        {viewMode !== 'cards' && (
-          <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>💡</span>
-            <span>Klik meja/karakter bot mana saja di denah game untuk buka detail & jalankan postingan.</span>
-          </div>
-        )}
+        <div style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {viewMode === 'simple' && (
+            <span>⚡ Pantau status, progres kuota, dan trigger posting langsung tanpa lag.</span>
+          )}
+          {viewMode === 'cards' && (
+            <span>📋 Tampilan kartu meja interaktif dengan avatar tiap bot.</span>
+          )}
+          {viewMode === 'pixel' && (
+            <span>🎮 Simulasi kantor 16-bit asli. Klik meja/karakter bot untuk detail & aksi.</span>
+          )}
+          {viewMode === 'iso' && (
+            <span>📐 Denah blueprint 2.5D top-down ruang kerja.</span>
+          )}
+        </div>
       </div>
 
       {/* ── WAR ROOM CONTENT ── */}
@@ -488,6 +503,128 @@ const KantorAiDashboard = ({ onBack, onNavigatePlatform }) => {
         <div style={{ textAlign: 'center', padding: '5rem 0', color: '#94a3b8' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }} className="spin">⚙️</div>
           <p>Menghubungkan ke log database Supabase & Vercel...</p>
+        </div>
+      ) : viewMode === 'simple' ? (
+        <div className="warroom-simple-container">
+          {/* Summary Strip */}
+          <div className="simple-summary-strip">
+            <div className="simple-strip-title">
+              <span>⚡</span>
+              <strong>Live Monitor ({filteredWorkers.length} Bot Aktif)</strong>
+              <span className="simple-strip-subtitle">— Status live database, kuota target hari ini, & log aksi terkini</span>
+            </div>
+            <div className="simple-strip-meta">
+              <span>Sinkronisasi otomatis tiap 15 detik</span>
+            </div>
+          </div>
+
+          {/* Quick Table */}
+          <div className="simple-table-wrapper">
+            <table className="simple-monitor-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '24%' }}>Akun & Platform</th>
+                  <th style={{ width: '15%' }}>Status Kerja</th>
+                  <th style={{ width: '18%' }}>Target Kuota</th>
+                  <th style={{ width: '28%' }}>Dialog / Log Database Terkini</th>
+                  <th style={{ width: '15%', textAlign: 'right' }}>Aksi Instan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredWorkers.map(w => {
+                  const statusMeta = getStatusLabel(w.status);
+                  const isWorkingThis = triggeringId === w.id;
+                  const progressPercent = Math.min(100, Math.round((w.todayCount / w.dailyTarget) * 100));
+
+                  return (
+                    <tr key={w.id} className={`simple-row state-${w.status.toLowerCase()}`}>
+                      {/* Platform & Account */}
+                      <td>
+                        <div className="simple-acc-cell">
+                          <span className="simple-platform-icon">{w.platformIcon}</span>
+                          <div>
+                            <div className="simple-acc-name">
+                              <strong>{w.accountName}</strong>
+                              <span className="simple-platform-name">{w.platformName}</span>
+                            </div>
+                            <div className="simple-acc-role">{w.role}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td>
+                        <span className={`desk-status-pill ${statusMeta.cls}`}>
+                          <span>{statusMeta.dot}</span>
+                          <span>{statusMeta.text}</span>
+                        </span>
+                      </td>
+
+                      {/* Quota */}
+                      <td>
+                        <div className="simple-quota-cell">
+                          <div className="simple-quota-label">
+                            <strong>{w.todayCount} / {w.dailyTarget} Post</strong>
+                            <span className="simple-percent">({progressPercent}%)</span>
+                          </div>
+                          <div className="quota-bar-track" style={{ height: '6px', margin: '4px 0' }}>
+                            <div 
+                              className={`quota-bar-fill ${progressPercent >= 100 ? 'quota-fill-full' : progressPercent > 0 ? 'quota-fill-mid' : 'quota-fill-empty'}`}
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                          <div className="simple-schedule-text">
+                            🕒 {w.nextSlot}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Activity / Last Log */}
+                      <td>
+                        <div className="simple-log-cell">
+                          <div className="simple-speech-bubble">
+                            {w.speech}
+                          </div>
+                          {w.lastPost && w.lastPost.text && (
+                            <div className="simple-last-post-snippet">
+                              <span className={`simple-post-status-tag ${w.lastPost.status}`}>
+                                {w.lastPost.status === 'success' ? '✅ Terbit' : '❌ Gagal'} ({w.lastPost.relativeTime || 'baru saja'})
+                              </span>
+                              <span className="simple-snippet-text">
+                                "{w.lastPost.text.slice(0, 80)}{w.lastPost.text.length > 80 ? '...' : ''}"
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="simple-actions-cell">
+                          <button 
+                            className={`simple-btn-trigger ${isWorkingThis ? 'loading' : ''}`}
+                            onClick={() => handleTriggerNow(w)}
+                            disabled={isWorkingThis}
+                            title="Jalankan bot sekarang"
+                          >
+                            <span>{isWorkingThis ? '⏳' : '⚡'}</span>
+                            <span>{isWorkingThis ? 'Posting...' : 'Run Now'}</span>
+                          </button>
+                          <button 
+                            className="simple-btn-inspect"
+                            onClick={() => setSelectedWorker(w)}
+                            title="Buka log & riwayat lengkap"
+                          >
+                            🔍
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : viewMode === 'pixel' ? (
         <div style={{ marginBottom: '2.5rem' }}>
