@@ -43,7 +43,7 @@ app.get('/api/nostr/status', async (req, res) => {
     ]);
 
     const acc = accountRow[0] || null;
-    const hasNsec = !!(acc?.nsec || process.env.NOSTR_NSEC);
+    const hasNsec = !!(acc?.nsec || process.env.NOSTR_NSEC || process.env.NOSTR_BUNKER_URI);
 
     res.json({
       account: acc ? {
@@ -79,16 +79,16 @@ app.get('/api/nostr/history', async (req, res) => {
   }
 });
 
-// ── SAVE / UPDATE NSEC ───────────────────────────────────────────────────────
+// ── SAVE / UPDATE NSEC OR BUNKER URI ────────────────────────────────────────
 
 app.post('/api/nostr/keys/update-nsec', async (req, res) => {
   const { accountId, nsec } = req.body;
   if (!nsec || !nsec.trim()) {
-    return res.status(400).json({ error: 'Nostr nsec (private key) is required.' });
+    return res.status(400).json({ error: 'Nostr credential (nsec or bunker:// URI) is required.' });
   }
 
   try {
-    const { pubkeyHex, npub } = deriveKeys(nsec.trim());
+    const { pubkeyHex, npub, isBunker } = await deriveKeys(nsec.trim());
     await sql`
       UPDATE nostr_accounts
       SET nsec = ${nsec.trim()},
@@ -96,7 +96,12 @@ app.post('/api/nostr/keys/update-nsec', async (req, res) => {
           npub = ${npub}
       WHERE id = ${accountId || 1}
     `;
-    res.json({ success: true, message: 'Nostr private key updated and verified.', npub, pubkeyHex });
+    res.json({ 
+      success: true, 
+      message: isBunker ? 'Nostr Bunker connected and verified!' : 'Nostr private key updated and verified.', 
+      npub, 
+      pubkeyHex 
+    });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -126,10 +131,10 @@ app.post('/api/nostr/post-now', async (req, res) => {
     const acc = accounts[0];
     if (!acc) return res.status(404).json({ error: 'Account not found.' });
 
-    const nsec = acc.nsec || process.env.NOSTR_NSEC;
+    const nsec = acc.nsec || process.env.NOSTR_NSEC || process.env.NOSTR_BUNKER_URI;
     if (!nsec) {
       return res.status(400).json({ 
-        error: 'Nostr private key (nsec) is missing. Please save your nsec in Settings or set NOSTR_NSEC in .env.' 
+        error: 'Nostr credential (nsec or bunker:// URI) is missing. Please save your bunker URI or nsec in Settings.' 
       });
     }
 
@@ -212,10 +217,10 @@ export async function runNostrCron(force = false) {
       continue;
     }
 
-    // 2. Private Key (nsec) validation
-    const nsec = acc.nsec || process.env.NOSTR_NSEC;
-    if (!nsec) {
-      console.warn(`[Nostr-Cron] ⚠️ @${acc.username}: nsec (private key) is missing. Cannot sign note. Please configure nsec.`);
+    // 2. Credential (nsec or bunker:// URI) validation
+    const credential = acc.nsec || process.env.NOSTR_NSEC || process.env.NOSTR_BUNKER_URI;
+    if (!credential) {
+      console.warn(`[Nostr-Cron] ⚠️ @${acc.username}: Nostr credential (nsec or bunker) is missing. Cannot sign note. Please configure credential.`);
       continue;
     }
 
@@ -258,7 +263,7 @@ export async function runNostrCron(force = false) {
         ...(postData.hashtags || []).map(h => ['t', h])
       ];
 
-      const result = await publishNostrNote(nsec, postData.text, tags, acc.relays || undefined);
+      const result = await publishNostrNote(credential, postData.text, tags, acc.relays || undefined);
 
       await sql`
         UPDATE nostr_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}

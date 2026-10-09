@@ -68,15 +68,17 @@ async function main() {
   let accountId;
   if (existingAcc.length > 0) {
     accountId = existingAcc[0].id;
+    const BUNKER_URI = 'bunker://4674bf5e85ed9e256bd2e223b19d968ca5f3b6df87464efc53deb5aa12c54d4d?relay=wss%3A%2F%2Fauth.njump.me';
     await sql`
       UPDATE nostr_accounts
       SET name = 'Adhlil',
           username = 'khaithisran',
           pubkey_hex = ${PUBKEY_HEX},
+          nsec = ${BUNKER_URI},
           is_active = 1
       WHERE id = ${accountId}
     `;
-    console.log(`[Setup-Nostr] Updated existing account ID: ${accountId}`);
+    console.log(`[Setup-Nostr] Updated existing account ID ${accountId} with Bunker URI!`);
   } else {
     const inserted = await sql`
       INSERT INTO nostr_accounts (name, username, npub, pubkey_hex, is_active)
