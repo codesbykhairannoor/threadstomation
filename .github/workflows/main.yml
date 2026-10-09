@@ -42,8 +42,11 @@ jobs:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-    - name: Setup SPA 404 fallback for GitHub Pages routing
-      run: cp dist/index.html dist/404.html
+    - name: Setup SPA 404 fallback and direct /kantor routing
+      run: |
+        cp dist/index.html dist/404.html
+        mkdir -p dist/kantor
+        cp dist/index.html dist/kantor/index.html
 
     - name: Deploy to GitHub Pages (gh-pages branch)
       uses: peaceiris/actions-gh-pages@v4

@@ -19,6 +19,16 @@ import './App.css';
 const API_BASE = '';
 
 const getNormalizedPath = () => {
+  // Support hash routing (e.g. #/kantor)
+  if (window.location.hash) {
+    const hash = window.location.hash.replace(/^#/, '');
+    if (hash.startsWith('/')) return hash;
+  }
+  // Support redirect param (e.g. ?redirect=kantor)
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get('redirect');
+  if (redirect) return redirect.startsWith('/') ? redirect : '/' + redirect;
+
   const raw = window.location.pathname;
   const stripped = raw.replace(/^\/threadstomation\/?/, '/');
   return stripped === '' ? '/' : stripped;
