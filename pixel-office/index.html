@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kantor AI Pixel - Threadstomation</title>
+    <link rel="stylesheet" crossorigin href="./assets/index-CriQp6rI.css">
+    <style>
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #181828;
+      }
+    </style>
+    <script>
+      (function() {
+        console.log('[PixelBridge] Initializing VSCode Webview emulation bridge for Threadstomation...');
+        
+        let cachedWorkers = null;
+
+        window.__pixelAgentsBridge = {
+          postToWebview: function(msg) {
+            window.dispatchEvent(new MessageEvent('message', { data: msg }));
+          }
+        };
+
+        window.acquireVsCodeApi = function() {
+          return {
+            postMessage: function(msg) {
+              console.log('[PixelBridge <- Webview]', msg.type, msg);
+              if (msg.type === 'webviewReady') {
+                window.__pixelAgentsBridge.boot();
+              } else if (msg.type === 'focusAgent') {
+                try {
+                  window.parent.postMessage({ type: 'PIXEL_AGENT_CLICK', id: msg.id }, '*');
+                } catch(e) {}
+              } else if (msg.type === 'saveAgentSeats') {
+                try {
+                  localStorage.setItem('pixel_agents_seats', JSON.stringify(msg.seats));
+                } catch(e) {}
+              }
+            },
+            getState: function() { return {}; },
+            setState: function(st) {}
+          };
+        };
+
+        window.__pixelAgentsBridge.boot = async function() {
+          console.log('[PixelBridge] Booting game with world-assets.json...');
+          try {
+            const resp = await fetch('./world-assets.json');
+            const data = await resp.json();
+            const send = window.__pixelAgentsBridge.postToWebview;
+
+            // 1. Capabilities
+            send({
+              type: 'providerCapabilities',
+              readingTools: ['ReadDatabase', 'CheckActions', 'AnalyzeFeed'],
+              subagentToolNames: ['Worker', 'SubBot', 'Publisher']
+            });
+
+            // 2. Character & Pet Sprites
+            send({ type: 'characterSpritesLoaded', characters: data.characters });
+            if (data.pets && data.pets.length > 0) {
+              send({ type: 'petSpritesLoaded', pets: data.pets, petNames: data.petNames });
+            }
+
+            // 3. Tile sets
+            send({ type: 'floorTilesLoaded', sprites: data.floorTiles });
+            send({ type: 'wallTilesLoaded', sets: data.wallTiles });
+            send({ type: 'carpetTilesLoaded', sets: data.carpetTiles });
+
+            // 4. Furniture catalog & sprites
+            send({
+              type: 'furnitureAssetsLoaded',
+              catalog: data.furniture.catalog,
+              sprites: data.furniture.sprites
+            });
+
+            // 5. Settings
+            send({
+              type: 'settingsLoaded',
+              soundEnabled: true,
+              lastSeenVersion: '1.4.1',
+              extensionVersion: '1.4.1',
+              watchAllSessions: true,
+              alwaysShowLabels: true,
+              ghostHeadlessAgents: false,
+              hooksEnabled: false,
+              hooksInfoShown: true,
+              externalAssetDirectories: [],
+              showAreas: false
+            });
+
+            send({ type: 'areaMappingsLoaded', mappings: {} });
+
+            // 6. Layout
+            send({ type: 'layoutLoaded', layout: data.layout });
+
+            // 7. Bots
+            await window.__pixelAgentsBridge.loadLiveBots(cachedWorkers);
+          } catch(err) {
+            console.error('[PixelBridge] Boot failure:', err);
+          }
+        };
+
+        window.__pixelAgentsBridge.loadLiveBots = async function(passedWorkers) {
+          try {
+            let workers = passedWorkers;
+            if (!workers || !Array.isArray(workers) || workers.length === 0) {
+              try {
+                const bResp = await fetch('../office_status.json?t=' + Date.now());
+                if (bResp.ok) {
+                  const bData = await bResp.json();
+                  workers = bData.workers || bData.bots || [];
+                }
+              } catch(e) {
+                console.warn('[PixelBridge] office_status.json fetch warning:', e);
+              }
+            }
+
+            if (!workers || workers.length === 0) {
+              workers = [
+                { id: 'threads-1', accountName: 'adhlil.co', platform: 'threads', platformName: 'Threads', status: 'RESTING', speech: '☕ Kuota hari ini (4/2) beres bos!' },
+                { id: 'threads-3', accountName: 'Sharesa Space', platform: 'threads', platformName: 'Threads', status: 'ALERT', speech: '⚠️ Ada kendala format post' },
+                { id: 'threads-6', accountName: 'Koleksi Audio', platform: 'threads', platformName: 'Threads', status: 'WORKING', speech: '🚀 Sedang merilis thread audio' },
+                { id: 'threads-7', accountName: 'Daily Productivity', platform: 'threads', platformName: 'Threads', status: 'WORKING', speech: '✍️ Drafting productivity tip' },
+                { id: 'instagram-1', accountName: 'Visual Studio ID', platform: 'instagram', platformName: 'Instagram', status: 'WORKING', speech: '🎨 Rendering visual carousel' },
+                { id: 'instagram-2', accountName: 'Quotes Aesthetic', platform: 'instagram', platformName: 'Instagram', status: 'RESTING', speech: '✨ Target 3 posting selesai' },
+                { id: 'bluesky-1', accountName: 'Tech Wire ATProto', platform: 'bluesky', platformName: 'Bluesky', status: 'WORKING', speech: '📡 Broadcasting ATProto stream' },
+                { id: 'devto-1', accountName: 'Dev Tutorials', platform: 'devto', platformName: 'DEV.TO', status: 'WORKING', speech: '📝 Publishing clean code article' },
+                { id: 'nostr-1', accountName: 'Relay Damus Hub', platform: 'nostr', platformName: 'Nostr', status: 'IDLE', speech: '⚡ Listening to NIP-01 relays' },
+                { id: 'tumblr-1', accountName: 'Microblog Visual', platform: 'tumblr', platformName: 'Tumblr', status: 'IDLE', speech: '☕ Cooling down at lounge' }
+              ];
+            }
+
+            cachedWorkers = workers;
+            const send = window.__pixelAgentsBridge.postToWebview;
+            const agentIds = [];
+            const agentMeta = {};
+            const folderNames = {};
+
+            let savedSeats = {};
+            try {
+              savedSeats = JSON.parse(localStorage.getItem('pixel_agents_seats') || '{}');
+            } catch(e) {}
+
+            workers.forEach((w, idx) => {
+              const id = w.id;
+              agentIds.push(id);
+              folderNames[id] = `${w.accountName || w.name || id} (${w.platformName || w.platform || 'Bot'})`;
+              agentMeta[id] = {
+                palette: idx % 6,
+                hueShift: (idx * 55) % 360,
+                seatId: savedSeats[id]?.seatId || undefined
+              };
+            });
+
+            send({
+              type: 'existingAgents',
+              agents: agentIds,
+              agentMeta: agentMeta,
+              folderNames: folderNames,
+              externalAgents: {}
+            });
+
+            workers.forEach((w) => {
+              const isWorking = w.status === 'WORKING' || w.status === 'working' || w.status === 'running';
+              const isAlert = w.status === 'ALERT' || w.status === 'alert';
+              
+              send({
+                type: 'agentStatus',
+                id: w.id,
+                status: isWorking ? 'active' : 'waiting',
+                awaitingInput: false
+              });
+
+              if (isWorking) {
+                send({
+                  type: 'agentToolStart',
+                  id: w.id,
+                  toolId: 'task_' + w.id,
+                  status: w.speech || `Publishing to ${w.platformName || w.platform}...`,
+                  toolName: (w.platformName || w.platform || 'Auto') + 'Poster',
+                  runInBackground: true
+                });
+              } else if (isAlert) {
+                send({
+                  type: 'agentToolStart',
+                  id: w.id,
+                  toolId: 'alert_' + w.id,
+                  status: w.speech || '⚠️ Membutuhkan perhatian!',
+                  toolName: 'SystemAlert',
+                  runInBackground: false
+                });
+              } else {
+                send({
+                  type: 'agentToolsClear',
+                  id: w.id
+                });
+              }
+            });
+
+            console.log('[PixelBridge] Synced ' + workers.length + ' live agents with pixel office!');
+          } catch(err) {
+            console.error('[PixelBridge] loadLiveBots error:', err);
+          }
+        };
+
+        window.addEventListener('message', function(evt) {
+          if (evt.data && evt.data.type === 'UPDATE_BOTS_DATA') {
+            window.__pixelAgentsBridge.loadLiveBots(evt.data.workers);
+          }
+        });
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-D-OGLsbn.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
