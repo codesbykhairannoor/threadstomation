@@ -414,7 +414,8 @@ async function runScheduledTask(schedule, todayStr = null) {
         await new Promise(r => setTimeout(r, humanDelayMs));
 
         const postResult = await postToPlatforms(content, ['threads'], imageUrl, accountId);
-        if (todayStr && postResult) {
+        const hasSuccess = Array.isArray(postResult) ? postResult.some(r => r.success) : !!postResult?.success;
+        if (todayStr && hasSuccess) {
             await sql`UPDATE schedules SET last_run_date = ${todayStr} WHERE id = ${schedule.id}`;
         }
         return postResult;
