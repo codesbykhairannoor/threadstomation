@@ -213,7 +213,7 @@ async function runTumblrPost(accountId, customPrompt = null, forceNoImage = fals
     return { publishId: response.id, status: 'success', title, text: (body || caption).substring(0, 100) };
   }
 
-  const accountName = "caridisinishop_tumblr"; // Force caridisinishop persona instead of Adhlil for Tumblr
+  const accountName = account.blog_name || account.name || "tumblr";
 
   const content = await generateTumblrContent(customPrompt, masterPrompt, visualTheme, accountName, accountId, forceNoImage);
   const slides = content.slides || [];
