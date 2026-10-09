@@ -94,7 +94,7 @@ async function main() {
     {
       key: 'tranvas',
       url: 'https://tranvas.com',
-      prompt: 'Promote Tranvas (https://tranvas.com) - A fast, local-first unified life OS replacing 7 bloated subscriptions. Focus on sovereign privacy, zero tracking, and clutter-free habit/task execution.'
+      prompt: 'Promote Tranvas (https://tranvas.com) - The Unified Life OS. Focus on eliminating The Friction Tax of juggling 6 separate apps. Highlight 8 synchronized modules (Planner, Habit Matrix, Finance OS, WOOP Goals, Mindful Journal).'
     },
     {
       key: 'solvemymedia',
@@ -130,7 +130,13 @@ async function main() {
       `;
       console.log(`[Setup-Nostr] Added schedule for: ${site.key}`);
     } else {
-      console.log(`[Setup-Nostr] Schedule already exists for: ${site.key}`);
+      await sql`
+        UPDATE nostr_schedules
+        SET custom_prompt = ${site.prompt},
+            website_url = ${site.url}
+        WHERE id = ${existingSched[0].id}
+      `;
+      console.log(`[Setup-Nostr] Updated existing schedule prompt for: ${site.key}`);
     }
   }
 
