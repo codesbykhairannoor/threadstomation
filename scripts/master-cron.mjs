@@ -37,7 +37,7 @@ async function main() {
         // If one account/platform has an error or is in cooldown, it will NOT block the others!
         const delay = ms => new Promise(r => setTimeout(r, ms));
 
-        const threadsJob = runThreadsCron(false).catch(err => {
+        const threadsJob = runThreadsCron(true, false).catch(err => {
             console.error('[Master-Cron] ❌ Failed during Threads automation:', err);
         });
 

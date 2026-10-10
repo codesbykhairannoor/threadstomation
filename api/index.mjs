@@ -224,7 +224,7 @@ app.get('/api/cron', async (req, res) => {
 });
 
 // ── ISOLATED THREADS CRON (FOR GITHUB ACTIONS) ─────────────────────────────────
-export async function runThreadsCron(awaitTasks = false, force = false) {
+export async function runThreadsCron(awaitTasks = true, force = false) {
     const now = new Date();
     // Gunakan Intl DateTimeFormat untuk penentuan waktu WITA (Asia/Makassar, UTC+8) yang 100% presisi di semua environment
     const witaFormatter = new Intl.DateTimeFormat('en-CA', {
