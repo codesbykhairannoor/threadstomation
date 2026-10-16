@@ -387,19 +387,7 @@ app.post('/api/tiktok/post-now', async (req, res) => {
 
 // ── CRON: CHAOS SCHEDULER ────────────────────────────────────────────────────
 
-app.get('/api/tiktok/cron', async (req, res) => {
-  // Auth check
-  const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
-  const authHeader = req.headers.authorization;
-  const secretParam = req.query.secret;
-
-  if (process.env.CRON_SECRET) {
-    if (authHeader !== `Bearer ${expectedSecret}` && secretParam !== expectedSecret) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  }
-
-  // Robust WITA (UTC+8) Time Calculation
+export async function runTikTokCron(force = false, baseUrl = 'https://threadstomation.vercel.app') {
   const now = new Date();
   const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
   const witaTime = new Date(utcTime + (3600000 * 8)); 
@@ -409,14 +397,10 @@ app.get('/api/tiktok/cron', async (req, res) => {
   const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));
 
   try {
-    const host = req.headers.host || 'threadstomation.vercel.app';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const baseUrl = `${protocol}://${host}`;
-    
     // Check global automation switch
     const globalStatus = await sql`SELECT value FROM tiktok_settings WHERE key = 'automation_enabled'`;
     if (globalStatus[0]?.value === 'false') {
-      return res.json({ success: true, status: 'TikTok automation disabled globally.' });
+      return { success: true, status: 'TikTok automation disabled globally.' };
     }
 
     const accounts = await sql`SELECT id, name FROM tiktok_accounts WHERE is_active = 1`;
@@ -430,7 +414,7 @@ app.get('/api/tiktok/cron', async (req, res) => {
       `;
       const postsToday = parseInt(ranToday[0]?.count || 0, 10);
 
-      if (postsToday >= 5) {
+      if (!force && postsToday >= 5) {
         console.log(`[TikTok-Cron] Acc ${acc.name}: hit 5-post daily limit.`);
         continue;
       }
@@ -447,12 +431,12 @@ app.get('/api/tiktok/cron', async (req, res) => {
 
       const postsRemaining = 5 - postsToday;
       const numToMake = Math.min(postsRemaining, pending.length);
-      const chance = (numToMake / totalMinutesLeft) * 3;
+      const chance = force ? 1 : (numToMake / totalMinutesLeft) * 3;
       const roll = Math.random();
 
       console.log(`[TikTok-Cron] ${acc.name}: postsToday=${postsToday}/5, pending=${pending.length}, chance=${chance.toFixed(4)}, roll=${roll.toFixed(4)}`);
 
-      if (roll < chance) {
+      if (force || roll < chance) {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
 
         // Mark as run immediately to prevent duplicate
@@ -472,11 +456,31 @@ app.get('/api/tiktok/cron', async (req, res) => {
       }
     }
 
-    res.json({ success: true, executed });
+    return { success: true, executed };
   } catch (e) {
     console.error('[TikTok-Cron] Error:', e.message);
-    res.status(200).json({ success: false, error: e.message });
+    return { success: false, error: e.message };
   }
+}
+
+app.get('/api/tiktok/cron', async (req, res) => {
+  // Auth check
+  const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
+  const authHeader = req.headers.authorization;
+  const secretParam = req.query.secret;
+
+  if (process.env.CRON_SECRET) {
+    if (authHeader !== `Bearer ${expectedSecret}` && secretParam !== expectedSecret) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  }
+
+  const host = req.headers.host || 'threadstomation.vercel.app';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const baseUrl = `${protocol}://${host}`;
+
+  const result = await runTikTokCron(req.query.force === 'true', baseUrl);
+  res.json(result);
 });
 
 // ── DEBUG ─────────────────────────────────────────────────────────────────────

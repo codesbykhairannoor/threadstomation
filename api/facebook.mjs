@@ -283,14 +283,7 @@ app.post('/api/facebook/post-now', async (req, res) => {
 
 // ── CRON ──────────────────────────────────────────────────────────────────────
 
-app.get('/api/facebook/cron', async (req, res) => {
-  const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
-  const secretParam = req.query.secret;
-
-  if (secretParam !== expectedSecret) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
+export async function runFacebookCron(force = false) {
   const now = new Date();
   const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
   const witaTime = new Date(utcTime + (3600000 * 8)); 
@@ -300,7 +293,7 @@ app.get('/api/facebook/cron', async (req, res) => {
 
   try {
     const autoRow = await sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`;
-    if (autoRow[0]?.value === 'false') return res.json({ success: true, status: 'Automation disabled' });
+    if (autoRow[0]?.value === 'false') return { success: true, status: 'Automation disabled' };
 
     const accounts = await sql`SELECT id, name FROM facebook_accounts WHERE is_active = 1`;
     const executed = [];
@@ -315,7 +308,7 @@ app.get('/api/facebook/cron', async (req, res) => {
       const dailyLimit = 1; // User requested 1x per day synced with IG
 
       const [{ count: postsToday }] = await sql`SELECT COUNT(*) as count FROM facebook_history WHERE account_id = ${acc.id} AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr} AND status = 'success'`;
-      if (parseInt(postsToday) >= dailyLimit) continue;
+      if (!force && parseInt(postsToday) >= dailyLimit) continue;
 
       const pending = await sql`
         SELECT * FROM facebook_schedules
@@ -323,8 +316,8 @@ app.get('/api/facebook/cron', async (req, res) => {
       `;
       if (!pending.length) continue;
 
-      const chance = (dailyLimit - parseInt(postsToday)) / totalMinutesLeft;
-      if (Math.random() < chance) {
+      const chance = force ? 1 : (dailyLimit - parseInt(postsToday)) / totalMinutesLeft;
+      if (force || Math.random() < chance) {
         const chosen = pending[Math.floor(Math.random() * pending.length)];
         try {
           const result = await runFacebookCarouselPost(acc.id, chosen.custom_prompt);
@@ -335,10 +328,23 @@ app.get('/api/facebook/cron', async (req, res) => {
         }
       }
     }
-    res.json({ success: true, executed });
+    return { success: true, executed };
   } catch (e) {
-    res.status(200).json({ success: false, error: e.message });
+    console.error('[Facebook-Cron] Error:', e.message);
+    return { success: false, error: e.message };
   }
+}
+
+app.get('/api/facebook/cron', async (req, res) => {
+  const expectedSecret = process.env.CRON_SECRET || 'super_chaos_secret_99';
+  const secretParam = req.query.secret;
+
+  if (secretParam !== expectedSecret) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const result = await runFacebookCron(req.query.force === 'true');
+  res.json(result);
 });
 
 export default app;

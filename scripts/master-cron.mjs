@@ -1,6 +1,8 @@
 import { initDb } from '../lib/database.js';
 import { runThreadsCron } from '../api/index.mjs';
 import { runInstagramCron } from '../api/instagram.mjs';
+import { runFacebookCron } from '../api/facebook.mjs';
+import { runTikTokCron } from '../api/tiktok.mjs';
 import { runBlueskyCron } from '../api/bluesky.mjs';
 import { runTumblrCron } from '../api/tumblr.mjs';
 import { runDevtoCron } from '../api/devto.mjs';
@@ -28,9 +30,8 @@ async function main() {
         // Run automated storage cleanup to keep Supabase 100% free forever
         await cleanupOldStorage().catch(e => console.warn('[Master-Cron] Storage cleanup note:', e.message));
 
-
         console.log('\n===============================================================');
-        console.log('🤖📱 EXECUTING THREADS, IG, BLUESKY, TUMBLR, DEV.TO & MASTODON');
+        console.log('🤖📱 EXECUTING THREADS, IG, FB, TIKTOK, BLUESKY, TUMBLR, DEV.TO & MASTODON');
         console.log('===============================================================');
 
         // Run platforms in staggered succession with non-overlapping execution gaps.
@@ -45,6 +46,16 @@ async function main() {
         await delay(2500);
         const igJob = runInstagramCron().catch(err => {
             console.error('[Master-Cron] ❌ Failed during Instagram automation:', err);
+        });
+
+        await delay(2500);
+        const fbJob = runFacebookCron(false).catch(err => {
+            console.error('[Master-Cron] ❌ Failed during Facebook automation:', err);
+        });
+
+        await delay(2500);
+        const tiktokJob = runTikTokCron(false).catch(err => {
+            console.error('[Master-Cron] ❌ Failed during TikTok automation:', err);
         });
 
         await delay(2500);
@@ -88,6 +99,8 @@ async function main() {
         const results = await Promise.allSettled([
             threadsJob,
             igJob,
+            fbJob,
+            tiktokJob,
             blueskyJob,
             tumblrJob,
             devtoJob,
@@ -100,14 +113,16 @@ async function main() {
         
         console.log('[Master-Cron] Threads Result:', results[0].value || results[0].reason);
         console.log('[Master-Cron] Instagram Result:', results[1].value || results[1].reason);
-        console.log('[Master-Cron] Bluesky Result:', results[2].value || results[2].reason);
-        console.log('[Master-Cron] Tumblr Result:', results[3].value || results[3].reason);
-        console.log('[Master-Cron] Dev.to Result:', results[4].value || results[4].reason);
-        console.log('[Master-Cron] Mastodon Result:', results[5].value || results[5].reason);
-        console.log('[Master-Cron] Nostr Result:', results[6].value || results[6].reason);
-        console.log('[Master-Cron] Moltbook Result:', results[7].value || results[7].reason);
-        console.log('[Master-Cron] Engagement Replier Result:', results[8].value || results[8].reason);
-        console.log('[Master-Cron] Engagement Seeder Result:', results[9].value || results[9].reason);
+        console.log('[Master-Cron] Facebook Result:', results[2].value || results[2].reason);
+        console.log('[Master-Cron] TikTok Result:', results[3].value || results[3].reason);
+        console.log('[Master-Cron] Bluesky Result:', results[4].value || results[4].reason);
+        console.log('[Master-Cron] Tumblr Result:', results[5].value || results[5].reason);
+        console.log('[Master-Cron] Dev.to Result:', results[6].value || results[6].reason);
+        console.log('[Master-Cron] Mastodon Result:', results[7].value || results[7].reason);
+        console.log('[Master-Cron] Nostr Result:', results[8].value || results[8].reason);
+        console.log('[Master-Cron] Moltbook Result:', results[9].value || results[9].reason);
+        console.log('[Master-Cron] Engagement Replier Result:', results[10].value || results[10].reason);
+        console.log('[Master-Cron] Engagement Seeder Result:', results[11].value || results[11].reason);
 
     } catch (fatalErr) {
         console.error('[Master-Cron] ❌ FATAL ERROR:', fatalErr);
