@@ -16,10 +16,37 @@ import { GenerativeVisualMetaphor } from './GenerativeVisualMetaphor.jsx';
 import { NewtonsCradleVideo, DominoCascadeVideo } from './PhysicalMetaphors.jsx';
 import { OpticalLensVideo, HourglassFlowVideo, IcebergMasteryVideo } from './MindsetVisualMetaphors.jsx';
 import { AdhlilStoryReel } from './AdhlilStoryReel.jsx';
+import { BrowserMockupReel } from './BrowserMockupReel.jsx';
 
 export const RemotionRoot = () => {
   return (
     <>
+      {/* ============================================================
+          BROWSER MOCKUP REEL — Mockoops style 3D Floating Safari Browser
+          ============================================================ */}
+      <Composition
+        id="BrowserMockupReel"
+        component={BrowserMockupReel}
+        durationInFrames={900}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          scenes: [],
+          badgeText: '@adhlil.co',
+        }}
+        calculateMetadata={async ({ props }) => {
+          const fps = 30;
+          const totalFrames = (props.scenes || []).reduce(
+            (acc, s) => acc + Math.round((s.duration || 7.0) * fps),
+            0
+          );
+          return {
+            durationInFrames: Math.max(300, totalFrames),
+            props,
+          };
+        }}
+      />
       {/* ============================================================
           ADHLIL STORY REEL — Viral split-zone IG Reels for @adhlil.co
           Input: scenes[] JSON from Gemini

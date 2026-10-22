@@ -12,6 +12,7 @@ import { generateInstagramContent, generateVisualMetaphorSpec } from '../lib/gem
 import { generateInstagramSlideImages, generateReelTextOverlayBuffers } from '../lib/instagram_carousel.js';
 import { createVideoFromImages } from '../lib/video_generator.js';
 import { renderDynamicMindsetReel, renderTranvasMotionReel, renderGenerativeMetaphorReel } from '../lib/remotion_renderer.js';
+import { generateHighRetentionReel } from '../lib/high_retention_reel_generator.js';
 import { deleteMediaUrls, cleanupOldStorage } from '../lib/supabase_storage.js';
 import { getDailyDynamicTargetSlot } from '../lib/stealth_reach_engine.js';
 
@@ -350,19 +351,20 @@ export async function runInstagramPost(accountId, customPrompt = null) {
     }
   }
 
-  // Step 2: Determine if this should be a Video or Carousel (Alternating per post)
-  const lastPostRows = await sql`
-    SELECT slide_count FROM instagram_history 
-    WHERE account_id = ${accountId} AND status = 'success' 
-    ORDER BY created_at DESC LIMIT 1
-  `;
-  
-  let isCarouselDay = true; // Default to Carousel if no history
-  if (lastPostRows.length > 0) {
-    const lastSlideCount = lastPostRows[0].slide_count;
-    // If the last successful post was a carousel (slide_count > 0), make this one a video
-    if (lastSlideCount && lastSlideCount > 0) {
-      isCarouselDay = false;
+  // Step 2: Determine if this should be a Video or Carousel
+  // By user instruction: Default format across all IG accounts is now High-Retention Viral Reel ("BIAR FORMAT NYA KEK GITU AJA")
+  const prefStr = String(preferredLayout).toLowerCase();
+  let isCarouselDay = false; 
+  if (prefStr === 'carousel' || prefStr === 'images') {
+    isCarouselDay = true;
+  } else if (prefStr === 'alternate') {
+    const lastPostRows = await sql`
+      SELECT slide_count FROM instagram_history 
+      WHERE account_id = ${accountId} AND status = 'success' 
+      ORDER BY created_at DESC LIMIT 1
+    `;
+    if (lastPostRows.length > 0 && lastPostRows[0].slide_count === 0) {
+      isCarouselDay = true; // Last was video, alternate to carousel
     }
   }
   
@@ -374,34 +376,23 @@ export async function runInstagramPost(accountId, customPrompt = null) {
     mediaUrls = await generateInstagramSlideImages(slides, dynamicPalette, accountName, false);
     console.log(`[Instagram-Post] ${mediaUrls.length} images generated and uploaded to Supabase`);
   } else {
-    const isAdhlil = accountName.toLowerCase().includes('adhlil') || parseInt(accountId, 10) === 1;
-    const isTranvas = accountName.toLowerCase().includes('tranvas') || accountName.toLowerCase().includes('oneformind');
-
-    if (isAdhlil) {
-      console.log(`[Instagram-Post] 🎬 Using Mindset.Therapy Code-to-Video Motion Graphics for ${accountName}...`);
-      const videoUrl = await renderDynamicMindsetReel(slides, masterPrompt, accountName, caption);
-      console.log(`[Instagram-Post] ✅ Remotion Mindset Reel generated: ${videoUrl}`);
+    console.log(`[Instagram-Post] 🎬 Using High-Retention Viral Reel Generator (Pexels HD B-Roll + Kinetic Pop-in Captions + Procedural SFX) for ${accountName}...`);
+    try {
+      const videoUrl = await generateHighRetentionReel({
+        accountId,
+        accountName,
+        slides,
+        masterPrompt,
+        caption
+      });
+      console.log(`[Instagram-Post] ✅ High-Retention Reel generated & uploaded to Supabase: ${videoUrl}`);
       mediaUrls = [videoUrl];
-    } else if (isTranvas) {
-      console.log(`[Instagram-Post] 🎬 Using Generative Visual Metaphor Engine for ${accountName}...`);
-      const metaphorSpec = await generateVisualMetaphorSpec(customPrompt, masterPrompt, accountName, accountId);
-      if (metaphorSpec.caption) caption = metaphorSpec.caption;
-      if (metaphorSpec.hashtags && Array.isArray(metaphorSpec.hashtags)) hashtags = metaphorSpec.hashtags;
-
-      const videoUrl = await renderGenerativeMetaphorReel(metaphorSpec, accountName);
-      console.log(`[Instagram-Post] ✅ Remotion Generative Metaphor Reel generated: ${videoUrl}`);
-      mediaUrls = [videoUrl];
-    } else {
-      console.log(`[Instagram-Post] Using Video (Reels) mode with full-screen 9:16 text overlay...`);
-      // Render clean transparent 9:16 subtitle overlays for B-Roll video background (No bulky 4:5 cards!)
+    } catch (reelErr) {
+      console.warn(`[Instagram-Post] ⚠️ HighRetentionReel failed, falling back to legacy video generator:`, reelErr.message);
       const imageBuffers = await generateReelTextOverlayBuffers(slides, accountName);
-      console.log(`[Instagram-Post] ${imageBuffers.length} 9:16 Reels text overlays generated.`);
-
-      // Step 3: Convert buffers to Video (Reels) and Upload to Supabase
       const rawBuffers = imageBuffers.map(img => img.buffer);
-      const videoUrl = await createVideoFromImages(rawBuffers, 3, slides, masterPrompt, caption);
-      console.log(`[Instagram-Post] B-Roll Reel generated and uploaded to Supabase: ${videoUrl}`);
-      mediaUrls = [videoUrl];
+      const fallbackUrl = await createVideoFromImages(rawBuffers, 3, slides, masterPrompt, caption);
+      mediaUrls = [fallbackUrl];
     }
   }
 
