@@ -352,21 +352,8 @@ export async function runInstagramPost(accountId, customPrompt = null) {
   }
 
   // Step 2: Determine if this should be a Video or Carousel
-  // By user instruction: Default format across all IG accounts is now High-Retention Viral Reel ("BIAR FORMAT NYA KEK GITU AJA")
-  const prefStr = String(preferredLayout).toLowerCase();
-  let isCarouselDay = false; 
-  if (prefStr === 'carousel' || prefStr === 'images') {
-    isCarouselDay = true;
-  } else if (prefStr === 'alternate') {
-    const lastPostRows = await sql`
-      SELECT slide_count FROM instagram_history 
-      WHERE account_id = ${accountId} AND status = 'success' 
-      ORDER BY created_at DESC LIMIT 1
-    `;
-    if (lastPostRows.length > 0 && lastPostRows[0].slide_count === 0) {
-      isCarouselDay = true; // Last was video, alternate to carousel
-    }
-  }
+  // USER DIRECTIVE: Stop carousel posts temporarily — 100% FULL VIDEO (High-Retention Reels) ONLY for Instagram!
+  const isCarouselDay = false;
   
   let mediaUrls = [];
 

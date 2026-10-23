@@ -22,3 +22,7 @@
 
 ## 3. Platform Scope Isolation
 - When modifying Instagram workflows or crons, focus solely on `instagram` and `facebook` (cross-post). Never alter Threads, Bluesky, Mastodon, Tumblr, or DEV.TO pipelines unless explicitly requested.
+
+## 4. Temporary Format Constraint: 100% Full Video (Reels) ONLY
+- **Carousels are temporarily PAUSED** for Instagram.
+- All automated and manual Instagram posts are locked to `isCarouselDay = false`, enforcing 100% High-Retention Video Reels generation across all 3 accounts (`@adhlil.co`, `@sharesa.space`, `@tranvasapp`).
