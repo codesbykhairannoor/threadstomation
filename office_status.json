@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-22T16:21:00.618Z",
+  "generatedAt": "2026-10-23T05:56:08.849Z",
   "system": {
     "totalWorkers": 11,
-    "totalToday": 0,
-    "activeToday": 0,
+    "totalToday": 3,
+    "activeToday": 3,
     "alertCount": 0,
-    "currentWitaTime": "00:20 WITA",
+    "currentWitaTime": "13:56 WITA",
     "dateStr": "2026-10-23",
     "health": "Optimal (100%)"
   },
@@ -30,7 +30,7 @@
         "text": "Dengan mendoakan orang lain, kita juga didoakan para malaikat. Ini amalan praktis di sela rutinitas harian. Mari sama-sama merenung: Siapa hari ini yang akan kita selipkan dalam doa-doa rahasia kita?",
         "status": "success",
         "time": "2026-10-22T06:13:49.379Z",
-        "relativeTime": "10j lalu",
+        "relativeTime": "23j lalu",
         "externalId": "18141910237625058"
       }
     },
@@ -78,7 +78,7 @@
         "text": "Biar otakmu gak penuh, biar bisa move on. Kualitas refleksi di ruang privat itu jauh lebih transformatif daripada validasi jempol digital. Jujur, kapan terakhir kali kamu nulis curhat atau evaluasi diri secara jujur tanpa diposting ke sosmed?",
         "status": "success",
         "time": "2026-10-22T12:09:03.246Z",
-        "relativeTime": "4j lalu",
+        "relativeTime": "17j lalu",
         "externalId": "18129214087769251"
       }
     },
@@ -92,18 +92,18 @@
       "accountName": "Adhlil (adhlil.co)",
       "role": "Visual Carousel Studio",
       "avatar": "pixel_manager",
-      "status": "WAITING",
-      "todayCount": 0,
+      "status": "WORKING",
+      "todayCount": 1,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 10:23 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 10:23 WITA.",
+      "nextSlot": "Slot 2: 21:07 WITA",
+      "speech": "🚀 Baru aja posting di Instagram! Konten udah live di timeline.",
       "lastPost": {
-        "id": 2495,
-        "text": "**Solusi Mental: Terlalu Jauh Mencari?** 🤯\nKuliah umum tentang Psikosufistik & Kesehatan Mental, mengingatkan kita. Q.S. Ar-Ra'd (13:28) berbisik, \"Hanya dengan mengingat Allah hati menjadi tenteram.\"\n\nDi era digital, kita sering sibuk mencari solusi eksternal, melupakan sumber ketenangan fundamental ini. Apakah spiri",
+        "id": 2505,
+        "text": "Beban Sendiri Padahal Bertahan - High Retention Reel",
         "status": "success",
-        "time": "2026-10-14T05:33:15.584Z",
-        "relativeTime": "8h lalu",
-        "externalId": "18106861310211861"
+        "time": "2026-10-23T05:54:39.337Z",
+        "relativeTime": "1m lalu",
+        "externalId": "18129438302487290"
       }
     },
     {
@@ -126,7 +126,7 @@
         "text": "Multitasking 'productivity tricks' promise focus... but often they're just clever distractions leading to app-fatigue & overwhelm. 😫\n\nImagine battling 7 different apps versus ONE unified space for true, deep work. ✨ Tranvas helps you cut the noise, creating a single canvas for your ideas & flow. Reclaim your attention",
         "status": "success",
         "time": "2026-10-22T12:13:11.426Z",
-        "relativeTime": "4j lalu",
+        "relativeTime": "17j lalu",
         "externalId": "18170631043481900"
       }
     },
@@ -174,7 +174,7 @@
         "text": "Why are people still beaming private gigabytes to remote cloud queues for trivial tasks?\n\nYour device hardware is plenty powerful. Video & Audio Converter does 100% client-side WebAssembly converter running locally in browser memory in milliseconds.\n\nWhat is the most absurd software subscr",
         "status": "success",
         "time": "2026-10-22T06:05:23.332Z",
-        "relativeTime": "10j lalu",
+        "relativeTime": "23j lalu",
         "externalId": "at://did:plc:jr6aozuqr2ah3revtuumzazy/app.bsky.feed.post/3mygyoarac32n"
       }
     },
@@ -188,18 +188,18 @@
       "accountName": "Adhlil",
       "role": "Sovereign Relay Broadcaster",
       "avatar": "retro_bot",
-      "status": "WAITING",
-      "todayCount": 0,
+      "status": "WORKING",
+      "todayCount": 1,
       "dailyTarget": 1,
-      "nextSlot": "Slot 1: 13:30 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 13:30 WITA.",
+      "nextSlot": "Target Terpenuhi",
+      "speech": "🚀 Baru aja posting di Nostr! Konten udah live di timeline.",
       "lastPost": {
-        "id": 14,
-        "text": "Tired of predatory SaaS charging $20/month just to convert an image or artificially limiting basic features like non-expiring QR codes? It's an insult to open web principles. Your fundamental digital utilities shouldn't be held hostage for subscription extortion.\n\nThis is why we need more tools built on open standards ",
+        "id": 15,
+        "text": "Developers, privacy advocates: we face a constant digital anxiety. Not just AI's pace, but the relentless creep of predatory SaaS. Sending confidential contracts to cloud servers, then paying $20/month just for a basic PDF merge, or watching QR codes expire? That's not just a cost; it's a persistent digital mental burd",
         "status": "success",
-        "time": "2026-10-22T06:12:17.260Z",
-        "relativeTime": "10j lalu",
-        "externalId": "f36ea9a708f506b9c6c7636ab02905ab3f9c82825a468afe0d0682838fbf90b5"
+        "time": "2026-10-23T05:12:25.843Z",
+        "relativeTime": "43m lalu",
+        "externalId": "1ecf110556b4774bfbd483ae7ff00e86305f8984a560fa5c0f91a8f78c96e959"
       }
     },
     {
@@ -222,7 +222,7 @@
         "text": "No Cloud Uploads: Client-Side 4K Video Compression with WebCodecs & WebGPU",
         "status": "success",
         "time": "2026-10-22T12:07:13.129Z",
-        "relativeTime": "4j lalu",
+        "relativeTime": "17j lalu",
         "externalId": "4896628"
       }
     },
@@ -246,7 +246,7 @@
         "text": "All I wanted was to trim 3 seconds of my dog sneezing from a 10-second clip. That's it. Basic video ",
         "status": "success",
         "time": "2026-10-22T11:53:40.233Z",
-        "relativeTime": "4j lalu",
+        "relativeTime": "18j lalu",
         "externalId": "831174787467476992"
       }
     },
@@ -260,22 +260,55 @@
       "accountName": "khaithisran",
       "role": "Fediverse Protocol Advocate",
       "avatar": "cyber_agent",
-      "status": "WAITING",
-      "todayCount": 0,
+      "status": "RESTING",
+      "todayCount": 1,
       "dailyTarget": 1,
-      "nextSlot": "Slot 1: 11:04 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 11:04 WITA.",
+      "nextSlot": "Target Terpenuhi",
+      "speech": "☕ Kuota hari ini (1/1) beres bos! Istirahat dulu.",
       "lastPost": {
-        "id": 5149,
-        "text": "Predatory SaaS: \"Free\" QR codes that expire, then demand $39/mo for your printed menus. It's digital extortion.\n\ncreatemy-qr.com: 100% client-side WebAssembly. Generate 37 ISO-compliant QR/barcodes, permanent. Zero signups, zero telemetry, fully offline in-browser. Your data never leaves.\n\nTry it: https://createmy-qr.c",
+        "id": 5150,
+        "text": "Why are people still beaming private gigabytes to remote cloud queues for trivial tasks?\n\nWe built helpmyimg.com using client-side WebAssembly to fix Paying $20/mo to delete white pixels from a JPG, 10-credit export caps, 240p limits, and email walls just to download a compressed image. No accounts, no paywalls, no tra",
         "status": "success",
-        "time": "2026-10-22T00:11:50.075Z",
-        "relativeTime": "16j lalu",
-        "externalId": "117481666676549557"
+        "time": "2026-10-23T01:37:54.214Z",
+        "relativeTime": "4j lalu",
+        "externalId": "117487666759631951"
       }
     }
   ],
   "recentActivity": [
+    {
+      "id": "instagram-2505",
+      "platform": "instagram",
+      "platformName": "Instagram",
+      "platformIcon": "📸",
+      "accountName": "Adhlil (adhlil.co)",
+      "text": "Beban Sendiri Padahal Bertahan - High Retention Reel",
+      "status": "success",
+      "time": "2026-10-23T05:54:39.337Z",
+      "relativeTime": "1m lalu"
+    },
+    {
+      "id": "nostr-15",
+      "platform": "nostr",
+      "platformName": "Nostr",
+      "platformIcon": "⚡",
+      "accountName": "Adhlil",
+      "text": "Developers, privacy advocates: we face a constant digital anxiety. Not just AI's pace, but the relentless creep of predatory SaaS. Sending confidential contracts to cloud servers, then paying $20/month just for a basic PDF merge, or watchin",
+      "status": "success",
+      "time": "2026-10-23T05:12:25.843Z",
+      "relativeTime": "43m lalu"
+    },
+    {
+      "id": "mastodon-5150",
+      "platform": "mastodon",
+      "platformName": "Mastodon",
+      "platformIcon": "🐘",
+      "accountName": "khaithisran",
+      "text": "Why are people still beaming private gigabytes to remote cloud queues for trivial tasks?\n\nWe built helpmyimg.com using client-side WebAssembly to fix Paying $20/mo to delete white pixels from a JPG, 10-credit export caps, 240p limits, and e",
+      "status": "success",
+      "time": "2026-10-23T01:37:54.214Z",
+      "relativeTime": "4j lalu"
+    },
     {
       "id": "instagram-2504",
       "platform": "instagram",
@@ -285,7 +318,7 @@
       "text": "Multitasking 'productivity tricks' promise focus... but often they're just clever distractions leading to app-fatigue & overwhelm. 😫\n\nImagine battling 7 different apps versus ONE unified space for true, deep work. ✨ Tranvas helps you cut t",
       "status": "success",
       "time": "2026-10-22T12:13:11.426Z",
-      "relativeTime": "4j lalu"
+      "relativeTime": "17j lalu"
     },
     {
       "id": "threads-940",
@@ -296,7 +329,7 @@
       "text": "Biar otakmu gak penuh, biar bisa move on. Kualitas refleksi di ruang privat itu jauh lebih transformatif daripada validasi jempol digital. Jujur, kapan terakhir kali kamu nulis curhat atau evaluasi diri secara jujur tanpa diposting ke sosme",
       "status": "success",
       "time": "2026-10-22T12:09:03.246Z",
-      "relativeTime": "4j lalu"
+      "relativeTime": "17j lalu"
     },
     {
       "id": "threads-939",
@@ -307,7 +340,7 @@
       "text": "Kita sering curhat di Stories atau status, berharap validasi. Tapi takut dihujat, takut dianggap lemah. Hasilnya? Curhat yang diedit, bukan jujur. Padahal, tempat terbaik untuk bongkar kegagalan atau ketakutan itu bukan di publik. Tapi di r",
       "status": "success",
       "time": "2026-10-22T12:08:35.855Z",
-      "relativeTime": "4j lalu"
+      "relativeTime": "17j lalu"
     },
     {
       "id": "threads-938",
@@ -318,7 +351,7 @@
       "text": "Medan perang curhat, bukan jurnal pribadi.",
       "status": "success",
       "time": "2026-10-22T12:08:07.002Z",
-      "relativeTime": "4j lalu"
+      "relativeTime": "17j lalu"
     },
     {
       "id": "devto-2750",
@@ -329,7 +362,7 @@
       "text": "No Cloud Uploads: Client-Side 4K Video Compression with WebCodecs & WebGPU",
       "status": "success",
       "time": "2026-10-22T12:07:13.129Z",
-      "relativeTime": "4j lalu"
+      "relativeTime": "17j lalu"
     },
     {
       "id": "tumblr-4209",
@@ -340,7 +373,7 @@
       "text": "All I wanted was to trim 3 seconds of my dog sneezing from a 10-second clip. That's it. Basic video ",
       "status": "success",
       "time": "2026-10-22T11:53:40.233Z",
-      "relativeTime": "4j lalu"
+      "relativeTime": "18j lalu"
     },
     {
       "id": "threads-937",
@@ -351,7 +384,7 @@
       "text": "Dengan mendoakan orang lain, kita juga didoakan para malaikat. Ini amalan praktis di sela rutinitas harian. Mari sama-sama merenung: Siapa hari ini yang akan kita selipkan dalam doa-doa rahasia kita?",
       "status": "success",
       "time": "2026-10-22T06:13:49.379Z",
-      "relativeTime": "10j lalu"
+      "relativeTime": "23j lalu"
     },
     {
       "id": "threads-936",
@@ -362,7 +395,7 @@
       "text": "Cukup mendoakan kebaikan bagi saudara-saudari kita secara diam-diam, tanpa mereka tahu. Rasulullah ﷺ bersabda, malaikat akan berkata, 'Amin, dan bagimu juga.' (HR. Muslim). Masya Allah, betapa mudahnya.",
       "status": "success",
       "time": "2026-10-22T06:13:21.406Z",
-      "relativeTime": "10j lalu"
+      "relativeTime": "23j lalu"
     },
     {
       "id": "threads-935",
@@ -373,7 +406,7 @@
       "text": "Pengingat buat saya dan kita semua. Di tengah hiruk pikuk kesibukan, ada amalan ringan yang sering terlupa, namun bobotnya luar biasa besar.",
       "status": "success",
       "time": "2026-10-22T06:12:49.751Z",
-      "relativeTime": "10j lalu"
+      "relativeTime": "23j lalu"
     },
     {
       "id": "threads-934",
@@ -384,7 +417,7 @@
       "text": "Sibuk kerja, tapi ingin pahala jariyah terus mengalir?",
       "status": "success",
       "time": "2026-10-22T06:12:22.894Z",
-      "relativeTime": "10j lalu"
+      "relativeTime": "23j lalu"
     },
     {
       "id": "nostr-14",
@@ -395,7 +428,7 @@
       "text": "Tired of predatory SaaS charging $20/month just to convert an image or artificially limiting basic features like non-expiring QR codes? It's an insult to open web principles. Your fundamental digital utilities shouldn't be held hostage for ",
       "status": "success",
       "time": "2026-10-22T06:12:17.260Z",
-      "relativeTime": "10j lalu"
+      "relativeTime": "23j lalu"
     },
     {
       "id": "bluesky-2800",
@@ -406,7 +439,7 @@
       "text": "Why are people still beaming private gigabytes to remote cloud queues for trivial tasks?\n\nYour device hardware is plenty powerful. Video & Audio Converter does 100% client-side WebAssembly converter running locally in browser memory in mill",
       "status": "success",
       "time": "2026-10-22T06:05:23.332Z",
-      "relativeTime": "10j lalu"
+      "relativeTime": "23j lalu"
     },
     {
       "id": "mastodon-5149",
@@ -417,7 +450,7 @@
       "text": "Predatory SaaS: \"Free\" QR codes that expire, then demand $39/mo for your printed menus. It's digital extortion.\n\ncreatemy-qr.com: 100% client-side WebAssembly. Generate 37 ISO-compliant QR/barcodes, permanent. Zero signups, zero telemetry, ",
       "status": "success",
       "time": "2026-10-22T00:11:50.075Z",
-      "relativeTime": "16j lalu"
+      "relativeTime": "1h lalu"
     },
     {
       "id": "instagram-2503",
@@ -461,39 +494,6 @@
       "text": "Kita semua pernah kan? Dari task manager, habit tracker, budgeting, journaling, sampai ide random di notes. Semua mencar-mencar, saling teriak minta perhatian. Akhirnya, waktu kita habis cuma buat 'ngatur hidup' di aplikasi, bukan benar-ben",
       "status": "success",
       "time": "2026-10-21T10:24:33.814Z",
-      "relativeTime": "1h lalu"
-    },
-    {
-      "id": "nostr-13",
-      "platform": "nostr",
-      "platformName": "Nostr",
-      "platformIcon": "⚡",
-      "accountName": "Adhlil",
-      "text": "Scanning a menu QR lately? Notice how some links mysteriously expire, or small businesses fork out $20/month just for basic QR generation? That's the predatory SaaS playbook: centralize, then monetize. They hold your data and *links* hostag",
-      "status": "success",
-      "time": "2026-10-21T10:24:00.936Z",
-      "relativeTime": "1h lalu"
-    },
-    {
-      "id": "devto-2749",
-      "platform": "devto",
-      "platformName": "DEV.TO",
-      "platformIcon": "👩‍💻",
-      "accountName": "thisran",
-      "text": "ShowDev: Tranvas — Unifying Your Productivity Stack on the Edge",
-      "status": "success",
-      "time": "2026-10-21T10:23:21.653Z",
-      "relativeTime": "1h lalu"
-    },
-    {
-      "id": "threads-929",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "adhlil.co",
-      "text": "Malam ini, mari kita bisikkan ke diri sendiri: 'Ya Allah, siapa pun yang menyakiti hati saya hari ini, sudah saya maafkan.' Lepaskan bebannya, biar besok kita bangun dengan dada yang lapang. Sebelum memejamkan mata malam ini, satu hal kecil",
-      "status": "success",
-      "time": "2026-10-21T05:20:51.156Z",
       "relativeTime": "1h lalu"
     }
   ]
