@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-23T06:05:24.954Z",
+  "generatedAt": "2026-10-24T08:29:56.386Z",
   "system": {
     "totalWorkers": 11,
-    "totalToday": 3,
-    "activeToday": 3,
+    "totalToday": 4,
+    "activeToday": 4,
     "alertCount": 0,
-    "currentWitaTime": "14:05 WITA",
-    "dateStr": "2026-10-23",
+    "currentWitaTime": "16:29 WITA",
+    "dateStr": "2026-10-24",
     "health": "Optimal (100%)"
   },
   "workers": [
@@ -23,14 +23,14 @@
       "status": "WAITING",
       "todayCount": 0,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 13:22 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 13:22 WITA.",
+      "nextSlot": "Slot 1: 11:43 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 11:43 WITA.",
       "lastPost": {
         "id": 937,
         "text": "Dengan mendoakan orang lain, kita juga didoakan para malaikat. Ini amalan praktis di sela rutinitas harian. Mari sama-sama merenung: Siapa hari ini yang akan kita selipkan dalam doa-doa rahasia kita?",
         "status": "success",
         "time": "2026-10-22T06:13:49.379Z",
-        "relativeTime": "23j lalu",
+        "relativeTime": "2h lalu",
         "externalId": "18141910237625058"
       }
     },
@@ -47,14 +47,14 @@
       "status": "WAITING",
       "todayCount": 0,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 13:24 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 13:24 WITA.",
+      "nextSlot": "Slot 1: 12:50 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 12:50 WITA.",
       "lastPost": {
         "id": 926,
         "text": "Modal KUR sudah cair, kok profit dipotong platform? Ironis! Di @sharesa.space, kita bantu UMKM punya 'rumah digital' sendiri. Website profesional, margin utuh, & database pembeli jadi aset selamanya. Bebas potongan fee & risiko banned. Menurut kalian, di 2026 ini seberapa fatal resiko bisnis yang omsetnya gede tapi 100",
         "status": "success",
         "time": "2026-10-20T14:32:46.431Z",
-        "relativeTime": "2h lalu",
+        "relativeTime": "3h lalu",
         "externalId": "17914188183520294"
       }
     },
@@ -71,14 +71,14 @@
       "status": "WAITING",
       "todayCount": 0,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 10:26 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 10:26 WITA.",
+      "nextSlot": "Slot 1: 13:30 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 13:30 WITA.",
       "lastPost": {
         "id": 940,
         "text": "Biar otakmu gak penuh, biar bisa move on. Kualitas refleksi di ruang privat itu jauh lebih transformatif daripada validasi jempol digital. Jujur, kapan terakhir kali kamu nulis curhat atau evaluasi diri secara jujur tanpa diposting ke sosmed?",
         "status": "success",
         "time": "2026-10-22T12:09:03.246Z",
-        "relativeTime": "17j lalu",
+        "relativeTime": "1h lalu",
         "externalId": "18129214087769251"
       }
     },
@@ -92,17 +92,17 @@
       "accountName": "Adhlil (adhlil.co)",
       "role": "Visual Carousel Studio",
       "avatar": "pixel_manager",
-      "status": "WORKING",
-      "todayCount": 1,
+      "status": "WAITING",
+      "todayCount": 0,
       "dailyTarget": 2,
-      "nextSlot": "Slot 2: 21:07 WITA",
-      "speech": "🚀 Baru aja posting di Instagram! Konten udah live di timeline.",
+      "nextSlot": "Slot 1: 12:21 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 12:21 WITA.",
       "lastPost": {
         "id": 2505,
         "text": "Beban Sendiri Padahal Bertahan - High Retention Reel",
         "status": "success",
         "time": "2026-10-23T05:54:39.337Z",
-        "relativeTime": "10m lalu",
+        "relativeTime": "1h lalu",
         "externalId": "18129438302487290"
       }
     },
@@ -119,14 +119,14 @@
       "status": "WAITING",
       "todayCount": 0,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 10:24 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 10:24 WITA.",
+      "nextSlot": "Slot 1: 11:26 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 11:26 WITA.",
       "lastPost": {
         "id": 2504,
         "text": "Multitasking 'productivity tricks' promise focus... but often they're just clever distractions leading to app-fatigue & overwhelm. 😫\n\nImagine battling 7 different apps versus ONE unified space for true, deep work. ✨ Tranvas helps you cut the noise, creating a single canvas for your ideas & flow. Reclaim your attention",
         "status": "success",
         "time": "2026-10-22T12:13:11.426Z",
-        "relativeTime": "17j lalu",
+        "relativeTime": "1h lalu",
         "externalId": "18170631043481900"
       }
     },
@@ -143,14 +143,14 @@
       "status": "WAITING",
       "todayCount": 0,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 13:23 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 13:23 WITA.",
+      "nextSlot": "Slot 1: 11:58 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 11:58 WITA.",
       "lastPost": {
         "id": 2492,
         "text": "Layar AI bukan tempat menampung luka batin.\n\nSaat kita rapuh, balasan generik algoritma bisa bikin makin terisolasi. AI itu mesin logika, bukan pelukan manusia.\n\nSimpan ini buat pengingat dan share ke teman yang butuh mendengar ini! Cek link di bio.",
         "status": "success",
         "time": "2026-10-11T14:55:36.762Z",
-        "relativeTime": "11h lalu",
+        "relativeTime": "12h lalu",
         "externalId": "18032499704909320"
       }
     },
@@ -165,17 +165,17 @@
       "role": "AT-Proto Social Streamer",
       "avatar": "retro_bot",
       "status": "WAITING",
-      "todayCount": 0,
+      "todayCount": 1,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 11:53 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 11:53 WITA.",
+      "nextSlot": "Slot 2: 19:17 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 2: 19:17 WITA.",
       "lastPost": {
-        "id": 2800,
-        "text": "Why are people still beaming private gigabytes to remote cloud queues for trivial tasks?\n\nYour device hardware is plenty powerful. Video & Audio Converter does 100% client-side WebAssembly converter running locally in browser memory in milliseconds.\n\nWhat is the most absurd software subscr",
+        "id": 2802,
+        "text": "Nothing is more frustrating than a \"free\" web tool hitting you with a paywall at 99% progress.\n\ntranvas.com solves this cleanly: Fast, unified life OS that actually works without corporate bloatware, AI wrappers, and fragmented subscriptions. Runs 100% locally in your browser RAM with zero",
         "status": "success",
-        "time": "2026-10-22T06:05:23.332Z",
-        "relativeTime": "1h lalu",
-        "externalId": "at://did:plc:jr6aozuqr2ah3revtuumzazy/app.bsky.feed.post/3mygyoarac32n"
+        "time": "2026-10-24T07:14:52.873Z",
+        "relativeTime": "1j lalu",
+        "externalId": "at://did:plc:jr6aozuqr2ah3revtuumzazy/app.bsky.feed.post/3mym5jmspkt24"
       }
     },
     {
@@ -188,18 +188,18 @@
       "accountName": "Adhlil",
       "role": "Sovereign Relay Broadcaster",
       "avatar": "retro_bot",
-      "status": "WORKING",
+      "status": "RESTING",
       "todayCount": 1,
       "dailyTarget": 1,
       "nextSlot": "Target Terpenuhi",
-      "speech": "🚀 Baru aja posting di Nostr! Konten udah live di timeline.",
+      "speech": "☕ Kuota hari ini (1/1) beres bos! Istirahat dulu.",
       "lastPost": {
-        "id": 15,
-        "text": "Developers, privacy advocates: we face a constant digital anxiety. Not just AI's pace, but the relentless creep of predatory SaaS. Sending confidential contracts to cloud servers, then paying $20/month just for a basic PDF merge, or watching QR codes expire? That's not just a cost; it's a persistent digital mental burd",
+        "id": 16,
+        "text": "The constant app-switching, the fragmented data, the sheer mental overhead of juggling 6-7 tools just to manage your life – that's the 'friction tax' I built Tranvas to eliminate. We've spent years designing a truly unified Life Operating System at https://tranvas.com, bringing together 8 essential modules into one syn",
         "status": "success",
-        "time": "2026-10-23T05:12:25.843Z",
-        "relativeTime": "52m lalu",
-        "externalId": "1ecf110556b4774bfbd483ae7ff00e86305f8984a560fa5c0f91a8f78c96e959"
+        "time": "2026-10-24T06:16:14.074Z",
+        "relativeTime": "2j lalu",
+        "externalId": "61d1d16371c7e9115b25bae1e0912adcb1ed5ca0190d32875a339074dbe87316"
       }
     },
     {
@@ -215,15 +215,15 @@
       "status": "WAITING",
       "todayCount": 0,
       "dailyTarget": 1,
-      "nextSlot": "Slot 1: 11:21 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 11:21 WITA.",
+      "nextSlot": "Slot 1: 13:02 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 13:02 WITA.",
       "lastPost": {
-        "id": 2750,
-        "text": "No Cloud Uploads: Client-Side 4K Video Compression with WebCodecs & WebGPU",
+        "id": 2751,
+        "text": "Paying $20/Mo for Browser Capabilities? Unlocking Hardware-Accelerated Video with WebCodecs",
         "status": "success",
-        "time": "2026-10-22T12:07:13.129Z",
-        "relativeTime": "17j lalu",
-        "externalId": "4896628"
+        "time": "2026-10-23T09:38:00.455Z",
+        "relativeTime": "22j lalu",
+        "externalId": "4904337"
       }
     },
     {
@@ -237,17 +237,17 @@
       "role": "Aesthetic Microblogger",
       "avatar": "retro_bot",
       "status": "WAITING",
-      "todayCount": 0,
+      "todayCount": 1,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 11:06 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 11:06 WITA.",
+      "nextSlot": "Slot 2: 20:57 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 2: 20:57 WITA.",
       "lastPost": {
-        "id": 4209,
-        "text": "All I wanted was to trim 3 seconds of my dog sneezing from a 10-second clip. That's it. Basic video ",
+        "id": 4211,
+        "text": "🛸 DECLASSIFIED ALIEN REPORT / INTERGALACTIC EXPEDITION LOG\n\nCommander Zorblax's Log, Stardate 743.8",
         "status": "success",
-        "time": "2026-10-22T11:53:40.233Z",
-        "relativeTime": "18j lalu",
-        "externalId": "831174787467476992"
+        "time": "2026-10-24T07:18:12.208Z",
+        "relativeTime": "1j lalu",
+        "externalId": "831338645620506624"
       }
     },
     {
@@ -266,16 +266,93 @@
       "nextSlot": "Target Terpenuhi",
       "speech": "☕ Kuota hari ini (1/1) beres bos! Istirahat dulu.",
       "lastPost": {
-        "id": 5150,
-        "text": "Why are people still beaming private gigabytes to remote cloud queues for trivial tasks?\n\nWe built helpmyimg.com using client-side WebAssembly to fix Paying $20/mo to delete white pixels from a JPG, 10-credit export caps, 240p limits, and email walls just to download a compressed image. No accounts, no paywalls, no tra",
+        "id": 5151,
+        "text": "Nothing is more frustrating than a \"free\" web tool hitting you with a paywall at 99% progress.\n\nhandlemyfile.com solves this cleanly: Free in-browser suite: compress, merge, OCR, e-sign & convert Word/Excel in local RAM via WASM, zero cloud uploads. Runs 100% locally in your browser RAM with zero server uploads.\n\nWhat ",
         "status": "success",
-        "time": "2026-10-23T01:37:54.214Z",
-        "relativeTime": "4j lalu",
-        "externalId": "117487666759631951"
+        "time": "2026-10-24T01:57:32.603Z",
+        "relativeTime": "6j lalu",
+        "externalId": "117493406741545664"
       }
     }
   ],
   "recentActivity": [
+    {
+      "id": "tumblr-4211",
+      "platform": "tumblr",
+      "platformName": "Tumblr",
+      "platformIcon": "📝",
+      "accountName": "airanfadh",
+      "text": "🛸 DECLASSIFIED ALIEN REPORT / INTERGALACTIC EXPEDITION LOG\n\nCommander Zorblax's Log, Stardate 743.8",
+      "status": "success",
+      "time": "2026-10-24T07:18:12.208Z",
+      "relativeTime": "1j lalu"
+    },
+    {
+      "id": "bluesky-2802",
+      "platform": "bluesky",
+      "platformName": "Bluesky",
+      "platformIcon": "🦋",
+      "accountName": "khaithisran.bsky.social",
+      "text": "Nothing is more frustrating than a \"free\" web tool hitting you with a paywall at 99% progress.\n\ntranvas.com solves this cleanly: Fast, unified life OS that actually works without corporate bloatware, AI wrappers, and fragmented subscription",
+      "status": "success",
+      "time": "2026-10-24T07:14:52.873Z",
+      "relativeTime": "1j lalu"
+    },
+    {
+      "id": "nostr-16",
+      "platform": "nostr",
+      "platformName": "Nostr",
+      "platformIcon": "⚡",
+      "accountName": "Adhlil",
+      "text": "The constant app-switching, the fragmented data, the sheer mental overhead of juggling 6-7 tools just to manage your life – that's the 'friction tax' I built Tranvas to eliminate. We've spent years designing a truly unified Life Operating S",
+      "status": "success",
+      "time": "2026-10-24T06:16:14.074Z",
+      "relativeTime": "2j lalu"
+    },
+    {
+      "id": "mastodon-5151",
+      "platform": "mastodon",
+      "platformName": "Mastodon",
+      "platformIcon": "🐘",
+      "accountName": "khaithisran",
+      "text": "Nothing is more frustrating than a \"free\" web tool hitting you with a paywall at 99% progress.\n\nhandlemyfile.com solves this cleanly: Free in-browser suite: compress, merge, OCR, e-sign & convert Word/Excel in local RAM via WASM, zero cloud",
+      "status": "success",
+      "time": "2026-10-24T01:57:32.603Z",
+      "relativeTime": "6j lalu"
+    },
+    {
+      "id": "devto-2751",
+      "platform": "devto",
+      "platformName": "DEV.TO",
+      "platformIcon": "👩‍💻",
+      "accountName": "thisran",
+      "text": "Paying $20/Mo for Browser Capabilities? Unlocking Hardware-Accelerated Video with WebCodecs",
+      "status": "success",
+      "time": "2026-10-23T09:38:00.455Z",
+      "relativeTime": "22j lalu"
+    },
+    {
+      "id": "tumblr-4210",
+      "platform": "tumblr",
+      "platformName": "Tumblr",
+      "platformIcon": "📝",
+      "accountName": "airanfadh",
+      "text": "The modern SaaS playbook for 'free' online tools is borderline criminal extortion:\n\n1.  \"100% FREE\" ",
+      "status": "success",
+      "time": "2026-10-23T06:56:04.997Z",
+      "relativeTime": "1h lalu"
+    },
+    {
+      "id": "bluesky-2801",
+      "platform": "bluesky",
+      "platformName": "Bluesky",
+      "platformIcon": "🦋",
+      "accountName": "khaithisran.bsky.social",
+      "text": "The modern web subscription model for basic single-purpose utilities is completely broken.\n\nWe built handlemyfile.com using client-side WebAssembly to fix Paying Adobe $240/year just to delete or merge 1 PDF page, uploading confidential tax",
+      "status": "success",
+      "time": "2026-10-23T06:34:35.956Z",
+      "relativeTime": "1h lalu"
+    },
     {
       "id": "instagram-2505",
       "platform": "instagram",
@@ -285,7 +362,7 @@
       "text": "Beban Sendiri Padahal Bertahan - High Retention Reel",
       "status": "success",
       "time": "2026-10-23T05:54:39.337Z",
-      "relativeTime": "10m lalu"
+      "relativeTime": "1h lalu"
     },
     {
       "id": "nostr-15",
@@ -296,7 +373,7 @@
       "text": "Developers, privacy advocates: we face a constant digital anxiety. Not just AI's pace, but the relentless creep of predatory SaaS. Sending confidential contracts to cloud servers, then paying $20/month just for a basic PDF merge, or watchin",
       "status": "success",
       "time": "2026-10-23T05:12:25.843Z",
-      "relativeTime": "52m lalu"
+      "relativeTime": "1h lalu"
     },
     {
       "id": "mastodon-5150",
@@ -307,7 +384,7 @@
       "text": "Why are people still beaming private gigabytes to remote cloud queues for trivial tasks?\n\nWe built helpmyimg.com using client-side WebAssembly to fix Paying $20/mo to delete white pixels from a JPG, 10-credit export caps, 240p limits, and e",
       "status": "success",
       "time": "2026-10-23T01:37:54.214Z",
-      "relativeTime": "4j lalu"
+      "relativeTime": "1h lalu"
     },
     {
       "id": "instagram-2504",
@@ -318,7 +395,7 @@
       "text": "Multitasking 'productivity tricks' promise focus... but often they're just clever distractions leading to app-fatigue & overwhelm. 😫\n\nImagine battling 7 different apps versus ONE unified space for true, deep work. ✨ Tranvas helps you cut t",
       "status": "success",
       "time": "2026-10-22T12:13:11.426Z",
-      "relativeTime": "17j lalu"
+      "relativeTime": "1h lalu"
     },
     {
       "id": "threads-940",
@@ -329,7 +406,7 @@
       "text": "Biar otakmu gak penuh, biar bisa move on. Kualitas refleksi di ruang privat itu jauh lebih transformatif daripada validasi jempol digital. Jujur, kapan terakhir kali kamu nulis curhat atau evaluasi diri secara jujur tanpa diposting ke sosme",
       "status": "success",
       "time": "2026-10-22T12:09:03.246Z",
-      "relativeTime": "17j lalu"
+      "relativeTime": "1h lalu"
     },
     {
       "id": "threads-939",
@@ -340,7 +417,7 @@
       "text": "Kita sering curhat di Stories atau status, berharap validasi. Tapi takut dihujat, takut dianggap lemah. Hasilnya? Curhat yang diedit, bukan jujur. Padahal, tempat terbaik untuk bongkar kegagalan atau ketakutan itu bukan di publik. Tapi di r",
       "status": "success",
       "time": "2026-10-22T12:08:35.855Z",
-      "relativeTime": "17j lalu"
+      "relativeTime": "1h lalu"
     },
     {
       "id": "threads-938",
@@ -351,7 +428,7 @@
       "text": "Medan perang curhat, bukan jurnal pribadi.",
       "status": "success",
       "time": "2026-10-22T12:08:07.002Z",
-      "relativeTime": "17j lalu"
+      "relativeTime": "1h lalu"
     },
     {
       "id": "devto-2750",
@@ -362,7 +439,7 @@
       "text": "No Cloud Uploads: Client-Side 4K Video Compression with WebCodecs & WebGPU",
       "status": "success",
       "time": "2026-10-22T12:07:13.129Z",
-      "relativeTime": "17j lalu"
+      "relativeTime": "1h lalu"
     },
     {
       "id": "tumblr-4209",
@@ -373,7 +450,7 @@
       "text": "All I wanted was to trim 3 seconds of my dog sneezing from a 10-second clip. That's it. Basic video ",
       "status": "success",
       "time": "2026-10-22T11:53:40.233Z",
-      "relativeTime": "18j lalu"
+      "relativeTime": "1h lalu"
     },
     {
       "id": "threads-937",
@@ -384,7 +461,7 @@
       "text": "Dengan mendoakan orang lain, kita juga didoakan para malaikat. Ini amalan praktis di sela rutinitas harian. Mari sama-sama merenung: Siapa hari ini yang akan kita selipkan dalam doa-doa rahasia kita?",
       "status": "success",
       "time": "2026-10-22T06:13:49.379Z",
-      "relativeTime": "23j lalu"
+      "relativeTime": "2h lalu"
     },
     {
       "id": "threads-936",
@@ -395,7 +472,7 @@
       "text": "Cukup mendoakan kebaikan bagi saudara-saudari kita secara diam-diam, tanpa mereka tahu. Rasulullah ﷺ bersabda, malaikat akan berkata, 'Amin, dan bagimu juga.' (HR. Muslim). Masya Allah, betapa mudahnya.",
       "status": "success",
       "time": "2026-10-22T06:13:21.406Z",
-      "relativeTime": "23j lalu"
+      "relativeTime": "2h lalu"
     },
     {
       "id": "threads-935",
@@ -406,7 +483,7 @@
       "text": "Pengingat buat saya dan kita semua. Di tengah hiruk pikuk kesibukan, ada amalan ringan yang sering terlupa, namun bobotnya luar biasa besar.",
       "status": "success",
       "time": "2026-10-22T06:12:49.751Z",
-      "relativeTime": "23j lalu"
+      "relativeTime": "2h lalu"
     },
     {
       "id": "threads-934",
@@ -417,84 +494,7 @@
       "text": "Sibuk kerja, tapi ingin pahala jariyah terus mengalir?",
       "status": "success",
       "time": "2026-10-22T06:12:22.894Z",
-      "relativeTime": "23j lalu"
-    },
-    {
-      "id": "nostr-14",
-      "platform": "nostr",
-      "platformName": "Nostr",
-      "platformIcon": "⚡",
-      "accountName": "Adhlil",
-      "text": "Tired of predatory SaaS charging $20/month just to convert an image or artificially limiting basic features like non-expiring QR codes? It's an insult to open web principles. Your fundamental digital utilities shouldn't be held hostage for ",
-      "status": "success",
-      "time": "2026-10-22T06:12:17.260Z",
-      "relativeTime": "23j lalu"
-    },
-    {
-      "id": "bluesky-2800",
-      "platform": "bluesky",
-      "platformName": "Bluesky",
-      "platformIcon": "🦋",
-      "accountName": "khaithisran.bsky.social",
-      "text": "Why are people still beaming private gigabytes to remote cloud queues for trivial tasks?\n\nYour device hardware is plenty powerful. Video & Audio Converter does 100% client-side WebAssembly converter running locally in browser memory in mill",
-      "status": "success",
-      "time": "2026-10-22T06:05:23.332Z",
-      "relativeTime": "1h lalu"
-    },
-    {
-      "id": "mastodon-5149",
-      "platform": "mastodon",
-      "platformName": "Mastodon",
-      "platformIcon": "🐘",
-      "accountName": "khaithisran",
-      "text": "Predatory SaaS: \"Free\" QR codes that expire, then demand $39/mo for your printed menus. It's digital extortion.\n\ncreatemy-qr.com: 100% client-side WebAssembly. Generate 37 ISO-compliant QR/barcodes, permanent. Zero signups, zero telemetry, ",
-      "status": "success",
-      "time": "2026-10-22T00:11:50.075Z",
-      "relativeTime": "1h lalu"
-    },
-    {
-      "id": "instagram-2503",
-      "platform": "instagram",
-      "platformName": "Instagram",
-      "platformIcon": "📸",
-      "accountName": "Tranvas",
-      "text": "**Multitasking isn't a superpower, it's a drain.**\n\nFeeling exhausted by noon, even with minimal tasks? That's the unseen toll of constant digital switching. Your brain isn't built for constant app-hopping; it's craving a single, unified sp",
-      "status": "success",
-      "time": "2026-10-21T10:25:36.806Z",
-      "relativeTime": "1h lalu"
-    },
-    {
-      "id": "threads-933",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "Tranvas",
-      "text": "Impiannya cuma satu: tutup laptop lebih cepat, hidup lebih tenang. Karena hidup itu bukan kompetisi aplikasi, tapi tentang fokus ke yang penting. Kalo kalian bisa bikin 1 aplikasi buat nyelesaiin masalah hidup sehari-hari, fitur apa yang pa",
-      "status": "success",
-      "time": "2026-10-21T10:25:29.973Z",
-      "relativeTime": "1h lalu"
-    },
-    {
-      "id": "threads-932",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "Tranvas",
-      "text": "Dulu, saya juga begitu. Capek ganti-ganti tab, bayar langganan ini itu yang ujungnya cuma nambah pusing. Karena itulah @tranvas saya bangun. Bukan buat nambah aplikasi kamu, justru sebaliknya: biar kamu bisa punya satu 'rumah' yang tenang b",
-      "status": "success",
-      "time": "2026-10-21T10:25:03.407Z",
-      "relativeTime": "1h lalu"
-    },
-    {
-      "id": "threads-931",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "Tranvas",
-      "text": "Kita semua pernah kan? Dari task manager, habit tracker, budgeting, journaling, sampai ide random di notes. Semua mencar-mencar, saling teriak minta perhatian. Akhirnya, waktu kita habis cuma buat 'ngatur hidup' di aplikasi, bukan benar-ben",
-      "status": "success",
-      "time": "2026-10-21T10:24:33.814Z",
-      "relativeTime": "1h lalu"
+      "relativeTime": "2h lalu"
     }
   ]
 }
