@@ -63,6 +63,10 @@ jobs:
           THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY || 'NSq2RqXrKm1djxxjPXmv5VKS0ZFBByBr0mv0yd2guVlqpFjD6tx7TDv4' }}
+          WATERMARK: 'none'
+          CHANNEL_NAME: 'none'
+          END_CTA: ''
+          VOICE_ENHANCE: 'false'
           PYTHONUTF8: '1'
           PYTHONIOENCODING: 'utf-8'
         run: node scripts/master-cron.mjs
