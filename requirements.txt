@@ -1,4 +1,4 @@
-purffle-shorts>=3.0.0
+git+https://github.com/Chamanrajragu/purffle-shorts.git
 Pillow>=10.0.0
 edge-tts>=6.1.0
 requests>=2.30.0
