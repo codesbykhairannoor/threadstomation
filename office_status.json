@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-24T08:29:56.386Z",
+  "generatedAt": "2026-10-24T08:41:25.854Z",
   "system": {
     "totalWorkers": 11,
-    "totalToday": 4,
-    "activeToday": 4,
+    "totalToday": 5,
+    "activeToday": 5,
     "alertCount": 0,
-    "currentWitaTime": "16:29 WITA",
+    "currentWitaTime": "16:41 WITA",
     "dateStr": "2026-10-24",
     "health": "Optimal (100%)"
   },
@@ -116,18 +116,18 @@
       "accountName": "Tranvas",
       "role": "Tranvas Life OS Advocate",
       "avatar": "hacker_dude",
-      "status": "WAITING",
-      "todayCount": 0,
+      "status": "WORKING",
+      "todayCount": 1,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 11:26 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 11:26 WITA.",
+      "nextSlot": "Slot 2: 20:20 WITA",
+      "speech": "🚀 Baru aja posting di Instagram! Konten udah live di timeline.",
       "lastPost": {
-        "id": 2504,
-        "text": "Multitasking 'productivity tricks' promise focus... but often they're just clever distractions leading to app-fatigue & overwhelm. 😫\n\nImagine battling 7 different apps versus ONE unified space for true, deep work. ✨ Tranvas helps you cut the noise, creating a single canvas for your ideas & flow. Reclaim your attention",
+        "id": 2506,
+        "text": "Your To-Do list is secretly sabotaging you. 🤯\n\nEver feel busy, but accomplish nothing? Traditional lists are often a 'wish list' without a plan. They breed indecision, not action.\n\nTime blocking isn't just a hack; it's a mental shift from 'what to do' to 'when to do it.' Transform chaos into structure. 🚀\n\nSimpan ini ",
         "status": "success",
-        "time": "2026-10-22T12:13:11.426Z",
-        "relativeTime": "1h lalu",
-        "externalId": "18170631043481900"
+        "time": "2026-10-24T08:30:18.969Z",
+        "relativeTime": "11m lalu",
+        "externalId": "18158361004444776"
       }
     },
     {
@@ -222,7 +222,7 @@
         "text": "Paying $20/Mo for Browser Capabilities? Unlocking Hardware-Accelerated Video with WebCodecs",
         "status": "success",
         "time": "2026-10-23T09:38:00.455Z",
-        "relativeTime": "22j lalu",
+        "relativeTime": "23j lalu",
         "externalId": "4904337"
       }
     },
@@ -277,6 +277,17 @@
   ],
   "recentActivity": [
     {
+      "id": "instagram-2506",
+      "platform": "instagram",
+      "platformName": "Instagram",
+      "platformIcon": "📸",
+      "accountName": "Tranvas",
+      "text": "Your To-Do list is secretly sabotaging you. 🤯\n\nEver feel busy, but accomplish nothing? Traditional lists are often a 'wish list' without a plan. They breed indecision, not action.\n\nTime blocking isn't just a hack; it's a mental shift from ",
+      "status": "success",
+      "time": "2026-10-24T08:30:18.969Z",
+      "relativeTime": "11m lalu"
+    },
+    {
       "id": "tumblr-4211",
       "platform": "tumblr",
       "platformName": "Tumblr",
@@ -329,7 +340,7 @@
       "text": "Paying $20/Mo for Browser Capabilities? Unlocking Hardware-Accelerated Video with WebCodecs",
       "status": "success",
       "time": "2026-10-23T09:38:00.455Z",
-      "relativeTime": "22j lalu"
+      "relativeTime": "23j lalu"
     },
     {
       "id": "tumblr-4210",
@@ -483,17 +494,6 @@
       "text": "Pengingat buat saya dan kita semua. Di tengah hiruk pikuk kesibukan, ada amalan ringan yang sering terlupa, namun bobotnya luar biasa besar.",
       "status": "success",
       "time": "2026-10-22T06:12:49.751Z",
-      "relativeTime": "2h lalu"
-    },
-    {
-      "id": "threads-934",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "adhlil.co",
-      "text": "Sibuk kerja, tapi ingin pahala jariyah terus mengalir?",
-      "status": "success",
-      "time": "2026-10-22T06:12:22.894Z",
       "relativeTime": "2h lalu"
     }
   ]
