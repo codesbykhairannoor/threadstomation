@@ -468,36 +468,64 @@ export async function runInstagramCron(force = false) {
       return { success: true, status: 'Instagram automation disabled globally.' };
     }
 
-    const accounts = await sql`SELECT id, name FROM instagram_accounts WHERE is_active = 1`;
+    const rawAccounts = await sql`SELECT id, name FROM instagram_accounts WHERE is_active = 1`;
     const executed = [];
 
-    for (const acc of accounts) {
-      const ranToday = await sql`
+    // ── STARVATION-AWARE ACCOUNT ENRICHMENT & PRIORITY QUEUE ──
+    const accounts = [];
+    for (const acc of rawAccounts) {
+      const ranTodaySched = await sql`
         SELECT COUNT(*) as count FROM instagram_schedules
         WHERE account_id = ${acc.id} AND last_run_date = ${todayStr}
       `;
-      const postsToday = parseInt(ranToday[0]?.count || 0, 10);
-      
-      const dailyLimit = 1; // User requested 1x per day for all IG
+      const ranTodayHist = await sql`
+        SELECT COUNT(*) as count FROM instagram_history
+        WHERE account_id = ${acc.id} AND status = 'success' AND created_at >= ${todayStr + 'T00:00:00Z'}
+      `;
+      const postsToday = Math.max(
+        parseInt(ranTodaySched[0]?.count || 0, 10),
+        parseInt(ranTodayHist[0]?.count || 0, 10)
+      );
 
-      if (postsToday >= dailyLimit) {
-        console.log(`[Instagram-Cron] Acc ${acc.name}: hit ${dailyLimit}-post daily limit.`);
+      const lastSuccess = await sql`
+        SELECT created_at FROM instagram_history
+        WHERE account_id = ${acc.id} AND status = 'success'
+        ORDER BY created_at DESC LIMIT 1
+      `;
+      const lastPostDate = lastSuccess.length > 0 ? new Date(lastSuccess[0].created_at) : null;
+      const hoursSinceLastPost = lastPostDate ? (now.getTime() - lastPostDate.getTime()) / (1000 * 3600) : 999;
+
+      accounts.push({
+        ...acc,
+        postsToday,
+        lastPostDate,
+        hoursSinceLastPost
+      });
+    }
+
+    // Sort accounts so starved accounts (>22 hours since last post) are processed FIRST
+    accounts.sort((a, b) => b.hoursSinceLastPost - a.hoursSinceLastPost);
+
+    for (const acc of accounts) {
+      const dailyLimit = 1; // 1x per day for all IG accounts
+
+      if (acc.postsToday >= dailyLimit) {
+        console.log(`[Instagram-Cron] Acc ${acc.name}: hit ${dailyLimit}-post daily limit (${acc.postsToday} posted today).`);
         continue;
       }
 
-      // ── DETERMINISTIC STAGGERED QUEUE SLOTS ARCHITECTURE (ALA BUFFER/POSTIZ) ──
-      // Dedicated, non-overlapping windows for each of the 3 Instagram accounts!
-      // Adhlil: Morning/Noon (09:00 - 13:00 WITA)
-      // Tranvas: Afternoon (13:30 - 17:30 WITA)
-      // Sharesa Space: Evening (18:00 - 22:00 WITA)
+      // ── WIDE-SPECTRUM STAGGERED WINDOWS (ALA BUFFER / POSTIZ) ──
+      // Adhlil: Morning / Noon (08:30 - 13:30 WITA)
+      // Tranvas: Midday / Afternoon (11:00 - 17:30 WITA)
+      // Sharesa Space: Afternoon / Evening (14:00 - 22:30 WITA)
       let windowConfig;
       const nName = (acc.name || '').toLowerCase();
       if (nName.includes('adhlil') || acc.id === 1) {
-        windowConfig = [9, 0, 13, 0];
+        windowConfig = [8, 30, 13, 30];
       } else if (nName.includes('tranvas') || acc.id === 2) {
-        windowConfig = [13, 30, 17, 30];
+        windowConfig = [11, 0, 17, 30];
       } else {
-        windowConfig = [18, 0, 22, 0];
+        windowConfig = [14, 0, 22, 30];
       }
 
       const [startH, startM, endH, endM] = windowConfig;
@@ -509,9 +537,15 @@ export async function runInstagramCron(force = false) {
         currentHour, currentMinute
       );
 
-      console.log(`[Instagram-Cron] 🎯 ${acc.name}: Slot 1/1 target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2,'0')}:${String(currentMinute).padStart(2,'0')}, isDue: ${targetSlot.isDue})`);
+      // Starvation protection: If an account hasn't posted in >22h and it's active daytime (08:00 - 23:00 WITA),
+      // or if its scheduled window slot already passed earlier today without posting, catch up immediately!
+      const isStarved = acc.hoursSinceLastPost >= 22 && (currentHour >= 8 && currentHour <= 23);
+      const isPastSlotGrace = currentHour >= endH && acc.postsToday === 0 && currentHour < 23;
+      const isDue = force || isStarved || targetSlot.isDue || isPastSlotGrace;
 
-      if (!force && !targetSlot.isDue) {
+      console.log(`[Instagram-Cron] 🎯 ${acc.name}: hoursSinceLast=${acc.hoursSinceLastPost.toFixed(1)}h, isStarved=${isStarved}, Slot target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2,'0')}:${String(currentMinute).padStart(2,'0')}, isDue: ${isDue})`);
+
+      if (!isDue) {
         continue;
       }
 
@@ -526,12 +560,13 @@ export async function runInstagramCron(force = false) {
 
       const chosen = pending[Math.floor(Math.random() * pending.length)];
       try {
+        console.log(`[Instagram-Cron] 🚀 Dispatching scheduled post for ${acc.name} (Schedule #${chosen.id})...`);
         const result = await runInstagramPost(acc.id, chosen.custom_prompt);
-        // Only mark as ran today if it actually succeeded
+        // Mark as ran today once successfully completed
         await sql`UPDATE instagram_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
         
         executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
-        console.log(`[Instagram-Cron] ✅ Posted for ${acc.name}`);
+        console.log(`[Instagram-Cron] ✅ Successfully posted for ${acc.name}`);
 
         // ── SINGLE-ACCOUNT EXECUTION LOCK PER CRON RUN ──
         console.log(`[Instagram-Cron] 🔒 Dispatched post for ${acc.name}. Locking out other Instagram accounts for this 15-minute cycle.`);

@@ -182,6 +182,37 @@ def _gemini_tts(text: str, out: Path, settings: Settings) -> tuple[Path, list[Wo
 tts._ENGINE_FUNCS["gemini"] = _gemini_tts
 tts.CACHED_ENGINES.add("gemini")
 
+# Patch Visuals._claim to pick stochastically from top candidates instead of always rank 0
+import purffle_shorts.media as media
+_orig_claim = media.Visuals._claim
+
+def _smart_claim(self, candidates: list, need: float, query: str = ""):
+    with self.lock:
+        fresh = [c for c in candidates if c.key not in self.used]
+        if not fresh:
+            return None
+        if fresh[0].source == "local":
+            best = fresh[0] if fresh[0].extra.get("overlap") else random.choice(fresh)
+        else:
+            scored = sorted(
+                fresh,
+                key=lambda c: media._score(c, need, self.s.orientation, query),
+                reverse=True
+            )
+            top_candidates = scored[:min(4, len(scored))]
+            if len(top_candidates) == 1:
+                best = top_candidates[0]
+            elif len(top_candidates) == 2:
+                best = random.choices(top_candidates, weights=[0.60, 0.40], k=1)[0]
+            elif len(top_candidates) == 3:
+                best = random.choices(top_candidates, weights=[0.50, 0.32, 0.18], k=1)[0]
+            else:
+                best = random.choices(top_candidates, weights=[0.45, 0.30, 0.17, 0.08], k=1)[0]
+        self.used.add(best.key)
+        return best
+
+media.Visuals._claim = _smart_claim
+
 if __name__ == "__main__":
     import purffle_shorts.cli as cli
     cli.main()
