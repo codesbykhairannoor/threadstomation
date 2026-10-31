@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-28T08:57:19.910Z",
+  "generatedAt": "2026-10-31T07:29:48.782Z",
   "system": {
     "totalWorkers": 11,
-    "totalToday": 12,
-    "activeToday": 9,
+    "totalToday": 6,
+    "activeToday": 6,
     "alertCount": 0,
-    "currentWitaTime": "16:57 WITA",
-    "dateStr": "2026-10-28",
+    "currentWitaTime": "15:29 WITA",
+    "dateStr": "2026-10-31",
     "health": "Optimal (100%)"
   },
   "workers": [
@@ -20,18 +20,18 @@
       "accountName": "adhlil.co",
       "role": "AI Social Content Specialist",
       "avatar": "retro_bot",
-      "status": "RESTING",
-      "todayCount": 4,
+      "status": "WAITING",
+      "todayCount": 1,
       "dailyTarget": 2,
-      "nextSlot": "Target Terpenuhi",
-      "speech": "☕ Kuota hari ini (4/2) beres bos! Istirahat dulu.",
+      "nextSlot": "Slot 2: 20:11 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 2: 20:11 WITA.",
       "lastPost": {
-        "id": 957,
-        "text": "Semoga Allah selalu melapangkan rezeki kita dari pintu-pintu tak terduga. Mari renungkan, apakah ada rezeki lain yang justru kita dapatkan saat sedang tidak mengejar apa-apa? Bagikan renungan Anda.",
+        "id": 972,
+        "text": "Seringkali kita terlalu fokus mengejar 'rezeki' berupa angka dan pencapaian, sampai lupa esensinya. Mata lelah, hati kering, seolah harta adalah satu-satunya tujuan. Padahal, rezeki itu luas: kesehatan, keluarga harmonis, teman baik, dan ketenangan batin. Ini semua karunia yang tak ternilai. Dunia memang tempat berjuan",
         "status": "success",
-        "time": "2026-10-28T01:48:27.296Z",
-        "relativeTime": "7j lalu",
-        "externalId": "17941458891373777"
+        "time": "2026-10-31T02:35:10.979Z",
+        "relativeTime": "4j lalu",
+        "externalId": "17988732492092817"
       }
     },
     {
@@ -45,17 +45,17 @@
       "role": "Sharesa Space Creative AI",
       "avatar": "pixel_manager",
       "status": "WAITING",
-      "todayCount": 1,
+      "todayCount": 0,
       "dailyTarget": 2,
-      "nextSlot": "Slot 2: 18:12 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 2: 18:12 WITA.",
+      "nextSlot": "Slot 1: 12:06 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 12:06 WITA.",
       "lastPost": {
-        "id": 958,
-        "text": "Lagi urus dokumen pajak atau draft kontrak kerja? Hati-hati PDF converter gratisan! File sensitif macam SPT atau rekening koran, diupload ke server luar. Bahaya banget kalau bocor. HandleMyFile proses semua PDF (gabung, pisah, konversi) 100% di browser kamu. Aman, privat, pakai teknologi WebAssembly tanpa upload ke ser",
+        "id": 970,
+        "text": "Edit foto KTP/NPWP di web gratisan? Awas, data sensitif bisa bocor! Banyak abai privasi saat edit dokumen identitas, padahal pentingnya sama dengan Kekayaan Intelektual. HelpMyIMG memastikan semua olah gambar, dari hapus background hingga kompres, 100% di RAM browser kamu. Tanpa upload ke server luar, data pribadi aman",
         "status": "success",
-        "time": "2026-10-28T07:35:13.098Z",
-        "relativeTime": "1j lalu",
-        "externalId": "18116925730840539"
+        "time": "2026-10-30T07:44:03.513Z",
+        "relativeTime": "23j lalu",
+        "externalId": "17952918810325240"
       }
     },
     {
@@ -71,15 +71,15 @@
       "status": "WAITING",
       "todayCount": 0,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 13:45 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 13:45 WITA.",
+      "nextSlot": "Slot 1: 11:44 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 11:44 WITA.",
       "lastPost": {
-        "id": 953,
-        "text": "Punya sistem terintegrasi yang memangkas 'noise' itu krusial. Bukan kerja keras 14 jam, tapi kerja cerdas 5 jam yang berdampak besar. Kamu di tim mana: banting tulang 14 jam atau taktis 5 jam dengan sistem rapi?",
+        "id": 971,
+        "text": "4 jam atur Notion, kerja asli 0%. Otak kita hobi menipu dengan kesibukan palsu. Merasa produktif, padahal cuma nge-desain",
         "status": "success",
-        "time": "2026-10-27T12:54:03.247Z",
-        "relativeTime": "20j lalu",
-        "externalId": "18024893786928491"
+        "time": "2026-10-30T14:40:27.166Z",
+        "relativeTime": "16j lalu",
+        "externalId": "18054969251596491"
       }
     },
     {
@@ -93,17 +93,17 @@
       "role": "Visual Carousel Studio",
       "avatar": "pixel_manager",
       "status": "WAITING",
-      "todayCount": 0,
+      "todayCount": 1,
       "dailyTarget": 2,
-      "nextSlot": "Slot 1: 10:16 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 10:16 WITA.",
+      "nextSlot": "Slot 2: 20:33 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 2: 20:33 WITA.",
       "lastPost": {
-        "id": 2513,
-        "text": "✨ **Lelahmu Bukan Sia-sia, Tapi Bekal Berharga!**\n\nPernahkah merasa penat di tengah hiruk pikuk pekerjaan? Wajar, dunia memang ladang ujian. Tapi ingat, setiap peluh adalah investasi akhirat. 💪 Jadikan lelahmu ibadah, insyaAllah jadi tangga menuju istirahat sejati di sisi-Nya. Simpan ini buat pengingat, dan bagikan ke",
+        "id": 2516,
+        "text": "**Bumi ini hanyalah persinggahan.**\n\nTerasa lelah, penat dengan hiruk pikuk dunia? Wajar, ini memang tempatnya berlelah-lelah. Ujian datang silih berganti menguji iman dan kesabaran kita.\n\nNamun, ingatlah sahabat, semua penat ini ada ujungnya. Ada tempat istirahat terbaik yang menanti: Akhirat, Surga-Nya Allah SWT. Ter",
         "status": "success",
-        "time": "2026-10-27T12:53:26.975Z",
-        "relativeTime": "20j lalu",
-        "externalId": "18360912733220146"
+        "time": "2026-10-31T02:38:34.064Z",
+        "relativeTime": "4j lalu",
+        "externalId": "17939134839124835"
       }
     },
     {
@@ -116,18 +116,18 @@
       "accountName": "Tranvas",
       "role": "Tranvas Life OS Advocate",
       "avatar": "hacker_dude",
-      "status": "WAITING",
+      "status": "WORKING",
       "todayCount": 1,
       "dailyTarget": 2,
-      "nextSlot": "Slot 2: 19:47 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 2: 19:47 WITA.",
+      "nextSlot": "Slot 2: 20:00 WITA",
+      "speech": "🚀 Baru aja posting di Instagram! Konten udah live di timeline.",
       "lastPost": {
-        "id": 2514,
-        "text": "Dopamine detoxes fail without friction architecture. 🧠\n\nStop relying on raw willpower. Design your workspace so focus becomes the path of least resistance.\n\nSave this guide for your next reset 📌 and share it with a friend drowning in tab chaos.",
+        "id": 2517,
+        "text": "**Stop running on the busywork hamster wheel!** Feeling overwhelmed by tasks, but sensing zero real progress? This isn't about working harder, but smarter. Most 'busy' is just distraction. Learn how to transform endless activity into genuine impact. Simpan ini buat pengingat & kirim ke temanmu yang suka sibuk sendiri! ",
         "status": "success",
-        "time": "2026-10-28T07:40:51.422Z",
-        "relativeTime": "1j lalu",
-        "externalId": "18100374575388436"
+        "time": "2026-10-31T07:19:07.661Z",
+        "relativeTime": "10m lalu",
+        "externalId": "18451317754124777"
       }
     },
     {
@@ -143,15 +143,15 @@
       "status": "WORKING",
       "todayCount": 1,
       "dailyTarget": 2,
-      "nextSlot": "Slot 2: 20:48 WITA",
+      "nextSlot": "Slot 2: 21:21 WITA",
       "speech": "🚀 Baru aja posting di Instagram! Konten udah live di timeline.",
       "lastPost": {
-        "id": 2515,
-        "text": "Website bisnis yang cepat dan tools digital yang efisien adalah kunci konversi 2026. Kunjungi link di bio @sharesa.space untuk solusi lengkapnya!",
+        "id": 2518,
+        "text": "**Website lemot? 🚨 80% calon pembeli kabur!**\n\nSadar tidak, website bisnis yang lambat & jadul itu ibarat \"lubang\" besar yang bikin calon pembeli pergi? 🌬️ Mereka datang, lihat loading, langsung beralih ke kompetitor. Potensi kerugiannya bisa sampai 80%!\n\nDi Sharesa Space, kami bangun website custom Next.js. Jaminan ",
         "status": "success",
-        "time": "2026-10-28T08:54:49.345Z",
+        "time": "2026-10-31T07:27:39.895Z",
         "relativeTime": "2m lalu",
-        "externalId": "17998486064830999"
+        "externalId": "18115594019613535"
       }
     },
     {
@@ -165,17 +165,17 @@
       "role": "AT-Proto Social Streamer",
       "avatar": "retro_bot",
       "status": "WAITING",
-      "todayCount": 1,
+      "todayCount": 0,
       "dailyTarget": 2,
-      "nextSlot": "Slot 2: 21:03 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 2: 21:03 WITA.",
+      "nextSlot": "Slot 1: 10:44 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 10:44 WITA.",
       "lastPost": {
-        "id": 2808,
-        "text": "3+ min cloud upload vs 0.3s browser WASM. Brutal latency flex. Why over-engineer?\n\nSick of QR generators holding your biz hostage for $39/mo? My tool does 37 ISO codes, 100% client-side, offline, forever. No signups.\n\nWorst dark pattern you've seen?\nhttps://createmy-qr.com/?ref=blues_8569",
+        "id": 2813,
+        "text": "Nothing is more frustrating than a \"free\" web tool hitting you with a paywall at 99% progress.\n\nYour device hardware is plenty powerful. tranvas.com does Fast, unified life OS that actually works without corporate bloatware, AI wrappers, and fragmented subscriptions in milliseconds.\n\nWhat ",
         "status": "success",
-        "time": "2026-10-28T07:31:56.800Z",
-        "relativeTime": "1j lalu",
-        "externalId": "at://did:plc:jr6aozuqr2ah3revtuumzazy/app.bsky.feed.post/3mywadhlfef2d"
+        "time": "2026-10-30T14:37:18.172Z",
+        "relativeTime": "16j lalu",
+        "externalId": "at://did:plc:jr6aozuqr2ah3revtuumzazy/app.bsky.feed.post/3mz3z52zmhx2d"
       }
     },
     {
@@ -188,18 +188,18 @@
       "accountName": "Adhlil",
       "role": "Sovereign Relay Broadcaster",
       "avatar": "retro_bot",
-      "status": "RESTING",
-      "todayCount": 1,
+      "status": "WAITING",
+      "todayCount": 0,
       "dailyTarget": 1,
-      "nextSlot": "Target Terpenuhi",
-      "speech": "☕ Kuota hari ini (1/1) beres bos! Istirahat dulu.",
+      "nextSlot": "Slot 1: 11:12 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 11:12 WITA.",
       "lastPost": {
-        "id": 20,
-        "text": "Discussions around mental health are vital. Let's talk about digital fatigue – specifically the mental toll of predatory SaaS. Paying $20/month for basic PDF ops or watching your QR codes expire is not 'service'; it's engineered dependency and data anxiety.\n\nWe deserve better. That's why I champion solutions like Handl",
+        "id": 22,
+        "text": "We decry SaaS data grabs, yet many still upload personal media to cloud services just to *convert* or *compress*. They hit you with $20/month subscriptions for basic functions, expiring QR codes, or holding your data hostage. That's not just extortion, it's a quiet erosion of your digital sovereignty.\n\nThis is exactly ",
         "status": "success",
-        "time": "2026-10-28T07:35:16.746Z",
-        "relativeTime": "1j lalu",
-        "externalId": "b9790ada0979f3ea8f52771628d793bfc074fafdf4cf45fd17367daf00f812a2"
+        "time": "2026-10-30T07:44:20.566Z",
+        "relativeTime": "23j lalu",
+        "externalId": "7e08efa068e5f8604a250dd05e621173292721344e9d89ae5f91a313591adf9b"
       }
     },
     {
@@ -212,18 +212,18 @@
       "accountName": "thisran",
       "role": "Markdown Tech Writer",
       "avatar": "hacker_dude",
-      "status": "RESTING",
+      "status": "WORKING",
       "todayCount": 1,
       "dailyTarget": 1,
       "nextSlot": "Target Terpenuhi",
-      "speech": "☕ Kuota hari ini (1/1) beres bos! Istirahat dulu.",
+      "speech": "🚀 Baru aja posting di DEV.TO! Konten udah live di timeline.",
       "lastPost": {
-        "id": 2756,
-        "text": "The 500MB Trap: Why We Moved Video Compression from Cloud to Browser with WebCodecs",
+        "id": 2759,
+        "text": "Show DEV: SolveMyMedia – No-Upload, Hardware-Accelerated Video Compression",
         "status": "success",
-        "time": "2026-10-28T07:34:52.841Z",
-        "relativeTime": "1j lalu",
-        "externalId": "4932922"
+        "time": "2026-10-31T06:56:18.526Z",
+        "relativeTime": "33m lalu",
+        "externalId": "4951278"
       }
     },
     {
@@ -237,17 +237,17 @@
       "role": "Aesthetic Microblogger",
       "avatar": "retro_bot",
       "status": "WAITING",
-      "todayCount": 1,
+      "todayCount": 0,
       "dailyTarget": 2,
-      "nextSlot": "Slot 2: 19:18 WITA",
-      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 2: 19:18 WITA.",
+      "nextSlot": "Slot 1: 10:46 WITA",
+      "speech": "🕒 Standby di meja. Jadwal berikutnya: Slot 1: 10:46 WITA.",
       "lastPost": {
-        "id": 4215,
-        "text": "2002: You bought software. 3MB executable, CD-ROM. Ran offline on your Pentium III. Owned it forever",
+        "id": 4218,
+        "text": "Tumblr question for anyone who uses a computer for work or creative projects:\n\nIs it just me, or has",
         "status": "success",
-        "time": "2026-10-28T07:34:50.359Z",
-        "relativeTime": "1j lalu",
-        "externalId": "831702080803799040"
+        "time": "2026-10-30T15:23:47.378Z",
+        "relativeTime": "16j lalu",
+        "externalId": "831912771207725056"
       }
     },
     {
@@ -266,234 +266,234 @@
       "nextSlot": "Target Terpenuhi",
       "speech": "☕ Kuota hari ini (1/1) beres bos! Istirahat dulu.",
       "lastPost": {
-        "id": 5156,
-        "text": "Nothing is more frustrating than a \"free\" web tool hitting you with a paywall at 99% progress.\n\nYour device hardware is plenty powerful. helpmyimg.com does 100% local browser WASM execution, combine, split, compress, convert, remove white backgrounds, no signups, no paywalls in milliseconds.\n\nWhat is the most absurd so",
+        "id": 5159,
+        "text": "The modern web subscription model for basic single-purpose utilities is completely broken.\n\nYour device hardware is plenty powerful. In-Browser Video Compressor does Hardware-accelerated browser compression via WebGPU/WebCodecs, zero file size limits, zero uploads in milliseconds.\n\nWhat utility tool do you wish ran 100",
         "status": "success",
-        "time": "2026-10-27T23:39:25.526Z",
-        "relativeTime": "9j lalu",
-        "externalId": "117515511713847881"
+        "time": "2026-10-31T02:06:46.090Z",
+        "relativeTime": "5j lalu",
+        "externalId": "117533079234812206"
       }
     }
   ],
   "recentActivity": [
     {
-      "id": "instagram-2515",
+      "id": "instagram-2518",
       "platform": "instagram",
       "platformName": "Instagram",
       "platformIcon": "📸",
       "accountName": "Sharesa Space",
-      "text": "Website bisnis yang cepat dan tools digital yang efisien adalah kunci konversi 2026. Kunjungi link di bio @sharesa.space untuk solusi lengkapnya!",
+      "text": "**Website lemot? 🚨 80% calon pembeli kabur!**\n\nSadar tidak, website bisnis yang lambat & jadul itu ibarat \"lubang\" besar yang bikin calon pembeli pergi? 🌬️ Mereka datang, lihat loading, langsung beralih ke kompetitor. Potensi kerugiannya ",
       "status": "success",
-      "time": "2026-10-28T08:54:49.345Z",
+      "time": "2026-10-31T07:27:39.895Z",
       "relativeTime": "2m lalu"
     },
     {
-      "id": "instagram-2514",
+      "id": "instagram-2517",
       "platform": "instagram",
       "platformName": "Instagram",
       "platformIcon": "📸",
       "accountName": "Tranvas",
-      "text": "Dopamine detoxes fail without friction architecture. 🧠\n\nStop relying on raw willpower. Design your workspace so focus becomes the path of least resistance.\n\nSave this guide for your next reset 📌 and share it with a friend drowning in tab ",
+      "text": "**Stop running on the busywork hamster wheel!** Feeling overwhelmed by tasks, but sensing zero real progress? This isn't about working harder, but smarter. Most 'busy' is just distraction. Learn how to transform endless activity into genuin",
       "status": "success",
-      "time": "2026-10-28T07:40:51.422Z",
-      "relativeTime": "1j lalu"
+      "time": "2026-10-31T07:19:07.661Z",
+      "relativeTime": "10m lalu"
     },
     {
-      "id": "nostr-20",
-      "platform": "nostr",
-      "platformName": "Nostr",
-      "platformIcon": "⚡",
-      "accountName": "Adhlil",
-      "text": "Discussions around mental health are vital. Let's talk about digital fatigue – specifically the mental toll of predatory SaaS. Paying $20/month for basic PDF ops or watching your QR codes expire is not 'service'; it's engineered dependency ",
-      "status": "success",
-      "time": "2026-10-28T07:35:16.746Z",
-      "relativeTime": "1j lalu"
-    },
-    {
-      "id": "threads-958",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "Sharesa Space",
-      "text": "Lagi urus dokumen pajak atau draft kontrak kerja? Hati-hati PDF converter gratisan! File sensitif macam SPT atau rekening koran, diupload ke server luar. Bahaya banget kalau bocor. HandleMyFile proses semua PDF (gabung, pisah, konversi) 100",
-      "status": "success",
-      "time": "2026-10-28T07:35:13.098Z",
-      "relativeTime": "1j lalu"
-    },
-    {
-      "id": "devto-2756",
+      "id": "devto-2759",
       "platform": "devto",
       "platformName": "DEV.TO",
       "platformIcon": "👩‍💻",
       "accountName": "thisran",
-      "text": "The 500MB Trap: Why We Moved Video Compression from Cloud to Browser with WebCodecs",
+      "text": "Show DEV: SolveMyMedia – No-Upload, Hardware-Accelerated Video Compression",
       "status": "success",
-      "time": "2026-10-28T07:34:52.841Z",
-      "relativeTime": "1j lalu"
+      "time": "2026-10-31T06:56:18.526Z",
+      "relativeTime": "33m lalu"
     },
     {
-      "id": "tumblr-4215",
-      "platform": "tumblr",
-      "platformName": "Tumblr",
-      "platformIcon": "📝",
-      "accountName": "airanfadh",
-      "text": "2002: You bought software. 3MB executable, CD-ROM. Ran offline on your Pentium III. Owned it forever",
-      "status": "success",
-      "time": "2026-10-28T07:34:50.359Z",
-      "relativeTime": "1j lalu"
-    },
-    {
-      "id": "bluesky-2808",
-      "platform": "bluesky",
-      "platformName": "Bluesky",
-      "platformIcon": "🦋",
-      "accountName": "khaithisran.bsky.social",
-      "text": "3+ min cloud upload vs 0.3s browser WASM. Brutal latency flex. Why over-engineer?\n\nSick of QR generators holding your biz hostage for $39/mo? My tool does 37 ISO codes, 100% client-side, offline, forever. No signups.\n\nWorst dark pattern you",
-      "status": "success",
-      "time": "2026-10-28T07:31:56.800Z",
-      "relativeTime": "1j lalu"
-    },
-    {
-      "id": "threads-957",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "adhlil.co",
-      "text": "Semoga Allah selalu melapangkan rezeki kita dari pintu-pintu tak terduga. Mari renungkan, apakah ada rezeki lain yang justru kita dapatkan saat sedang tidak mengejar apa-apa? Bagikan renungan Anda.",
-      "status": "success",
-      "time": "2026-10-28T01:48:27.296Z",
-      "relativeTime": "7j lalu"
-    },
-    {
-      "id": "threads-956",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "adhlil.co",
-      "text": "Firman Allah: \"Barang siapa bertakwa kepada Allah niscaya Dia akan membukakan jalan keluar baginya, dan Dia memberinya rezeki dari arah yang tidak disangka-sangkanya.\" (QS. At-Talaq: 3). Ini pengingat, bahwa ketenangan hati kita juga bagian",
-      "status": "success",
-      "time": "2026-10-28T01:47:59.569Z",
-      "relativeTime": "7j lalu"
-    },
-    {
-      "id": "threads-955",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "adhlil.co",
-      "text": "Kita habiskan energi mengejar, merancang strategi, hingga lupa: hakikat rezeki itu datang dari Sang Maha Pemberi. Bukan hanya soal usaha, tapi juga seberapa besar tawakkal kita pada skenario-Nya.",
-      "status": "success",
-      "time": "2026-10-28T01:47:32.320Z",
-      "relativeTime": "7j lalu"
-    },
-    {
-      "id": "threads-954",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "adhlil.co",
-      "text": "Kadang, rezeki datang bukan dari arah yang kita kejar mati-matian.",
-      "status": "success",
-      "time": "2026-10-28T01:45:32.907Z",
-      "relativeTime": "7j lalu"
-    },
-    {
-      "id": "mastodon-5156",
-      "platform": "mastodon",
-      "platformName": "Mastodon",
-      "platformIcon": "🐘",
-      "accountName": "khaithisran",
-      "text": "Nothing is more frustrating than a \"free\" web tool hitting you with a paywall at 99% progress.\n\nYour device hardware is plenty powerful. helpmyimg.com does 100% local browser WASM execution, combine, split, compress, convert, remove white b",
-      "status": "success",
-      "time": "2026-10-27T23:39:25.526Z",
-      "relativeTime": "9j lalu"
-    },
-    {
-      "id": "threads-953",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "Tranvas",
-      "text": "Punya sistem terintegrasi yang memangkas 'noise' itu krusial. Bukan kerja keras 14 jam, tapi kerja cerdas 5 jam yang berdampak besar. Kamu di tim mana: banting tulang 14 jam atau taktis 5 jam dengan sistem rapi?",
-      "status": "success",
-      "time": "2026-10-27T12:54:03.247Z",
-      "relativeTime": "20j lalu"
-    },
-    {
-      "id": "threads-952",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "Tranvas",
-      "text": "Terjebak rutinitas tanpa sistem cuma bikin burnout. Tugas numpuk, otak macet. Kita bangun @tranvas karena percaya: produktivitas itu tentang efisiensi, bukan durasi kerja.",
-      "status": "success",
-      "time": "2026-10-27T12:53:36.932Z",
-      "relativeTime": "20j lalu"
-    },
-    {
-      "id": "instagram-2513",
+      "id": "instagram-2516",
       "platform": "instagram",
       "platformName": "Instagram",
       "platformIcon": "📸",
       "accountName": "Adhlil (adhlil.co)",
-      "text": "✨ **Lelahmu Bukan Sia-sia, Tapi Bekal Berharga!**\n\nPernahkah merasa penat di tengah hiruk pikuk pekerjaan? Wajar, dunia memang ladang ujian. Tapi ingat, setiap peluh adalah investasi akhirat. 💪 Jadikan lelahmu ibadah, insyaAllah jadi tangg",
+      "text": "**Bumi ini hanyalah persinggahan.**\n\nTerasa lelah, penat dengan hiruk pikuk dunia? Wajar, ini memang tempatnya berlelah-lelah. Ujian datang silih berganti menguji iman dan kesabaran kita.\n\nNamun, ingatlah sahabat, semua penat ini ada ujungn",
       "status": "success",
-      "time": "2026-10-27T12:53:26.975Z",
-      "relativeTime": "20j lalu"
+      "time": "2026-10-31T02:38:34.064Z",
+      "relativeTime": "4j lalu"
     },
     {
-      "id": "threads-951",
+      "id": "threads-972",
       "platform": "threads",
       "platformName": "Threads",
       "platformIcon": "🧵",
-      "accountName": "Tranvas",
-      "text": "Itu cuma bukti kamu belum pakai leverage. Otak kita dididik 'makin sibuk, makin sukses'. Salah besar. Era sekarang: siapa paling taktis, dia yang menang.",
+      "accountName": "adhlil.co",
+      "text": "Seringkali kita terlalu fokus mengejar 'rezeki' berupa angka dan pencapaian, sampai lupa esensinya. Mata lelah, hati kering, seolah harta adalah satu-satunya tujuan. Padahal, rezeki itu luas: kesehatan, keluarga harmonis, teman baik, dan ke",
       "status": "success",
-      "time": "2026-10-27T12:53:11.363Z",
-      "relativeTime": "20j lalu"
+      "time": "2026-10-31T02:35:10.979Z",
+      "relativeTime": "4j lalu"
     },
     {
-      "id": "threads-950",
-      "platform": "threads",
-      "platformName": "Threads",
-      "platformIcon": "🧵",
-      "accountName": "Tranvas",
-      "text": "Kerja 14 jam bukan lagi bukti produktif.",
+      "id": "mastodon-5159",
+      "platform": "mastodon",
+      "platformName": "Mastodon",
+      "platformIcon": "🐘",
+      "accountName": "khaithisran",
+      "text": "The modern web subscription model for basic single-purpose utilities is completely broken.\n\nYour device hardware is plenty powerful. In-Browser Video Compressor does Hardware-accelerated browser compression via WebGPU/WebCodecs, zero file s",
       "status": "success",
-      "time": "2026-10-27T12:52:43.388Z",
-      "relativeTime": "20j lalu"
+      "time": "2026-10-31T02:06:46.090Z",
+      "relativeTime": "5j lalu"
     },
     {
-      "id": "tumblr-4214",
+      "id": "tumblr-4218",
       "platform": "tumblr",
       "platformName": "Tumblr",
       "platformIcon": "📝",
       "accountName": "airanfadh",
-      "text": "🛸 DECLASSIFIED ALIEN REPORT / INTERGALACTIC EXPEDITION LOG\n\nObservation Log 743-Alpha: The indigeno",
+      "text": "Tumblr question for anyone who uses a computer for work or creative projects:\n\nIs it just me, or has",
       "status": "success",
-      "time": "2026-10-27T12:37:19.417Z",
-      "relativeTime": "20j lalu"
+      "time": "2026-10-30T15:23:47.378Z",
+      "relativeTime": "16j lalu"
     },
     {
-      "id": "devto-2755",
+      "id": "threads-971",
+      "platform": "threads",
+      "platformName": "Threads",
+      "platformIcon": "🧵",
+      "accountName": "Tranvas",
+      "text": "4 jam atur Notion, kerja asli 0%. Otak kita hobi menipu dengan kesibukan palsu. Merasa produktif, padahal cuma nge-desain",
+      "status": "success",
+      "time": "2026-10-30T14:40:27.166Z",
+      "relativeTime": "16j lalu"
+    },
+    {
+      "id": "bluesky-2813",
+      "platform": "bluesky",
+      "platformName": "Bluesky",
+      "platformIcon": "🦋",
+      "accountName": "khaithisran.bsky.social",
+      "text": "Nothing is more frustrating than a \"free\" web tool hitting you with a paywall at 99% progress.\n\nYour device hardware is plenty powerful. tranvas.com does Fast, unified life OS that actually works without corporate bloatware, AI wrappers, an",
+      "status": "success",
+      "time": "2026-10-30T14:37:18.172Z",
+      "relativeTime": "16j lalu"
+    },
+    {
+      "id": "devto-2758",
       "platform": "devto",
       "platformName": "DEV.TO",
       "platformIcon": "👩‍💻",
       "accountName": "thisran",
-      "text": "ShowDev: HelpMyIMG — In-Browser WebAssembly Image Suite",
+      "text": "Moving FFmpeg Client-Side: Why We Ditched Cloud For WASM Media Processing",
       "status": "success",
-      "time": "2026-10-27T11:03:52.903Z",
-      "relativeTime": "21j lalu"
+      "time": "2026-10-30T11:41:49.593Z",
+      "relativeTime": "19j lalu"
     },
     {
-      "id": "instagram-2512",
-      "platform": "instagram",
-      "platformName": "Instagram",
-      "platformIcon": "📸",
-      "accountName": "Tranvas",
-      "text": "Your brain cannot survive 40 open tabs.\n\nYou aren't burned out from working hard; you are drained by constant micro-toggling between scattered tools.\n\nWhen your system lives in one visual workspace, flow state becomes natural.\n\nSimpan ini b",
+      "id": "nostr-22",
+      "platform": "nostr",
+      "platformName": "Nostr",
+      "platformIcon": "⚡",
+      "accountName": "Adhlil",
+      "text": "We decry SaaS data grabs, yet many still upload personal media to cloud services just to *convert* or *compress*. They hit you with $20/month subscriptions for basic functions, expiring QR codes, or holding your data hostage. That's not jus",
       "status": "success",
-      "time": "2026-10-27T06:56:10.381Z",
+      "time": "2026-10-30T07:44:20.566Z",
+      "relativeTime": "23j lalu"
+    },
+    {
+      "id": "threads-970",
+      "platform": "threads",
+      "platformName": "Threads",
+      "platformIcon": "🧵",
+      "accountName": "Sharesa Space",
+      "text": "Edit foto KTP/NPWP di web gratisan? Awas, data sensitif bisa bocor! Banyak abai privasi saat edit dokumen identitas, padahal pentingnya sama dengan Kekayaan Intelektual. HelpMyIMG memastikan semua olah gambar, dari hapus background hingga k",
+      "status": "success",
+      "time": "2026-10-30T07:44:03.513Z",
+      "relativeTime": "23j lalu"
+    },
+    {
+      "id": "tumblr-4217",
+      "platform": "tumblr",
+      "platformName": "Tumblr",
+      "platformIcon": "📝",
+      "accountName": "airanfadh",
+      "text": "🛸 DECLASSIFIED ALIEN REPORT / INTERGALACTIC EXPEDITION LOG\n\nObservation: 'Humanity' carries pocket ",
+      "status": "success",
+      "time": "2026-10-30T07:43:35.514Z",
+      "relativeTime": "23j lalu"
+    },
+    {
+      "id": "bluesky-2812",
+      "platform": "bluesky",
+      "platformName": "Bluesky",
+      "platformIcon": "🦋",
+      "accountName": "khaithisran.bsky.social",
+      "text": "The modern web subscription model for basic single-purpose utilities is completely broken.\n\nYour device hardware is plenty powerful. handlemyfile.com does Free in-browser suite: compress, merge, OCR, e-sign & convert Word/Excel in local RAM",
+      "status": "success",
+      "time": "2026-10-30T07:43:33.027Z",
+      "relativeTime": "23j lalu"
+    },
+    {
+      "id": "threads-969",
+      "platform": "threads",
+      "platformName": "Threads",
+      "platformIcon": "🧵",
+      "accountName": "adhlil.co",
+      "text": "Kejujuran dalam bertransaksi sering tergeser obsesi cuan instan. Padahal, Nabi ﷺ bersabda: \"Jika keduanya berlaku jujur dan menjelaskan (cacat barang), maka jual beli mereka diberkahi. Namun jika mereka berdusta dan menyembunyikan (cacat ba",
+      "status": "success",
+      "time": "2026-10-30T01:27:18.877Z",
+      "relativeTime": "1h lalu"
+    },
+    {
+      "id": "mastodon-5158",
+      "platform": "mastodon",
+      "platformName": "Mastodon",
+      "platformIcon": "🐘",
+      "accountName": "khaithisran",
+      "text": "Google's AI search means more ads. 2004: local software, owned forever. 2026: $90/mo for 7 fragmented apps, dark mode locked.\n\ntranvas.com is your fast, unified life OS. 100% client-side WASM, zero telemetry, runs in browser RAM. Reclaim ow",
+      "status": "success",
+      "time": "2026-10-30T00:20:26.657Z",
+      "relativeTime": "1h lalu"
+    },
+    {
+      "id": "threads-968",
+      "platform": "threads",
+      "platformName": "Threads",
+      "platformIcon": "🧵",
+      "accountName": "Tranvas",
+      "text": "Keresahan itu yang memicu lahirnya @tranvas. Bukan cuma software, tapi hasil riset bertahun-tahun untuk merampingkan semua jadi satu 'Life OS' yang tenang. Tujuannya sederhana: biar kita bisa tutup laptop lebih cepat & hidup lebih tenang. J",
+      "status": "success",
+      "time": "2026-10-29T10:15:24.641Z",
+      "relativeTime": "1h lalu"
+    },
+    {
+      "id": "threads-967",
+      "platform": "threads",
+      "platformName": "Threads",
+      "platformIcon": "🧵",
+      "accountName": "Tranvas",
+      "text": "Dulu, kerja rasanya jadi operator call center pribadi. Dari cek tugas di satu tempat, ke habit tracker, lalu pindah ke budgeting. Otak gerah, energi habis cuma buat ngatur sistem, bukan ngasilin output.",
+      "status": "success",
+      "time": "2026-10-29T10:14:58.014Z",
+      "relativeTime": "1h lalu"
+    },
+    {
+      "id": "threads-966",
+      "platform": "threads",
+      "platformName": "Threads",
+      "platformIcon": "🧵",
+      "accountName": "Tranvas",
+      "text": "Capek gonta-ganti 7 aplikasi tiap hari?",
+      "status": "success",
+      "time": "2026-10-29T10:14:29.244Z",
+      "relativeTime": "1h lalu"
+    },
+    {
+      "id": "devto-2757",
+      "platform": "devto",
+      "platformName": "DEV.TO",
+      "platformIcon": "👩‍💻",
+      "accountName": "thisran",
+      "text": "How Tranvas Engineered a Unified, Client-First OS to End Productivity Fragmentation",
+      "status": "success",
+      "time": "2026-10-29T10:13:38.174Z",
       "relativeTime": "1h lalu"
     }
   ]
