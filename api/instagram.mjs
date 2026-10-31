@@ -91,7 +91,7 @@ app.get('/api/instagram/callback', async (req, res) => {
       redirect_uri: redirectUri,
       code: code,
     }));
-    
+
     const tokenData = await tokenRes.json();
     if (tokenData.error) {
       throw new Error(`Token exchange failed: ${tokenData.error.message}`);
@@ -354,7 +354,7 @@ export async function runInstagramPost(accountId, customPrompt = null) {
   // Step 2: Determine if this should be a Video or Carousel
   // USER DIRECTIVE: Stop carousel posts temporarily — 100% FULL VIDEO (High-Retention Reels) ONLY for Instagram!
   const isCarouselDay = false;
-  
+
   let mediaUrls = [];
 
   if (isCarouselDay) {
@@ -386,7 +386,7 @@ export async function runInstagramPost(accountId, customPrompt = null) {
   // Step 4: Publish to Instagram
   const hashtagStr = hashtags.map(h => `#${h}`).join(' ');
   const finalCaption = `${caption}\n\n${hashtagStr}`;
-  
+
   const { publishId, status } = await postToInstagram(mediaUrls, finalCaption, accountId);
 
   // Step 5: Zero-Storage Auto-Purge Pipeline
@@ -440,7 +440,7 @@ app.post('/api/instagram/post-now', async (req, res) => {
         INSERT INTO instagram_history (account_id, caption, status, error_message)
         VALUES (${accountId}, ${customPrompt || 'Manual post'}, 'failed', ${e.message || String(e)})
       `;
-    } catch (_) {}
+    } catch (_) { }
     res.status(500).json({ success: false, error: e.message });
   }
 });
@@ -449,19 +449,19 @@ app.post('/api/instagram/post-now', async (req, res) => {
 
 export async function runInstagramCron(force = false) {
   const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const witaTime = new Date(utcTime + (3600000 * 8)); 
-  
-  const currentHour = witaTime.getHours();
-  const todayStr = witaTime.toISOString().split('T')[0];
-  const currentMinute = witaTime.getMinutes();
-  
+  // Standardize strictly to UTC+8 (WITA) regardless of server host OS timezone
+  const witaMs = now.getTime() + (8 * 3600 * 1000);
+  const witaDate = new Date(witaMs);
+  const currentHour = witaDate.getUTCHours();
+  const currentMinute = witaDate.getUTCMinutes();
+  const todayStr = witaDate.toISOString().split('T')[0];
+
   const totalMinutesLeft = Math.max(1, (24 * 60) - (currentHour * 60 + currentMinute));
   const intervalsLeft = Math.max(1, Math.floor(totalMinutesLeft / 15));
 
   try {
     // Zero-Storage Guard: Keep Supabase clean of any orphaned files older than 30m
-    try { await cleanupOldStorage(); } catch (_) {}
+    try { await cleanupOldStorage(); } catch (_) { }
 
     const globalStatus = await sql`SELECT value FROM instagram_settings WHERE key = 'instagram_automation_enabled'`;
     if (globalStatus[0]?.value === 'false') {
@@ -503,7 +503,7 @@ export async function runInstagramCron(force = false) {
       });
     }
 
-    // Sort accounts so starved accounts (>22 hours since last post) are processed FIRST
+    // Sort accounts so starved accounts (>20 hours since last post) are processed FIRST
     accounts.sort((a, b) => b.hoursSinceLastPost - a.hoursSinceLastPost);
 
     for (const acc of accounts) {
@@ -514,18 +514,18 @@ export async function runInstagramCron(force = false) {
         continue;
       }
 
-      // ── WIDE-SPECTRUM STAGGERED WINDOWS (ALA BUFFER / POSTIZ) ──
-      // Adhlil: Morning / Noon (08:30 - 13:30 WITA)
-      // Tranvas: Midday / Afternoon (11:00 - 17:30 WITA)
-      // Sharesa Space: Afternoon / Evening (14:00 - 22:30 WITA)
+      // ── CLEAN NON-OVERLAPPING DEDICATED WINDOWS ──
+      // Adhlil: Morning / Noon (08:30 - 13:00 WITA)
+      // Tranvas: Afternoon (13:00 - 17:30 WITA)
+      // Sharesa Space: Evening (17:30 - 22:30 WITA)
       let windowConfig;
       const nName = (acc.name || '').toLowerCase();
       if (nName.includes('adhlil') || acc.id === 1) {
-        windowConfig = [8, 30, 13, 30];
+        windowConfig = [8, 30, 13, 0];
       } else if (nName.includes('tranvas') || acc.id === 2) {
-        windowConfig = [11, 0, 17, 30];
+        windowConfig = [13, 0, 17, 30];
       } else {
-        windowConfig = [14, 0, 22, 30];
+        windowConfig = [17, 30, 22, 30];
       }
 
       const [startH, startM, endH, endM] = windowConfig;
@@ -537,13 +537,13 @@ export async function runInstagramCron(force = false) {
         currentHour, currentMinute
       );
 
-      // Starvation protection: If an account hasn't posted in >22h and it's active daytime (08:00 - 23:00 WITA),
-      // or if its scheduled window slot already passed earlier today without posting, catch up immediately!
-      const isStarved = acc.hoursSinceLastPost >= 22 && (currentHour >= 8 && currentHour <= 23);
+      // Starvation protection: If an account hasn't posted in >20h and it's active daytime (08:00 - 23:00 WITA),
+      // or if its scheduled window slot already arrived, or passed earlier today without posting, post immediately!
+      const isStarved = acc.hoursSinceLastPost >= 20 && (currentHour >= 8 && currentHour <= 23);
       const isPastSlotGrace = currentHour >= endH && acc.postsToday === 0 && currentHour < 23;
       const isDue = force || isStarved || targetSlot.isDue || isPastSlotGrace;
 
-      console.log(`[Instagram-Cron] 🎯 ${acc.name}: hoursSinceLast=${acc.hoursSinceLastPost.toFixed(1)}h, isStarved=${isStarved}, Slot target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2,'0')}:${String(currentMinute).padStart(2,'0')}, isDue: ${isDue})`);
+      console.log(`[Instagram-Cron] 🎯 ${acc.name}: hoursSinceLast=${acc.hoursSinceLastPost.toFixed(1)}h, isStarved=${isStarved}, Slot target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}, isDue: ${isDue})`);
 
       if (!isDue) {
         continue;
@@ -564,13 +564,13 @@ export async function runInstagramCron(force = false) {
         const result = await runInstagramPost(acc.id, chosen.custom_prompt);
         // Mark as ran today once successfully completed
         await sql`UPDATE instagram_schedules SET last_run_date = ${todayStr} WHERE id = ${chosen.id}`;
-        
+
         executed.push({ account: acc.name, scheduleId: chosen.id, ...result });
         console.log(`[Instagram-Cron] ✅ Successfully posted for ${acc.name}`);
 
-        // ── SINGLE-ACCOUNT EXECUTION LOCK PER CRON RUN ──
-        console.log(`[Instagram-Cron] 🔒 Dispatched post for ${acc.name}. Locking out other Instagram accounts for this 15-minute cycle.`);
-        break;
+        // Stagger next account execution by 20 seconds to prevent concurrent ffmpeg/upload contention
+        console.log(`[Instagram-Cron] ⏳ Pausing 20s before checking next account to ensure clean, isolated rendering...`);
+        await new Promise(r => setTimeout(r, 20000));
       } catch (postErr) {
         console.error(`[Instagram-Cron] Post failed for ${acc.name}:`, postErr.message);
         await sql`

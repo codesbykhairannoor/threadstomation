@@ -75,6 +75,78 @@ def _get_gemini_keys() -> list[str]:
                 keys.append(v.strip())
     return keys
 
+def _align_gemini_timestamps(audio_path: Path, text: str, api_keys: list[str], dur: float) -> list[Word] | None:
+    """Uses Gemini 2.5 Flash to perform millisecond-precise audio forced alignment for subtitles and kinetic text highlighting."""
+    if not api_keys or not audio_path.exists():
+        return None
+
+    try:
+        raw_audio = audio_path.read_bytes()
+        b64_audio = base64.b64encode(raw_audio).decode('utf-8')
+
+        prompt = f"""You are an ultra-precise audio forced aligner.
+Listen to the audio and find the exact start and end timestamps in seconds for each word in this transcript:
+"{text}"
+
+Rules:
+1. Every word in the transcript must appear in order.
+2. "start" and "end" must be float timestamps in seconds.
+3. "start" must be the exact moment the speaker begins pronouncing the word.
+4. "end" must be the moment the speaker finishes pronouncing the word.
+5. Account for any pauses, breaths, or silence between words.
+
+Return a strict JSON array of objects with keys: "word", "start", "end".
+"""
+
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"inline_data": {"mime_type": "audio/mpeg", "data": b64_audio}},
+                    {"text": prompt}
+                ]
+            }],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.1
+            }
+        }
+        payload_bytes = json.dumps(payload).encode('utf-8')
+
+        for key in api_keys:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}"
+            try:
+                req = urllib.request.Request(
+                    url,
+                    data=payload_bytes,
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=35) as resp:
+                    data = json.loads(resp.read().decode('utf-8'))
+                    raw_json = data["candidates"][0]["content"]["parts"][0]["text"]
+                    items = json.loads(raw_json)
+                    if isinstance(items, list) and len(items) > 0:
+                        words = []
+                        last_end = 0.0
+                        for item in items:
+                            w_text = str(item.get("word", "")).strip()
+                            if not w_text:
+                                continue
+                            start = max(last_end, float(item.get("start", last_end)))
+                            end = max(start + 0.08, float(item.get("end", start + 0.2)))
+                            if dur > 0 and end > dur:
+                                end = min(dur, end)
+                            last_end = end
+                            words.append(Word(w_text, round(start, 3), round(end, 3), "A"))
+                        
+                        expected_count = len(text.split())
+                        if len(words) >= expected_count * 0.7:
+                            return words
+            except Exception:
+                continue
+    except Exception as err:
+        print(f"[Gemini-TTS] ⚠️ Alignment exception: {err}")
+    return None
+
 def _gemini_tts(text: str, out: Path, settings: Settings) -> tuple[Path, list[Word], str]:
     """Synthesizes human-grade Indonesian speech using Google Gemini 2.5 Flash TTS."""
     api_keys = _get_gemini_keys()
@@ -160,10 +232,17 @@ def _gemini_tts(text: str, out: Path, settings: Settings) -> tuple[Path, list[Wo
                 stderr=subprocess.DEVNULL
             )
 
-            # Compute actual duration and generate per-word timing
+            # Compute actual duration and generate millisecond-precise per-word timing
             dur = ffmpeg.duration(mp3_path)
-            tokens = tokenize(text, settings.language)
-            words = estimate_timings(tokens, dur)
+            
+            # Align exact audio word timestamps using Gemini forced alignment
+            words = _align_gemini_timestamps(mp3_path, text, api_keys, dur)
+            if not words:
+                print(f"[Gemini-TTS] ⚠️ Alignment fallback: using estimate_timings")
+                tokens = tokenize(text, settings.language)
+                words = estimate_timings(tokens, dur)
+            else:
+                print(f"[Gemini-TTS] 🎯 Aligned {len(words)} words with millisecond precision")
 
             print(f"[Gemini-TTS] 🎙️ Synthesized {len(raw_pcm)} bytes ({dur:.2f}s) using voice '{voice_name}' (Key #{idx + 1})")
             return mp3_path, words, voice_name
