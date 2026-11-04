@@ -537,11 +537,16 @@ export async function runInstagramCron(force = false) {
         currentHour, currentMinute
       );
 
-      // Starvation protection: If an account hasn't posted in >20h and it's active daytime (08:00 - 23:00 WITA),
-      // or if its scheduled window slot already arrived, or passed earlier today without posting, post immediately!
-      const isStarved = acc.hoursSinceLastPost >= 20 && (currentHour >= 8 && currentHour <= 23);
-      const isPastSlotGrace = currentHour >= endH && acc.postsToday === 0 && currentHour < 23;
-      const isDue = force || isStarved || targetSlot.isDue || isPastSlotGrace;
+      // Window started check: Did this account's window open today?
+      const windowStarted = (currentHour > startH || (currentHour === startH && currentMinute >= startM)) && currentHour <= 23;
+
+      // Starvation protection: If an account hasn't posted in >18h and it's active daytime (08:00 - 23:30 WITA),
+      // or if its window already started/passed earlier today without posting (acc.postsToday === 0),
+      // post immediately without risking runner starvation!
+      const isStarved = acc.hoursSinceLastPost >= 18 && (currentHour >= 8 && currentHour <= 23);
+      const isPastSlotGrace = currentHour >= endH && acc.postsToday === 0 && currentHour <= 23;
+      const isWindowUnposted = windowStarted && acc.postsToday === 0;
+      const isDue = force || isStarved || targetSlot.isDue || isPastSlotGrace || isWindowUnposted;
 
       console.log(`[Instagram-Cron] 🎯 ${acc.name}: hoursSinceLast=${acc.hoursSinceLastPost.toFixed(1)}h, isStarved=${isStarved}, Slot target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}, isDue: ${isDue})`);
 
