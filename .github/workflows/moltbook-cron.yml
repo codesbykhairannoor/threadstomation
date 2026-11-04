@@ -53,3 +53,4 @@ jobs:
           else
             node scripts/moltbook-cron.mjs
           fi
+

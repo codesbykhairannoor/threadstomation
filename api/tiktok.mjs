@@ -380,7 +380,7 @@ app.post('/api/tiktok/post-now', async (req, res) => {
         INSERT INTO tiktok_history (account_id, caption, status, error_message)
         VALUES (${accountId}, ${customPrompt || 'Manual post'}, 'failed', ${e.message})
       `;
-    } catch (_) {}
+    } catch (_) { }
     res.status(500).json({ success: false, error: e.message });
   }
 });
@@ -390,8 +390,8 @@ app.post('/api/tiktok/post-now', async (req, res) => {
 export async function runTikTokCron(force = false, baseUrl = 'https://threadstomation.vercel.app', targetAccount = null) {
   const now = new Date();
   const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const witaTime = new Date(utcTime + (3600000 * 8)); 
-  
+  const witaTime = new Date(utcTime + (3600000 * 8));
+
   const currentHour = witaTime.getHours();
   const todayStr = witaTime.toISOString().split('T')[0];
   const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));

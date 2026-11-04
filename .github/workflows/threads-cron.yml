@@ -68,3 +68,4 @@ jobs:
             ARGS="$ARGS --account ${{ inputs.account }}"
           fi
           node scripts/threads-cron.mjs $ARGS
+

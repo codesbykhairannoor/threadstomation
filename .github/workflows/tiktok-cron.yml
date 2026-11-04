@@ -76,3 +76,4 @@ jobs:
             ARGS="$ARGS --account ${{ inputs.account }}"
           fi
           node scripts/tiktok-cron.mjs $ARGS
+

@@ -4,7 +4,7 @@ import { cleanupOldStorage } from '../lib/supabase_storage.js';
 
 async function main() {
     console.log('[Instagram-Cron-Runner] 📸 Starting Dedicated Instagram Reels Automation Cron...');
-    
+
     const isForce = process.argv.includes('--force');
     const accountArgIdx = process.argv.indexOf('--account');
     const targetAccount = accountArgIdx !== -1 && process.argv[accountArgIdx + 1] ? process.argv[accountArgIdx + 1] : null;

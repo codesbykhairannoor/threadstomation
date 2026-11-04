@@ -16,10 +16,10 @@ async function downloadFile(url, dest) {
     url: url,
     responseType: 'stream'
   });
-  
+
   const writer = fs.createWriteStream(dest);
   response.data.pipe(writer);
-  
+
   return new Promise((resolve, reject) => {
     writer.on('finish', resolve);
     writer.on('error', reject);
@@ -31,7 +31,7 @@ async function main() {
     fs.mkdirSync(fontsDir, { recursive: true });
     console.log(`Created directory: ${fontsDir}`);
   }
-  
+
   try {
     await downloadFile(fontUrl, destPath);
     console.log(`Successfully downloaded Montserrat.ttf`);

@@ -67,3 +67,4 @@ jobs:
             ARGS="$ARGS --account ${{ inputs.account }}"
           fi
           node scripts/facebook-cron.mjs $ARGS
+

@@ -40,7 +40,7 @@ app.use(officeApp);
 
 // Global DB Init Middleware
 app.use(async (req, res, next) => {
-  try { await initDb(); next(); } catch (e) { next(); }
+    try { await initDb(); next(); } catch (e) { next(); }
 });
 
 const PORT = process.env.PORT || 3000;
@@ -183,8 +183,8 @@ app.get('/api/cron', async (req, res) => {
 
     const now = new Date();
     const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const witaTime = new Date(utcTime + (3600000 * 8)); 
-    
+    const witaTime = new Date(utcTime + (3600000 * 8));
+
     const todayStr = witaTime.toISOString().split('T')[0];
     const currentHour = witaTime.getHours();
     const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));
@@ -194,7 +194,7 @@ app.get('/api/cron', async (req, res) => {
         const protocol = host.includes('localhost') ? 'http' : 'https';
         const baseUrl = `${protocol}://${host}`;
 
-        const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{value: 'true'}]);
+        const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{ value: 'true' }]);
         if (globalStatus[0]?.value === 'false') {
             return res.status(200).json({ success: true, status: 'Automation disabled globally.' });
         }
@@ -204,7 +204,7 @@ app.get('/api/cron', async (req, res) => {
             // Fire and forget to prevent Master Cron from timing out
             subCrons.forEach(platform => {
                 fetch(`${baseUrl}/api/${platform}/cron?secret=${expectedSecret}`)
-                    .catch(() => {}); // Ignore disconnects
+                    .catch(() => { }); // Ignore disconnects
             });
             // Wait 1.5 seconds to ensure all requests leave the network interface
             await new Promise(r => setTimeout(r, 1500));
@@ -242,7 +242,7 @@ export async function runThreadsCron(awaitTasks = true, force = false, targetAcc
     const currentHour = parseInt(parts.hour === '24' ? '0' : parts.hour, 10);
     const currentMinute = parseInt(parts.minute, 10);
 
-    const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{value: 'true'}]);
+    const globalStatus = await sql`SELECT value FROM settings WHERE key = 'automation_enabled'`.catch(() => [{ value: 'true' }]);
     if (globalStatus[0]?.value === 'false') {
         return { success: true, status: 'Automation disabled globally.' };
     }
@@ -255,7 +255,7 @@ export async function runThreadsCron(awaitTasks = true, force = false, targetAcc
     }
     const executed = [];
     const pendingTasks = [];
-    
+
     for (const acc of accounts) {
         try {
             const nName = acc.name ? acc.name.toLowerCase() : '';
@@ -324,7 +324,7 @@ export async function runThreadsCron(awaitTasks = true, force = false, targetAcc
                 currentHour, currentMinute
             );
 
-            console.log(`[Threads-Cron] 🎯 ${acc.name}: Slot ${postsToday + 1}/${dailyLimit} target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2,'0')}:${String(currentMinute).padStart(2,'0')}, isDue: ${targetSlot.isDue})`);
+            console.log(`[Threads-Cron] 🎯 ${acc.name}: Slot ${postsToday + 1}/${dailyLimit} target=${targetSlot.formatted} WITA (Now: ${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}, isDue: ${targetSlot.isDue})`);
 
             if (!force && !targetSlot.isDue) {
                 continue;
@@ -353,7 +353,7 @@ export async function runThreadsCron(awaitTasks = true, force = false, targetAcc
                     }
 
                     const remainingCategories = [1, 2, 3, 4, 5].filter(c => !executedCategories.has(c));
-                    const targetCategory = remainingCategories.length > 0 
+                    const targetCategory = remainingCategories.length > 0
                         ? remainingCategories[Math.floor(Math.random() * remainingCategories.length)]
                         : null;
 
@@ -373,13 +373,13 @@ export async function runThreadsCron(awaitTasks = true, force = false, targetAcc
                 } else {
                     sch = pending[Math.floor(Math.random() * pending.length)];
                 }
-                
+
                 const taskPromise = runScheduledTask(sch, todayStr)
                     .then(() => {
                         executed.push({ account: acc.name, scheduleId: sch.id });
                     })
                     .catch(e => console.error(`[Cron-Task] ${acc.name} Error:`, e.message));
-                    
+
                 if (awaitTasks) {
                     pendingTasks.push(taskPromise);
                 }
@@ -430,7 +430,7 @@ async function runScheduledTask(schedule, todayStr = null) {
             imageBase64 = Buffer.from(response.data, 'binary').toString('base64');
         } catch (e) { console.warn('[Task] Image fetch failed:', e.message); }
     }
-        
+
     const content = await generateThreadsContent('threads', imageBase64 || imageUrl, customPrompt, accountId);
     if (content) {
         // Randomized human micro-jitter delay (3s - 7s) to break clockwork request signatures

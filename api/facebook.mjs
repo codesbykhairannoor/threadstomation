@@ -18,12 +18,12 @@ app.use(express.urlencoded({ extended: true }));
 // ── DB INIT MIDDLEWARE ────────────────────────────────────────────────────────
 // Simplified to match working Instagram pattern
 app.use(async (req, res, next) => {
-  try { 
-    await initDb(); 
-    next(); 
-  } catch (e) { 
+  try {
+    await initDb();
+    next();
+  } catch (e) {
     console.error('[Facebook-Init] DB Error:', e.message);
-    next(); 
+    next();
   }
 });
 
@@ -109,10 +109,10 @@ app.get('/api/facebook/callback', async (req, res) => {
 app.get('/api/facebook/status', async (req, res) => {
   const accountId = req.query.accountId;
   try {
-    const autoRow = await sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`.catch(() => [{value:'true'}]);
-    
+    const autoRow = await sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`.catch(() => [{ value: 'true' }]);
+
     if (!accountId || accountId === 'null' || accountId === '' || isNaN(parseInt(accountId))) {
-        return res.json({ facebookToken: false, automation_enabled: autoRow[0]?.value || 'true', schedules: [] });
+      return res.json({ facebookToken: false, automation_enabled: autoRow[0]?.value || 'true', schedules: [] });
     }
 
     const [schedules, lastPost, tokenRow] = await Promise.all([
@@ -286,7 +286,7 @@ app.post('/api/facebook/post-now', async (req, res) => {
 export async function runFacebookCron(force = false, targetAccount = null) {
   const now = new Date();
   const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const witaTime = new Date(utcTime + (3600000 * 8)); 
+  const witaTime = new Date(utcTime + (3600000 * 8));
   const todayStr = witaTime.toISOString().split('T')[0];
   const currentHour = witaTime.getHours();
   const totalMinutesLeft = Math.max(1, (23 - currentHour) * 60 + (60 - witaTime.getMinutes()));
@@ -309,7 +309,7 @@ export async function runFacebookCron(force = false, targetAccount = null) {
         console.log(`[Facebook-Cron] Acc ${acc.name}: Skipping 'caridisinishop' per user request.`);
         continue;
       }
-      
+
       const dailyLimit = 1; // User requested 1x per day synced with IG
 
       const [{ count: postsToday }] = await sql`SELECT COUNT(*) as count FROM facebook_history WHERE account_id = ${acc.id} AND TO_CHAR(created_at AT TIME ZONE 'Asia/Makassar', 'YYYY-MM-DD') = ${todayStr} AND status = 'success'`;
