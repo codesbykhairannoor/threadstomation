@@ -387,7 +387,7 @@ app.post('/api/tiktok/post-now', async (req, res) => {
 
 // ── CRON: CHAOS SCHEDULER ────────────────────────────────────────────────────
 
-export async function runTikTokCron(force = false, baseUrl = 'https://threadstomation.vercel.app') {
+export async function runTikTokCron(force = false, baseUrl = 'https://threadstomation.vercel.app', targetAccount = null) {
   const now = new Date();
   const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
   const witaTime = new Date(utcTime + (3600000 * 8)); 
@@ -403,7 +403,12 @@ export async function runTikTokCron(force = false, baseUrl = 'https://threadstom
       return { success: true, status: 'TikTok automation disabled globally.' };
     }
 
-    const accounts = await sql`SELECT id, name FROM tiktok_accounts WHERE is_active = 1`;
+    let accounts = await sql`SELECT id, name FROM tiktok_accounts WHERE is_active = 1`;
+    if (targetAccount && targetAccount !== 'all') {
+      const query = String(targetAccount).toLowerCase().trim();
+      accounts = accounts.filter(a => String(a.id) === query || (a.name && a.name.toLowerCase().includes(query)));
+      console.log(`[TikTok-Cron] 🎯 Filtered to target account: "${targetAccount}" (${accounts.length} match)`);
+    }
     const executed = [];
 
     for (const acc of accounts) {

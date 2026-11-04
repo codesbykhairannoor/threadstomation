@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const fontsDir = path.join(__dirname, 'lib', 'fonts');
+const fontsDir = path.join(__dirname, '../lib', 'fonts');
 const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf';
 const destPath = path.join(fontsDir, 'Montserrat.ttf');
 

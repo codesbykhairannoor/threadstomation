@@ -283,7 +283,7 @@ app.post('/api/facebook/post-now', async (req, res) => {
 
 // ── CRON ──────────────────────────────────────────────────────────────────────
 
-export async function runFacebookCron(force = false) {
+export async function runFacebookCron(force = false, targetAccount = null) {
   const now = new Date();
   const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
   const witaTime = new Date(utcTime + (3600000 * 8)); 
@@ -295,7 +295,12 @@ export async function runFacebookCron(force = false) {
     const autoRow = await sql`SELECT value FROM facebook_settings WHERE key = 'automation_enabled'`;
     if (autoRow[0]?.value === 'false') return { success: true, status: 'Automation disabled' };
 
-    const accounts = await sql`SELECT id, name FROM facebook_accounts WHERE is_active = 1`;
+    let accounts = await sql`SELECT id, name FROM facebook_accounts WHERE is_active = 1`;
+    if (targetAccount && targetAccount !== 'all') {
+      const query = String(targetAccount).toLowerCase().trim();
+      accounts = accounts.filter(a => String(a.id) === query || (a.name && a.name.toLowerCase().includes(query)));
+      console.log(`[Facebook-Cron] 🎯 Filtered to target account: "${targetAccount}" (${accounts.length} match)`);
+    }
     const executed = [];
 
     for (const acc of accounts) {

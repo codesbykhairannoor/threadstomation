@@ -224,7 +224,7 @@ app.get('/api/cron', async (req, res) => {
 });
 
 // ── ISOLATED THREADS CRON (FOR GITHUB ACTIONS) ─────────────────────────────────
-export async function runThreadsCron(awaitTasks = true, force = false) {
+export async function runThreadsCron(awaitTasks = true, force = false, targetAccount = null) {
     const now = new Date();
     // Gunakan Intl DateTimeFormat untuk penentuan waktu WITA (Asia/Makassar, UTC+8) yang 100% presisi di semua environment
     const witaFormatter = new Intl.DateTimeFormat('en-CA', {
@@ -247,7 +247,12 @@ export async function runThreadsCron(awaitTasks = true, force = false) {
         return { success: true, status: 'Automation disabled globally.' };
     }
 
-    const accounts = await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
+    let accounts = await sql`SELECT id, name FROM accounts WHERE is_active = 1`;
+    if (targetAccount && targetAccount !== 'all') {
+        const query = String(targetAccount).toLowerCase().trim();
+        accounts = accounts.filter(a => String(a.id) === query || (a.name && a.name.toLowerCase().includes(query)));
+        console.log(`[Threads-Cron] 🎯 Filtered to target account: "${targetAccount}" (${accounts.length} match)`);
+    }
     const executed = [];
     const pendingTasks = [];
     

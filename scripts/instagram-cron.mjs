@@ -6,6 +6,8 @@ async function main() {
     console.log('[Instagram-Cron-Runner] 📸 Starting Dedicated Instagram Reels Automation Cron...');
     
     const isForce = process.argv.includes('--force');
+    const accountArgIdx = process.argv.indexOf('--account');
+    const targetAccount = accountArgIdx !== -1 && process.argv[accountArgIdx + 1] ? process.argv[accountArgIdx + 1] : null;
     let hasErrors = false;
 
     try {
@@ -17,10 +19,10 @@ async function main() {
         await cleanupOldStorage().catch(e => console.warn('[Instagram-Cron-Runner] Storage cleanup note:', e.message));
 
         console.log('\n=========================================');
-        console.log(`📸 EXECUTING INSTAGRAM AUTOMATION (Force: ${isForce})`);
+        console.log(`📸 EXECUTING INSTAGRAM AUTOMATION (Force: ${isForce}, Account: ${targetAccount || 'all'})`);
         console.log('=========================================');
 
-        const result = await runInstagramCron(isForce);
+        const result = await runInstagramCron(isForce, targetAccount);
         console.log('[Instagram-Cron-Runner] 📊 Result:', JSON.stringify(result, null, 2));
 
     } catch (fatalErr) {

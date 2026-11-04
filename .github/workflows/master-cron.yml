@@ -1,9 +1,9 @@
-name: Master Cron (Threads & IG)
+name: Master Watchdog Cron (All Platforms)
 
 on:
   schedule:
-    # Single clean 15-minute schedule to ensure GitHub Actions scheduler does not drop queue
-    - cron: '5,20,35,50 * * * *'
+    # Runs as a global backup watchdog every 6 hours, allowing dedicated per-platform crons to run unhindered
+    - cron: '0 */6 * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:

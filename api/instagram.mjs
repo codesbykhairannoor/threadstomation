@@ -447,7 +447,7 @@ app.post('/api/instagram/post-now', async (req, res) => {
 
 // ── CRON: AUTOMATION SCHEDULER ────────────────────────────────────────────────
 
-export async function runInstagramCron(force = false) {
+export async function runInstagramCron(force = false, targetAccount = null) {
   const now = new Date();
   // Standardize strictly to UTC+8 (WITA) regardless of server host OS timezone
   const witaMs = now.getTime() + (8 * 3600 * 1000);
@@ -468,7 +468,12 @@ export async function runInstagramCron(force = false) {
       return { success: true, status: 'Instagram automation disabled globally.' };
     }
 
-    const rawAccounts = await sql`SELECT id, name FROM instagram_accounts WHERE is_active = 1`;
+    let rawAccounts = await sql`SELECT id, name FROM instagram_accounts WHERE is_active = 1`;
+    if (targetAccount && targetAccount !== 'all') {
+      const query = String(targetAccount).toLowerCase().trim();
+      rawAccounts = rawAccounts.filter(a => String(a.id) === query || (a.name && a.name.toLowerCase().includes(query)));
+      console.log(`[Instagram-Cron] 🎯 Filtered to target account: "${targetAccount}" (${rawAccounts.length} match)`);
+    }
     const executed = [];
 
     // ── STARVATION-AWARE ACCOUNT ENRICHMENT & PRIORITY QUEUE ──

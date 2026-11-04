@@ -7,6 +7,16 @@ on:
     - cron: '12,42 * * * *'
   workflow_dispatch:
     inputs:
+      account:
+        description: 'Target Instagram Account'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - adhlil
+          - tranvas
+          - sharesaspace
       force:
         description: 'Force run immediately (bypass daily limit / window check)'
         type: boolean
@@ -74,8 +84,11 @@ jobs:
           PYTHONUTF8: '1'
           PYTHONIOENCODING: 'utf-8'
         run: |
+          ARGS=""
           if [ "${{ inputs.force }}" = "true" ]; then
-            node scripts/instagram-cron.mjs --force
-          else
-            node scripts/instagram-cron.mjs
+            ARGS="$ARGS --force"
           fi
+          if [ -n "${{ inputs.account }}" ] && [ "${{ inputs.account }}" != "all" ]; then
+            ARGS="$ARGS --account ${{ inputs.account }}"
+          fi
+          node scripts/instagram-cron.mjs $ARGS

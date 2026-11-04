@@ -44,7 +44,10 @@ instagram-*.jpg
 
 
 .env*
-TOKENS_BACKUP.md
+docs/TOKENS_BACKUP.md
 cthvideo/
 *.mp4
 output_videos/
+__pycache__/
+*.pyc
+
